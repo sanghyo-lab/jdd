@@ -312,6 +312,14 @@
       "description": "Shop retained initial AVAILABLE coupon display after order/cancel although actual database status is USED, obscuring the intentional VOC06 demonstration.",
       "resolution": "Refresh customer coupons after successful order/payment/cancel and keep explicit coupon read enabled while preserving the submitted checkout intent.",
       "verification": "594f753 real Chromium/HTTP shop8 checks passed on build81fc1c41bd04-028f6e9a6796, including USED after order and after cancel, payment/refund idempotency and mobile390; PostgreSQL/log/source comparison passes. Root final integrated browser review is pending."
+    },
+    {
+      "id": "LEAD-025",
+      "owner": "voc",
+      "status": "VERIFIED",
+      "description": "A product found by exact ID beyond the first100 entries disappears from the shop selection after order/payment/cancel refresh replaces the list. Actual browser saw an empty selected product.",
+      "resolution": "Retain the explicitly found or restored product ID, retrieve its current state when absent from page one, and control selection using the preserved checkout intent.",
+      "verification": "Actual before-browser failure retained in leader-browser-shop-02; production TypeScript/build passes and strengthened real Chromium/HTTP9 checks pass in leader-browser-shop-03, including preserved selection after mutations and reload. Original eight checks and DB/log/source comparison remain preserved. Full publication follows this unit; no model calls."
     }
   ]
 }

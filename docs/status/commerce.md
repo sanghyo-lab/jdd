@@ -22,6 +22,14 @@
 
 
 
+
+## 2026-09-22T07:56:58+09:00 — 현재 통합 빌드의 커머스 반복·PC/모바일 직접 검증
+
+- 현재 공유 d642878/buildId d642878cc1df-8a2f24c62e13에서 VOC-01~06 각3회, VOC-07 실제 독립 트랜잭션20회와 정상/경계/권한 대조를 재통과했다. DB·로그·실행소스의 같은 빌드를 대조했으며 원문은 `runtime/submission/commerce-reproductions/20260921T225204.326034Z-business.json`과 `20260921T225307.043328Z-inventory.json`이다.
+- 실제 PostgreSQL HTTP 계약18개는 새 실행20.859초/종료0/제외0(`commerce-http-postgresql-current/`). 실제 shop 화면8개와 주문/결제/환불 각1행·업무로그7줄·재고10·USED쿠폰·실행소스가 일치했다. 추가 상품 선택 표시 오류 LEAD-025를 수정하고 실제 PC/mobile/reload9개를 재통과했다. 커머스의 의도한 일곱 결함은 유지했다.
+- 첫 helper 준비는 실행 재현설정 false로 실패했다. 로컬설정·재기동 후 새prefix의 실제 준비·VOC 복구를18.223초에 통과했으며 실패와 기존 자료를 보존했다. model/OAuth/API0을 유지했다. 리더 상세 검토·Agent 요청은 [lead 상태](lead.md)에 기록했으며 다른 담당자의 완료는 대신 작성하지 않는다.
+- 실제 모델 전체 검증/담당자 완료·리더 최종승인이 남아 commerce.json IN_PROGRESS를 유지한다. 실행 원문은 모두 runtime에 두고 비밀/로그를 Git에 추가하지 않는다.
+
 ## 2026-09-21T22:32:32+09:00 — LEAD-020 공유·새 빌드의 실제 전달/복구 확인
 
 - e237c35의 전체 publish는 종료 0/174.737초다. Python 65개·Java 183개 중 174통과/9조건부 제외·실패/오류 0, 세 앱 재빌드·재기동·실제 PostgreSQL/HTTP/근거 연결을 통과했다. 독립 검사한 전송 소스/테스트의 바이트가 공유 커밋과 일치한다. 현재 buildId는 `e237c3577656-057bb12f48d9`, Agent는 test/mock/mock이며 실제 VOC 모델 검증은 아니다.

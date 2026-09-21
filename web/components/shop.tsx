@@ -15,16 +15,27 @@ const orderLabels: Record<string, string> = { PAYMENT_PENDING: "결제 대기", 
 export function Shop() {
   const [products, setProducts] = useState<Product[]>([]); const [coupons, setCoupons] = useState<Coupon[]>([]); const [orders, setOrders] = useState<Order[]>([]);
   const [customer, setCustomer] = useState(""); const [couponCustomer, setCouponCustomer] = useState(""); const [selected, setSelected] = useState<Order | null>(null);
+  const [productChoice, setProductChoice] = useState("");
   const [intent, setIntent] = useState<OrderIntent | null>(null); const [action, setAction] = useState<ActionIntent | null>(null);
   const [payment, setPayment] = useState<Payment | null>(null); const [refund, setRefund] = useState<Refund | null | undefined>(undefined);
   const [error, setError] = useState(""); const [notice, setNotice] = useState(""); const [busy, setBusy] = useState(false); const working = useRef(false);
+  const lookedUpProduct = useRef<string | null>(null);
   async function refreshCoupons(customerId: string) {
     const data = await api<{ items: Coupon[] }>("/api/commerce/customers/" + encodeURIComponent(customerId) + "/coupons?limit=100");
     setCoupons(data.items); setCouponCustomer(customerId);
   }
-  async function refreshProducts() { const data = await api<{ items: Product[] }>("/api/commerce/products?limit=100"); setProducts(data.items); }
-  useEffect(() => { void refreshProducts().catch(e => setError(e.message));
-    try { const saved = JSON.parse(sessionStorage.getItem("jdd-shop-order") ?? "null"); if (saved?.checkoutKey && saved?.customerId && saved?.items?.length) { setIntent(saved); setCustomer(saved.customerId); } } catch { /* Invalid private browser state is not a server result. */ }
+  async function refreshProducts() {
+    const data = await api<{ items: Product[] }>("/api/commerce/products?limit=100");
+    const id = lookedUpProduct.current;
+    // Keep an explicitly located product beyond page one, with its current stock.
+    if (id && !data.items.some(product => product.id === id)) {
+      const product = await api<Product>("/api/commerce/products/" + encodeURIComponent(id));
+      setProducts([product, ...data.items]);
+    } else setProducts(data.items);
+  }
+  useEffect(() => {
+    try { const saved = JSON.parse(sessionStorage.getItem("jdd-shop-order") ?? "null"); if (saved?.checkoutKey && saved?.customerId && saved?.items?.length) { setIntent(saved); setCustomer(saved.customerId); if (typeof saved.items[0]?.productId === "string") lookedUpProduct.current = saved.items[0].productId; } } catch { /* Invalid private browser state is not a server result. */ }
+    void refreshProducts().catch(e => setError(e.message));
   }, []);
   async function run(job: () => Promise<void>) {
     if (working.current) return; working.current = true; setBusy(true); setError(""); setNotice("");
@@ -70,9 +81,9 @@ export function Shop() {
   return <><div className="page-heading"><div><p className="eyebrow">커머스 시연</p><h1>주문과 처리 결과</h1><p className="muted">합성 상품으로 주문·쿠폰·모의 결제·취소·환불 결과를 확인합니다.</p></div><Link className="button-link primary" href="/tickets">문의 작업실</Link></div>
     {error && <div className="notice error" role="alert">{error}<p className="small">응답을 확인하지 못했다면 주문 목록과 현재 상태를 먼저 조회하세요.</p></div>}{notice && <div className="notice success" role="status">{notice}</div>}
     <div className="shop-columns"><section className="panel"><div className="panel-heading"><h2>주문 만들기</h2><button disabled={busy} onClick={() => void run(refreshProducts)}>상품·재고 새로고침</button></div>
-      <form className="shop-product-search" onSubmit={event=>{event.preventDefault();const data=new FormData(event.currentTarget);void run(async()=>{const product=await api<Product>("/api/commerce/products/"+encodeURIComponent(String(data.get("lookupProductId"))));setProducts(previous=>[product,...previous.filter(item=>item.id!==product.id)]);setNotice("상품을 조회했습니다. 상품 선택에서 확인하세요.");});}}><label>상품 번호 찾기<input name="lookupProductId" required maxLength={200}/></label><button disabled={busy}>상품 번호로 조회</button><p className="small muted">목록에는 처음 100개를 표시합니다. 찾는 상품이 없으면 번호로 조회하세요.</p></form>
+      <form className="shop-product-search" onSubmit={event=>{event.preventDefault();const data=new FormData(event.currentTarget);void run(async()=>{const product=await api<Product>("/api/commerce/products/"+encodeURIComponent(String(data.get("lookupProductId"))));lookedUpProduct.current=product.id;setProducts(previous=>[product,...previous.filter(item=>item.id!==product.id)]);setNotice("상품을 조회했습니다. 상품 선택에서 확인하세요.");});}}><label>상품 번호 찾기<input name="lookupProductId" required maxLength={200}/></label><button disabled={busy}>상품 번호로 조회</button><p className="small muted">기본 목록은 처음 100개입니다. 찾는 상품이 없으면 번호로 추가 조회하세요.</p></form>
       <form className="stack" onSubmit={submitOrder}><label>고객 번호<input name="customerId" required maxLength={200} value={customer} disabled={!!intent} onChange={e=>setCustomer(e.target.value)} placeholder="합성 고객 식별자" /></label>
-        <label>상품<select name="productId" required disabled={!!intent}><option value="">상품 선택</option>{products.map(product=><option key={product.id} value={product.id}>{product.name} · {money(product.price)} · 재고 {product.stockQuantity}개</option>)}</select></label>
+        <label>상품<select name="productId" required disabled={!!intent} value={intent?.items[0]?.productId ?? productChoice} onChange={event=>setProductChoice(event.target.value)}><option value="">상품 선택</option>{products.map(product=><option key={product.id} value={product.id}>{product.name} · {money(product.price)} · 재고 {product.stockQuantity}개</option>)}</select></label>
         <label>수량<input name="quantity" type="number" min="1" step="1" required defaultValue={1} disabled={!!intent} /></label>
         <button type="button" className="secondary align-start" disabled={busy} onClick={()=>void run(async()=>{if(!customer.trim())throw Error("고객 번호를 먼저 입력하세요.");await refreshCoupons(customer);setNotice("고객 쿠폰을 조회했습니다.");})}>고객 쿠폰 조회</button>
         <label>적용 쿠폰<select name="couponId" disabled={!!intent || couponCustomer!==customer}><option value="">쿠폰 사용 안 함</option>{coupons.map(coupon=><option key={coupon.id} value={coupon.id}>{coupon.id} · {coupon.status} · {coupon.discountType==='FIXED'?money(coupon.fixedDiscountAmount??0):(coupon.discountRate??0)+'%'} · 최소 {money(coupon.minOrderAmount)}</option>)}</select></label>

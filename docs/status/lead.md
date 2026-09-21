@@ -17,6 +17,18 @@
 
 
 
+
+## 2026-09-22T07:56:58+09:00 — 통합 공유 뒤 리더 직접 PostgreSQL·화면·38회 재현
+
+- `d642878` 전체 publish 종료0/212.612초, Python70·web19통과, Java208개 중199통과/9조건부제외·실패0이다. 변경 없는 Gradle 결과 재사용과 실제 새 검사를 구분했고 `integrated-publication-junit-runtime.json`에 당시 XML·실행 관측을 보존했다. buildId `d642878cc1df-8a2f24c62e13`의 세 앱 연결을 확인했다.
+- 리더 직접 재현: VOC-01~06 각3회 총18개 종료0/23.902초, VOC-07 실제 독립 PID/transactionId 20회와 대조 종료0/24.817초. 실제 DB·완료 JSONL·실행소스 SHA를 모두 검사했다. 원문 `runtime/submission/commerce-reproductions/20260921T225204.326034Z-business.json`, `20260921T225307.043328Z-inventory.json`이다.
+- 같은 현재 소스의 CommerceHttpTest18개를 별도 PostgreSQL에서 새 실행해 전부 통과/제외0/20.859초. `commerce-http-postgresql-current/`에 XML과 응답을 보존했다. 애플리케이션 DB를 초기화하지 않았다.
+- 실제 helper 준비/복구의 첫 시도는 실행 중 commerce 재현설정 false로 실패했다(`scenario-preparation/actual-4b1f0ba2e54f/`). 기존 값을 보존한 로컬 .env의 재현 플래그만 명시 true로 바꾸고 재기동12.612초 후 새 prefix로 준비·VOC종료/기동·DB snapshot8개 불변을 통과했다(`actual-a437d386bfb7/`,18.223초). API/OAuth0, 조사수7→7, 실패는 보존했다. 유료/모델 활성화는 없었다.
+- 리더가 실제 Agent 읽기 도구142개(DATA107/LOG19/CODE8/POLICY8)를 현재 DB·로그·source로 다시 실행해 runner 비교를 통과했다(`scenario-tools/tools-62cdbf14b09e/`,13.718초). Observation 원문 검사이며 조사/evidence 저장 HTTP나 실제 AI 보고서 품질과 구분한다.
+- 직접 production web: 1440 PC·390 모바일에서 로그인·문의·mock 설정실패 분리·v2 새키/이력·reload·잘못된refresh6형식 거절7개 통과(`runtime/submission/leader-browser-analysis-02/`,8.118초). 첫 mobile capture의 v2 갱신 도중 화면도 보존하고 terminal을 명시 기다려 재검증했다. 실제shop8개·DB1주문/1결제/1환불·7로그·재고10·USED쿠폰·source 대조 통과(`leader-browser-shop-01/`).
+- LEAD-025: 직접 화면에서 번호 조회한 목록 밖 상품이 주문 후 첫100개 목록 갱신으로 선택창에서 사라짐을 확인했다. 브라우저 회귀가 실제 빈선택으로 실패(`leader-browser-shop-02/`,4.695초)한 뒤 명시 조회/저장상품을 현재재고로 추가조회하고 선택 상태를 제어하도록 web/components/shop.tsx를 수정했다. 재조회·동일키·환불·모바일·reload의 강화된9개 통과(`leader-browser-shop-03/`,5.174초); typecheck/production build도 통과했다. 최종 publish로 공유한다.
+- Agent 모델 관측은 존재하는 조사 `0159c0cd-bf61-45f2-b414-abc2fb6f97ea`의 공개 GET 성공·내부 관측404를 직접 기록했다. 제공자 구현/readiness/직접인용·LOG계약 요청은 남아 있다. 07:55 원격 d642878 이후 변경0을 확인했다. 실제 모델ID 답변과 한재홍/김아름의 직접 인수를 기다리며 DONE·APPROVED는 작성하지 않는다.
+
 ## 2026-09-22T07:44:36+09:00 — 화면·실제 재현 runner 통합과 직접 검토
 
 - 81fc1c4 full publish 종료0/280.006초: Python70통과, Java193개 중184통과/9조건부제외, web14통과·실패0. 세 앱 PostgreSQL/HTTP/근거 연결과 buildId `81fc1c41bd04-028f6e9a6796`을 확인했다. 실제 모델 호출0이며 일반 publish를 업무 MVP로 계산하지 않는다.
