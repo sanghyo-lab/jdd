@@ -223,4 +223,10 @@
 - 실제 빌드 `cfd36d1c9044-8fd07a02b0f4`의 보존 데이터로 전체 명령 종료 0. 원문 `runtime/submission/agent-20260921/seven-agent-handoff-02/`의 result.json(VOC-07), business/VOC-01~06.json, business-comparison.json과 `seven-handoff-final.log`. 유료 모델 호출 0회, 일곱 건 모의 모델 총 20회다.
 - 최초 Java 소비 검사는 통과했으나 Python 후처리가 LOG의 content.entry 경로를 잘못 읽어 KeyError로 실패했다. `seven-agent-handoff-01/`·`seven-handoff-run.log`를 보존하고 실제 DTO 경로에 맞게 수정했다. 결제 상태 변조·로그 누락을 복사한 메모리 산출물에 주입했을 때 비교기가 모두 거절함도 확인했다. 원본 데이터는 변경하지 않았다.
 - `d1f92dc`의 리더 Agent 405/404 오류 DTO·회귀·상태/검토와 실행 안내 변경 전체를 읽고 통합했다. 새 정책 생성기의 실제 인수, VOC/web/ngrok, 실제 모델 품질·토큰/비용은 여전히 별도 미검증이다. 역할 완료를 선언하지 않는다.
+
+## 2026-09-21 — 실제 데모 비용 범위 제안
+
+- 일곱 근거 소비 검사 단위를 `0ba2862`로 전체 publish 종료 0 후 공유했다. 원문 `runtime/submission/agent-20260921/seven-handoff-publish.log`. 총 근거 300건은 모의 모델과 실제 PostgreSQL/파일을 사용한 결과이며 실제 AI 품질 결과가 아니다.
+- [DISC-20260921-agent-004](../discussions/DISC-20260921-agent-004-demo-allocation.md)에 Agent $5 / VOC $10 / commerce·lead 합산 $15의 누적 배분과 후보 Luna·호출/시간 제한·수동 첫 검증을 제안했다. 사용자 범위·팀 배분·실제 장부 확인 전 활성화하지 않는다. 제안만으로 다른 PC에 배분을 적용했다고 기록하지 않는다.
+- 미확정 관측·가격/모델 불일치·예산 소진 때 다음 호출을 멈추며 같은 키/조회에는 추가 호출을 하지 않는 구현을 사용한다. 원격 확인과 일반 publish의 유료 호출은 계속 0회다.
 - 실제 개발 세션의 사용자/응답/도구 이벤트 852건을 `runtime/submission/agent-20260921/session/20260921T100624Z/`에 중간 캡처했다. 이메일·비밀 값 검사/가림과 원문 prefix/산출물 SHA·제외 유형을 manifest에 남겼다. 요약이나 미가림 원본과 구분하고 진행 종료 시 갱신한다. Git에는 원시 세션/개인정보를 공유하지 않는다.
