@@ -3,31 +3,131 @@
   "reviewedCommit": null,
   "contentSha256": null,
   "areas": [
-    {"id": "commerce", "paths": [], "summary": ""},
-    {"id": "agent", "paths": [], "summary": ""},
-    {"id": "voc", "paths": [], "summary": ""},
-    {"id": "web", "paths": [], "summary": ""},
-    {"id": "scenarios", "paths": [], "summary": ""},
-    {"id": "runtime", "paths": [], "summary": ""},
-    {"id": "contracts", "paths": [], "summary": ""}
+    {
+      "id": "commerce",
+      "paths": [],
+      "summary": ""
+    },
+    {
+      "id": "agent",
+      "paths": [],
+      "summary": ""
+    },
+    {
+      "id": "voc",
+      "paths": [],
+      "summary": ""
+    },
+    {
+      "id": "web",
+      "paths": [],
+      "summary": ""
+    },
+    {
+      "id": "scenarios",
+      "paths": [],
+      "summary": ""
+    },
+    {
+      "id": "runtime",
+      "paths": [],
+      "summary": ""
+    },
+    {
+      "id": "contracts",
+      "paths": [],
+      "summary": ""
+    }
   ],
   "checks": [
-    {"id": "requirements", "status": "PENDING", "evidence": ""},
-    {"id": "normal-and-errors", "status": "PENDING", "evidence": ""},
-    {"id": "evidence-integrity", "status": "PENDING", "evidence": ""},
-    {"id": "data-isolation", "status": "PENDING", "evidence": ""},
-    {"id": "retries-and-recovery", "status": "PENDING", "evidence": ""},
-    {"id": "ui-flow", "status": "PENDING", "evidence": ""},
-    {"id": "repeatability", "status": "PENDING", "evidence": ""}
+    {
+      "id": "requirements",
+      "status": "PENDING",
+      "evidence": ""
+    },
+    {
+      "id": "normal-and-errors",
+      "status": "PENDING",
+      "evidence": ""
+    },
+    {
+      "id": "evidence-integrity",
+      "status": "PENDING",
+      "evidence": ""
+    },
+    {
+      "id": "data-isolation",
+      "status": "PENDING",
+      "evidence": ""
+    },
+    {
+      "id": "retries-and-recovery",
+      "status": "PENDING",
+      "evidence": ""
+    },
+    {
+      "id": "ui-flow",
+      "status": "PENDING",
+      "evidence": ""
+    },
+    {
+      "id": "repeatability",
+      "status": "PENDING",
+      "evidence": ""
+    }
   ],
   "reproductions": [
-    {"id": "VOC-01", "runs": 0, "passed": 0, "evidence": ""},
-    {"id": "VOC-02", "runs": 0, "passed": 0, "evidence": ""},
-    {"id": "VOC-03", "runs": 0, "passed": 0, "evidence": ""},
-    {"id": "VOC-04", "runs": 0, "passed": 0, "evidence": ""},
-    {"id": "VOC-05", "runs": 0, "passed": 0, "evidence": ""},
-    {"id": "VOC-06", "runs": 0, "passed": 0, "evidence": ""},
-    {"id": "VOC-07", "runs": 0, "passed": 0, "evidence": ""}
+    {
+      "id": "VOC-01",
+      "runs": 0,
+      "passed": 0,
+      "evidence": ""
+    },
+    {
+      "id": "VOC-02",
+      "runs": 0,
+      "passed": 0,
+      "evidence": ""
+    },
+    {
+      "id": "VOC-03",
+      "runs": 0,
+      "passed": 0,
+      "evidence": ""
+    },
+    {
+      "id": "VOC-04",
+      "runs": 0,
+      "passed": 0,
+      "evidence": ""
+    },
+    {
+      "id": "VOC-05",
+      "runs": 0,
+      "passed": 0,
+      "evidence": ""
+    },
+    {
+      "id": "VOC-06",
+      "runs": 0,
+      "passed": 0,
+      "evidence": ""
+    },
+    {
+      "id": "VOC-07",
+      "runs": 0,
+      "passed": 0,
+      "evidence": ""
+    }
   ],
-  "findings": []
+  "findings": [
+    {
+      "id": "LEAD-002",
+      "owner": "commerce",
+      "status": "VERIFIED",
+      "description": "Default PostgreSQL jdd database denies TEMP to commerce; inventory fixture reset failed before HTTP reproduction.",
+      "resolution": "878f602: fixtures/commerce/VOC-07/reset.sql captures scoped order IDs with psql gset and quoted arrays; no TEMP privilege or wider deletion.",
+      "verification": "20260921T085827.981243Z-inventory.json retained failure; 20260921T085927.924315Z-inventory.json records 20/20 actual container repetitions and controls; inventory-reset-existing-20260921.json confirms reset with existing orders. Artifacts under runtime/submission/commerce-reproductions; final project review pending."
+    }
+  ]
 }

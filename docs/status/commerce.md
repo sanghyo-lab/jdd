@@ -51,3 +51,9 @@
 - 실제 원문: `runtime/submission/commerce-reproductions/20260921T085638.823004Z-inventory.json`; 명령 로그 `runtime/submission/commerce-20260921-resumed/commands/20260921T085638.657224Z-inventory-20-committed.log`(26.67초). 이 시간은 검증 실행 시간이며 사람의 조사 시간·절감률이 아니다.
 - 기존 개발 commerce 프로세스는 새 커밋 빌드 기동을 위해 SIGTERM으로 정상 종료했다. 해당 bootRun의 종료 143/래퍼 종료 1은 의도한 프로세스 종료로 원문에 보존했다. 시나리오 실패로 숨기거나 성공으로 바꾸지 않았다.
 - COMMERCE-001/002는 구현·재현 자료를 제공했으며 agent·voc의 직접 접수/소비자 검증을 계속 추적한다. 모델 호출 0회, DONE·APPROVED는 미작성이다.
+
+## 2026-09-21 — 기본 DB의 초기화 권한 오류 수정
+
+- 추가 컨테이너 검증에서 `jdd` DB의 commerce 계정이 TEMP 권한을 갖지 않아 기존 reset.sql이 실패했다. 전용 DB 소유 계정으로 통과한 결과만으로 기본 실행 환경을 보장할 수 없음을 확인했다. 실패 원문은 `runtime/submission/commerce-reproductions/20260921T085827.981243Z-inventory.json`과 container-smoke 명령 로그에 보존했다.
+- 수정 `878f602`: VOC-07 reset.sql은 임시 테이블 대신 psql 변수에 합성 주문 ID 배열을 보존한다. DB 권한은 확대하지 않았고 삭제 범위와 FK 순서를 유지했다.
+- 재검증: 기본 Compose의 실제 HTTP 8080·PostgreSQL `jdd`에서 VOC-07 20/20회 및 정상/복구 대조 통과, 결과 `runtime/submission/commerce-reproductions/20260921T085927.924315Z-inventory.json`. 실행 바이너리 buildId는 `e080390b7157-083e2c0c180d`, 초기화 스크립트 수정은 위 커밋이다. 기존 주문 2건이 있는 같은 접두어의 reset→seed도 주문 0·재고 1·INITIAL 1건을 확인했다(`inventory-reset-existing-20260921.json`).
