@@ -20,6 +20,14 @@
 
 
 
+
+## 2026-09-21T21:40:14+09:00 — MVP 실행기 공유와 실제 거절 확인·내부 관측 보완 범위
+
+- 공통 실행기는 `24da847`로 전체 publish 종료 0/153.221초 후 main에 공유했다. Python 65개 통과, 전체 Gradle check·세 앱 재기동·실제 PostgreSQL/HTTP/근거 연결 통과. 기본 Java 집계는 158개 중 149개 통과·9개 조건부 제외·실패/오류 0이며 변경 없는 검사에는 Gradle 캐시가 적용됐다. buildId `24da8470f8dd-a999e0d5d3a0`, Agent MOCK이다.
+- 공유된 실제 CLI의 명시 live 설정 누락과 준비되지 않은 mock 실행 거절 2건을 이 PC에서 확인했다. 둘 다 종료 1이었고 세 컨테이너 ID·runtime·기존 MVP 결과 존재 여부와 실제 DB의 API/OAuth 호출 0건이 전후 같았다. 검사기 종료 0/1.896초, `mvp-no-activation-published-01/result.json`, `commands/20260921T123602.749952Z-mvp-no-activation-published.log`다. 실제 모델 성공 검증이 아니다.
+- Agent의 마지막 공유 `9c9101d`는 비밀 없는 키 보관 상태 설명이며 모델/내부 runtime 변경은 없다. 리더가 연동에 빠진 Agent RuntimeController의 llm(runtime/provider/configuredModel) 관측과 해당 검사만 보완한다. 현재 활성 모델 선택에 사용한 같은 Spring Environment에서 비밀 없는 세 값만 읽으며 인증 파일·키·어댑터 전송 코드는 변경하지 않는다.
+- 같은 코드/모델 환경인지 판정하기 위한 내부 관측이며 실제 응답 모델·usage나 businessReady를 만들어내지 않는다. 한재홍의 제공자 인수·김아름의 공통 실행/runner 인수는 계속 요청한다. 타인의 수락·DONE을 대신하지 않고 DISC-commerce-002/LEAD-018은 미해소다.
+
 ## 2026-09-21T21:33:00+09:00 — LEAD-018 공통 실행기 보완·독립 실패 경계 검사
 
 - VOC의 직접 P1 수락/중복 편집 없음 확인에 따라 scripts/jdd.py의 실제 MVP 경로와 별도 회귀·실행 안내를 보완했다. 일반 verify/up 대신 명시 live 선택·현재 코드/빌드·세 앱 readiness·worker·어댑터/설정 관측을 검사하고, 자동 check 뒤와 runner 뒤에도 동일성을 확인한다. 준비한 앱을 재기동·교체하거나 로그인하지 않는다.
