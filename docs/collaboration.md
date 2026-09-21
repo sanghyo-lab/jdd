@@ -3,7 +3,7 @@
 이 문서는 AI Agent, 이커머스 애플리케이션, VOC 티켓 관리·AI 연동을 세 명이 나누어 구현하는 작업 기준이다. 저장소는 하나를 사용하고, 사용자가 정한 방식에 따라 모든 개발을 `main`에서 진행한다. 각자 자신의 PC에 clone해서 작업한다. 같은 PC에서 여러 개발 에이전트를 실행할 때에도 독립된 clone을 사용해 각자의 `main`과 작업 파일을 분리한다.
 
 현재는 역할별 goal 시작 지침, 공통 실행 골격과 동기화 도구를 준비한 단계다. `sanghyo-lab`의 GitHub 인증과 이 저장소의 쓰기 권한을 확인했다. 다른 PC의 인증·goal 실행, 팀원 초대, Issue 생성, CI는 아직 설정하지 않았다. [goal 시작 안내](goals/README.md)와 [자동 협업 규칙](autonomous-development.md)을 따른다.
-모든 goal은 [세 담당자 완료 기준](team-completion.md)에 따라 GitHub main의 commerce·agent·voc가 모두 유효한 DONE일 때 종료한다. 자기 담당 완료 후에도 다른 담당자의 연동 요청·변경을 확인하고 필요한 검증·수정을 계속한다.
+모든 goal은 [공동 완료 기준](team-completion.md)에 따라 GitHub main의 세 유효한 DONE과 개발리더 이상효의 유효한 APPROVED를 확인한 뒤 종료한다. 세 DONE 이후에도 리더가 전체 코드를 검사하고 실제 통합 검증·수정·보완을 수행하며, 담당자들은 리더의 지적 처리와 재검증을 계속한다.
 
 ## 1. 담당 범위
 
@@ -12,10 +12,12 @@
 | 한재홍 (A) | AI Agent | `agent-app/`, `agent-core/`, `agent-infra/`, `docs/status/agent.md` | 조사 접수·진행·근거·보고서 API, DB·로그·소스·정책 조사 |
 | 이상효 (B) | 이커머스 애플리케이션 | `commerce-app/`, `commerce-core/`, `commerce-infra/`, `fixtures/commerce/`, `docs/business-policy.md`, `docs/status/commerce.md` | 주문·결제·쿠폰·재고·취소, 7개 장애 조건과 초기 데이터, 추적 로그 |
 | 김아름 (C) | VOC 티켓 관리·AI 연동 | `voc-app/`, `voc-core/`, `voc-infra/`, `web/`, `scenario-runner/`, `docs/status/voc.md` | 티켓 등록·조회·수정, 분석 요청·결과 연결, 문의·리포트 화면, 전체 흐름 검증 |
+| 이상효 (겸임) | 개발리더 | `docs/status/lead*`, 전체 코드·테스트·계약·실행 설정 수정 가능 | 독립 코드 검사·전체 검증, 지적 해결·회귀 검증, 최종 승인 |
 
 A·B·C는 위 담당자의 역할 표기다. 이상효의 GitHub 계정은 `sanghyo-lab`이며 다른 두 사람의 계정은 공유받은 뒤 기록한다. [담당별 구현 문서](roles/README.md)에 기능·전달 자료·완료 기준을 정리했다. API 문서와 루트 Gradle 설정, Compose, CI는 공통 파일이다. 초기 틀은 김아름이 취합하고 한재홍·이상효가 각 앱의 실행 조건을 제공한다. 이후 공통 파일을 바꾸는 작업에는 영향을 받는 담당자를 명시한다.
 
 쿠폰을 포함한 커머스 구현은 이상효가 맡는다. 한재홍은 커머스 코드를 읽고 조사 도구를 구현하며, 커머스 수정이 필요하면 근거와 필요한 변경을 이상효의 작업에 연결한다. 김아름은 티켓을 관리하고 한재홍의 HTTP API를 호출한다.
+이상효의 [개발리더 역할](roles/lee-sanghyo-lead.md)은 같은 commerce goal에서 이어 수행한다. 다른 담당 영역도 직접 검사·수정할 수 있으며 대상·이유·검증과 계약 영향을 리더 상태에 공유한다. 타인의 DONE은 해당 담당자가 갱신한다.
 
 ## 2. 실행 단위와 연결
 
@@ -62,6 +64,7 @@ flowchart LR
 | Issue의 진행 기록 | 변경 동작, 검증 결과, 연동 영향, 공유한 커밋 |
 | 역할별 상태 문서 | 현재 작업, 제공 가능한 기능, 필요한 변경, 다음 작업 |
 | `docs/status/<role>.json` | 담당자별 완료 선언, 검증한 커밋·내용 해시·실제 모델 검증 요약 |
+| `docs/status/lead-review.json`, `lead.json` | 리더의 코드 검사·실제 검증·지적 해결 근거와 최종 승인 |
 | 원격 `main` | 담당자들이 검증한 변경을 push해 공유하는 공통 기준 |
 
 GitHub Issues는 작업과 논의를 추적하는 데 사용한다. 코드와 상태 문서는 `main`의 커밋으로 공유하고, 영향을 받는 담당자는 변경 내용과 검증 결과를 확인한다. [GitHub Issues](https://docs.github.com/en/issues/tracking-your-work-with-issues/about-issues)
@@ -122,7 +125,7 @@ docs/status의 세 역할 상태 문서를 읽는다.
 다른 담당자의 구현이 필요하면 계약과 필요한 변경을 구체적으로 기록하고,
 그동안 진행할 수 있는 독립 작업을 수행한다.
 작업 수, 실행 시간, 모델 사용량의 한도와 종료 조건을 지킨다.
-자기 완료를 공유한 뒤에도 세 담당자가 모두 유효한 DONE이 될 때까지 연동·검증을 계속한다.
+자기 완료를 공유한 뒤에도 리더의 독립 검사·수정·재검증·최종 승인까지 연동·검증을 계속한다.
 최신 main에서 scripts/dev team-check가 성공할 때만 goal을 완료한다.
 ```
 
@@ -132,6 +135,7 @@ docs/status의 세 역할 상태 문서를 읽는다.
 
 - [한재홍 — AI Agent 상태](status/agent.md)
 - [이상효 — 이커머스 상태](status/commerce.md)
+- [이상효 — 개발리더 검토 상태](status/lead.md)
 - [김아름 — VOC·연동 상태](status/voc.md)
 
 ## 6. 통합과 검증

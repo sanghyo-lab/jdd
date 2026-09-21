@@ -6,11 +6,13 @@
 
 | 담당자 | 만드는 것 | 구현 문서 | 주요 소유 경로 |
 | --- | --- | --- | --- |
-| 이상효 | 7개 문제가 재현되는 이커머스와 조사용 데이터·로그·소스 | [이커머스 구현 범위](lee-sanghyo-commerce.md) | `commerce-app/`, `commerce-core/`, `commerce-infra/`, `fixtures/commerce/` |
+| 이상효 | 7개 문제가 재현되는 이커머스와 조사 근거, 개발리더의 전체 검사·수정·최종 검증 | [이커머스](lee-sanghyo-commerce.md), [개발리더](lee-sanghyo-lead.md) | 커머스 소유 경로와 `docs/status/lead*`. 리더로 전체 영역 수정 가능 |
 | 김아름 | VOC 티켓 관리, AI 분석 연동, 리포트·해결방안 화면 | [VOC·연동 구현 범위](kim-areum-voc.md) | `voc-app/`, `voc-core/`, `voc-infra/`, `web/`, `scenario-runner/` |
 | 한재홍 | 소스·로그·DB를 조사해 원인과 해결안을 제시하는 AI Agent | [AI Agent 구현 범위](han-jaehong-agent.md) | `agent-app/`, `agent-core/`, `agent-infra/` |
 
 기존 문서의 역할 기호는 A = 한재홍, B = 이상효, C = 김아름이다.
+이상효는 같은 세션에서 commerce 구현 이후 개발리더 단계를 이어 수행한다.
+세 담당자의 DONE은 리더 최종 검토의 시작 조건이며, 리더의 APPROVED와 team-check 성공까지 모두 goal을 유지한다.
 
 ## 2. 연결되는 인터페이스
 

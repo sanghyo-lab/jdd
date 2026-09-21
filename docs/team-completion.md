@@ -1,10 +1,12 @@
-# GitHub에서 세 담당자의 완료를 확인하는 기준
+# GitHub의 담당자 완료와 개발리더 최종 승인 기준
 
-사용자가 정한 공통 goal 종료 조건은 **이상효·한재홍·김아름이 GitHub main에 모두 완료를 기록하는 것**이다.
-자기 기능을 끝낸 뒤에도 자신의 goal을 완료 처리하지 않는다. 세 담당자의 유효한 완료 기록이 모일 때까지
+공통 goal 종료 조건은 **세 담당자의 유효한 DONE과 개발리더 이상효의 독립 검토·최종 APPROVED가 GitHub main에 모두 있는 것**이다.
+이상효는 commerce 구현과 개발리더를 겸한다. 세 담당자의 DONE은 최종 검토를 시작할 조건이며 프로젝트 완료를 뜻하지 않는다.
+자기 기능을 끝낸 뒤에도 자신의 goal을 완료 처리하지 않는다. 리더의 최종 검증과 승인까지
 새 변경 확인, 연동 요청 처리, 데이터·회귀·통합 검증을 계속한다.
 사람이 중간에 다시 승인할 필요 없이 각 담당자의 PC에서 위임받은 개발 에이전트가 검증 후 자기 기록을 작성한다.
 다른 담당자의 완료를 대신 선언하지 않는다.
+리더는 [전체 코드 검사·수정 권한](roles/lee-sanghyo-lead.md)을 가지고 자기 PC에서 실제 전체 흐름을 새로 검증한다.
 
 ## 실제 동작에 대한 필수 품질 기준
 
@@ -40,8 +42,10 @@ Agent가 실제 근거로 원인·해결안을 제시하는 것이 이 프로젝
 | 이상효 | commerce | [commerce.json](status/commerce.json) |
 | 한재홍 | agent | [agent.json](status/agent.json) |
 | 김아름 | voc | [voc.json](status/voc.json) |
+| 이상효 — 개발리더 겸임 | lead | [lead.json](status/lead.json), [검토·지적 기록](status/lead-review.json) |
 
-각 파일의 상태는 IN_PROGRESS 또는 DONE이다. 설명·진행 상황·연동 요청은 기존 역할별 Markdown에 기록한다.
+담당자 파일의 상태는 IN_PROGRESS 또는 DONE이고, 리더 파일의 상태는 IN_PROGRESS 또는 APPROVED다.
+설명·진행 상황·연동 요청은 역할별 Markdown에 기록한다. 리더는 lead.md와 lead-review.json도 갱신한다.
 IN_PROGRESS는 최초 준비·개발·재작업·외부 입력 대기를 포함하며 구체적인 이유는 Markdown으로 공유한다.
 자기 기능이 끝나도 전체 실제 통합 검증을 통과하기 전에는 DONE을 기록하지 않는다.
 
@@ -63,25 +67,28 @@ VOC-01~07·NORMAL·NEEDS_INPUT·IDEMPOTENCY·RECOVERY의 검증 요약이 필요
 git add -- docs/status/commerce.json
 git commit -m "chore(commerce): record verified role completion"
 ./scripts/dev publish
-./scripts/dev team-check
+./scripts/dev roles-check
 ```
 
 role-done은 최신 main을 동기화하고 미공유 구현 커밋이 없는지 확인한 뒤 verify-mvp를 실제 실행한다.
 실패하면 DONE을 작성하지 않는다. 통과하면 자기 JSON만 갱신한다. commit·push 전 로컬 기록은 팀 완료에 포함되지 않는다.
 publish 도중 다른 사람이 소스를 바꾸면 방금 올린 기록도 STALE로 판정될 수 있다. 최신 코드에서 검증 후 다시 기록한다.
+roles-check가 성공하면 리더 최종 검토 단계로 진행한다. 어떤 역할의 goal도 이 시점에 종료하지 않는다.
 
-## 세 명이 끝날 때까지 반복
+## 리더 최종 승인까지 반복
 
 ```bash
 ./scripts/dev status
 ./scripts/dev team-status
 ```
 
-status와 watch에도 원격의 세 완료 상태가 표시된다. team-status는 최신 GitHub main 한 커밋에서
-세 JSON을 읽어 DONE·IN_PROGRESS·STALE·MISSING·INVALID와 전체 판정을 출력한다. 로컬 파일은 판정에 사용하지 않는다.
+status와 watch에도 원격의 세 완료 상태와 리더 승인이 표시된다. team-status는 최신 GitHub main 한 커밋에서
+네 JSON과 검토 기록을 읽어 DONE·APPROVED·IN_PROGRESS·STALE·MISSING·INVALID와 전체 판정을 출력한다.
+roles-status는 세 담당자 상태만 확인한다. 로컬 미공유 파일은 어느 판정에도 사용하지 않는다.
 
 - 자기 기록이 아직 IN_PROGRESS이면 남은 구현·데이터·검증을 진행한다.
 - 자기 기록이 유효한 DONE이면 goal을 유지하고 상대방의 요청, 통합 실패, 새 커밋을 확인한다.
+  이상효는 세 DONE 이후 전체 코드 검사·독립 검증·수정을 수행하고, 다른 두 담당자는 리더의 지적도 처리한다.
   불필요한 기능을 추가하지 않고 약 60초 간격으로 원격을 확인한다. 변경이 없다면 비용이 큰 동일 검증을 반복하지 않는다.
 - 새 코드·설정·계약·검증 기준이 반영되면 기존 DONE은 자동으로 STALE 판정되어 전체 완료에서 제외된다.
   main을 반영하고 영향 범위를 점검한 후 role-done으로 실제 검증을 다시 수행한다.
@@ -94,21 +101,42 @@ status와 watch에도 원격의 세 완료 상태가 표시된다. team-status�
 철회 이유를 자기 Markdown에 기록하고 JSON과 함께 커밋·publish한다. 다른 사람의 JSON을 대신 수정하지 않는다.
 요청받은 사람은 자신의 상태에 접수·조치·확인 결과를 남긴다.
 
+## 개발리더의 독립 검토와 수정
+
+1. 이상효는 최신 main을 받고 roles-check로 세 담당자의 완료 상태를 확인한다.
+2. [리더 검토 범위](roles/lee-sanghyo-lead.md)에 따라 commerce·agent·voc·web·시나리오·실행 기반·계약을 직접 검사한다.
+   자기 commerce 코드도 제외하지 않는다. 다른 사람의 DONE, 성공 로그, 결과표는 참고 자료다.
+3. 자신의 PC에서 실제 API·PostgreSQL·모델·화면·데이터로 전체 흐름과 정상·예외·복구·반복 재현을 검증한다.
+4. 문제를 LEAD ID로 기록하고 직접 수정하거나 담당자에게 요청한다. 수정 커밋과 회귀 검증을 공유하고
+   각 담당자가 최신 코드의 DONE을 갱신하도록 한다. 리더는 수정 결과도 직접 검증한다.
+5. 필수 검사와 모든 지적 검증이 끝나면 lead-review.json과 lead.md를 커밋·publish한다.
+6. `./scripts/dev lead-approve`로 전체 verify-mvp를 새로 실행한다. 통과하면 생성된 lead.json을 커밋·publish한다.
+7. 최신 main에서 team-check가 성공해야 프로젝트와 각 goal을 완료한다.
+
+lead-approve는 미검토 영역·미해결 지적·반복 검증 부족·오래된 검토 기록·전체 검증 실패를 거부한다.
+검증 중 원격 main이 바뀌어도 승인하지 않는다. 리더 승인은 검증한 코드뿐 아니라 당시의 검토 기록과
+세 담당자 완료 JSON의 Git 객체에도 묶인다. 완료 기록이나 검토 근거가 바뀌면 리더가 다시 확인해야 한다.
+리더가 새 문제를 발견하면 `./scripts/dev lead-reopen`으로 승인을 철회하고 근거와 함께 공유한다.
+이 절차는 위임받은 리더 에이전트가 수행하며 사람의 추가 승인 입력을 요구하지 않는다.
+
 ## 종료 판정
 
 위 필수 품질 기준과 각 역할의 완료 조건을 모두 충족하고,
 깨끗한 최신 main에서 `./scripts/dev team-check`가 **종료 코드 0**을 반환할 때만 goal을 complete로 처리한다.
-이 검사는 fetch한 원격 main의 세 담당자가 모두 DONE이고, 그 기록들이 모두 현재 저장소 내용을 검증했으며,
-필수 실제 모델 시나리오의 성공 요약이 있는지 확인한다. 로컬 미커밋·미공유 변경이나 미반영 원격 변경도 허용하지 않는다.
+이 검사는 fetch한 원격 main의 세 담당자가 모두 DONE이고, 리더가 독립 검토 후 APPROVED를 기록했으며,
+모든 기록이 현재 내용과 검토 근거에 대해 유효한지 확인한다. 각 검증에는 실제 모델 시나리오의 성공 요약이 필요하다.
+로컬 미커밋·미공유 변경이나 미반영 원격 변경도 허용하지 않는다.
 하나라도 미완료·누락·오래된 기록·잘못된 결과이면 0이 아닌 종료 코드로 실패한다.
 
 완료 기록 자체를 커밋하면 커밋 SHA가 바뀌므로, 세 기록의 SHA가 같을 필요는 없다.
 대신 검증한 커밋이 원격 main 이력에 있어야 하고 **docs/status/를 제외한 모든 추적 파일의 내용·경로·모드**가
 현재 원격과 같아야 한다. 코드·테스트·시드·스크립트·설정·계약·goal 기준이 바뀌면 재검증한다.
-진행·완료 기록만 바뀌는 커밋은 다른 담당자의 완료를 무효화하지 않는다. docs/status에는 실행 코드나 검증 기준을 두지 않는다.
+진행·완료 기록만 바뀌는 커밋은 다른 담당자의 DONE을 무효화하지 않는다.
+단, 담당자의 완료 JSON이나 리더 검토 JSON 변경은 리더의 기존 APPROVED를 무효화한다.
+docs/status에는 실행 코드나 검증 기준을 두지 않는다.
 
 이 검사는 공유 기록과 검증 요약의 일관성을 확인한다. 실제 실행을 대신하거나 GitHub 작성자의 신원을 강제하는 인증 장치는 아니다.
-team-check가 성공해도 필수 검증 누락이나 알려진 미해결 문제가 있으면 자기 DONE을 철회하고 작업을 계속한다.
+team-check가 성공해도 필수 검증 누락이나 알려진 미해결 문제가 있으면 자기 DONE 또는 리더 APPROVED를 철회하고 작업을 계속한다.
 각 담당자는 자기 PC에서 실제 검증을 실행하고 사실대로 기록하며, 타인의 DONE을 대필하거나 성공 결과를 만들어 넣지 않는다.
 종료는 마지막 fetch 시점의 main에 대한 판정이다. 종료 후 새 작업을 시작하면 새 goal을 실행한다.
 

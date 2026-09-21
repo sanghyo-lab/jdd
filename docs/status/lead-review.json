@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "reviewedCommit": null,
+  "contentSha256": null,
+  "areas": [
+    {"id": "commerce", "paths": [], "summary": ""},
+    {"id": "agent", "paths": [], "summary": ""},
+    {"id": "voc", "paths": [], "summary": ""},
+    {"id": "web", "paths": [], "summary": ""},
+    {"id": "scenarios", "paths": [], "summary": ""},
+    {"id": "runtime", "paths": [], "summary": ""},
+    {"id": "contracts", "paths": [], "summary": ""}
+  ],
+  "checks": [
+    {"id": "requirements", "status": "PENDING", "evidence": ""},
+    {"id": "normal-and-errors", "status": "PENDING", "evidence": ""},
+    {"id": "evidence-integrity", "status": "PENDING", "evidence": ""},
+    {"id": "data-isolation", "status": "PENDING", "evidence": ""},
+    {"id": "retries-and-recovery", "status": "PENDING", "evidence": ""},
+    {"id": "ui-flow", "status": "PENDING", "evidence": ""},
+    {"id": "repeatability", "status": "PENDING", "evidence": ""}
+  ],
+  "reproductions": [
+    {"id": "VOC-01", "runs": 0, "passed": 0, "evidence": ""},
+    {"id": "VOC-02", "runs": 0, "passed": 0, "evidence": ""},
+    {"id": "VOC-03", "runs": 0, "passed": 0, "evidence": ""},
+    {"id": "VOC-04", "runs": 0, "passed": 0, "evidence": ""},
+    {"id": "VOC-05", "runs": 0, "passed": 0, "evidence": ""},
+    {"id": "VOC-06", "runs": 0, "passed": 0, "evidence": ""},
+    {"id": "VOC-07", "runs": 0, "passed": 0, "evidence": ""}
+  ],
+  "findings": []
+}

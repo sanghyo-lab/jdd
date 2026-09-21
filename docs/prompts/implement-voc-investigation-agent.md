@@ -421,4 +421,6 @@ API 주소·모델명·별도 중계 서버 필요 여부와 실행 한도의 �
 역할 완료에는 실제 모델로 `VOC-01~07`, `NORMAL`, `NEEDS_INPUT`, `IDEMPOTENCY`, `RECOVERY`를 검증한다.
 코드를 공유한 뒤 `scripts/dev role-done agent`로 자기 완료 기록을 만들고 커밋·publish한다.
 [세 담당자 완료 기준](../team-completion.md)에 따라 다른 담당자의 연동·수정을 계속하며,
-GitHub main의 세 역할이 모두 유효한 DONE이고 깨끗한 최신 main에서 `scripts/dev team-check`가 성공할 때만 goal을 종료한다.
+세 역할의 DONE 이후에도 개발리더 이상효의 독립 코드 검사·전체 검증·수정 요청에 대응한다.
+리더가 수정한 최신 코드를 반영해 자기 DONE을 갱신한다. GitHub main에 세 유효한 DONE과 리더 APPROVED가 모두 있고
+깨끗한 최신 main에서 `scripts/dev team-check`가 성공할 때만 goal을 종료한다.

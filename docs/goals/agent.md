@@ -55,4 +55,6 @@ docs/status/agent.md에 제공 가능한 API·도구·오류 코드, 실제 모�
 생성된 자기 완료 JSON을 커밋·publish해 GitHub에 DONE을 전달한다. 이 시점에도 goal을 유지한다.
 [세 담당자 완료 기준](../team-completion.md)에 따라 다른 담당자의 요청·변경을 확인하며 연동·수정·재검증을 계속한다.
 소스·계약·검증 기준이 바뀌면 최신 코드에서 자기 완료를 갱신한다. 문제가 발견되면 role-reopen agent로 철회한다.
-GitHub main의 commerce·agent·voc가 모두 유효한 DONE이고 `./scripts/dev team-check`가 성공해야 goal을 완료한다.
+세 담당자의 DONE 이후에도 개발리더 이상효의 독립 검토·지적 처리·재검증을 지원한다.
+docs/status/lead.md와 lead-review.json을 확인하고, 리더의 수정이 반영되면 최신 코드에서 자기 DONE을 갱신한다.
+GitHub main의 세 유효한 DONE과 리더 APPROVED가 모두 있고 `./scripts/dev team-check`가 성공해야 goal을 완료한다.

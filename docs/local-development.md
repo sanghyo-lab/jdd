@@ -71,10 +71,12 @@ sync는 깨끗한 main에서만 실행된다. 편집 중인 파일이 있으면 
 ./scripts/dev team-check
 ```
 
-team-status는 원격 main의 세 담당자 완료 기록을 읽는다. team-check는 깨끗한 최신 main에서
-현재 저장소 내용을 검증한 세 DONE이 모두 있을 때만 종료 코드 0을 반환한다.
+team-status는 원격 main의 세 담당자 완료 기록과 리더 승인·검토 기록을 읽는다. team-check는 깨끗한 최신 main에서
+현재 저장소 내용을 검증한 세 DONE과 유효한 리더 APPROVED가 모두 있을 때만 종료 코드 0을 반환한다.
 자기 기능 완료는 role-done <role>의 실제 MVP 검증 후 JSON을 커밋·publish해 알린다.
-자기 DONE 이후에도 세 명이 모두 끝날 때까지 연동·검증·수정을 계속한다.
+자기 DONE 이후에도 리더의 독립 코드 검사·전체 검증·수정과 최종 승인까지 작업을 계속한다.
+roles-check는 세 DONE을 확인하는 리더 검토의 시작 조건이다. 이상효는 lead-approve로 공유된 검토 기록을 검사하고
+verify-mvp를 새로 실행한 뒤 리더 승인을 작성한다. 새 문제를 발견하면 lead-reopen으로 철회한다.
 명령·철회·오래된 완료 처리 기준은 [세 담당자 완료 기준](team-completion.md)에 있다.
 
 ## 근거와 실행 산출물

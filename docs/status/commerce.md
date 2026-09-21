@@ -1,7 +1,8 @@
-# 이상효 — 이커머스 작업 상태
+# 이상효 — 이커머스 구현과 개발리더 작업 상태
 
 - 상태: 실행 골격 준비. 업무 기능 미구현, 담당 goal 미시작.
 - 담당자: 이상효 (역할 B)
+- 겸임 책임: [개발리더](../roles/lee-sanghyo-lead.md). 세 담당자 DONE 이후에도 전체 코드 검사·실제 검증·수정을 수행하며 [리더 상태](lead.md)에 기록한다.
 - GitHub 계정: `sanghyo-lab`
 - 작업 브랜치: `main`
 - 완료 선언: [commerce.json](commerce.json)의 IN_PROGRESS. 실제 검증 후 자기 DONE을 공유하고 [세 담당자 완료 기준](../team-completion.md)이 충족될 때까지 goal을 유지한다.
