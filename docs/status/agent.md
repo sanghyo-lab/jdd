@@ -17,6 +17,14 @@
 
 작업 단위가 끝날 때 제공 가능한 기능, 변경한 계약, 실제 검증 명령·결과, 다음 작업을 갱신한다. 실패와 막힌 이유도 함께 기록한다.
 
+## 2026-09-21T20:06:04+09:00 — 외부 입력과 소비자 구현 대기 재확인
+
+- 원격 `0ad4bfd`와 깨끗한 로컬 main이 일치하며 새 변경/논의 답변은 없었다. `team-check` 종료 1, commerce·agent·voc·lead는 모두 IN_PROGRESS다. 실제 실행 원문은 `runtime/submission/agent-20260921/blocking-audit-team-check.*`다.
+- 실제 다음 단계의 차단 조건을 재확인했다. `web/`이 없고 VOC TicketController는 analyses 빈 목록을 반환하며 ScenarioRunner는 미구현 안내 후 종료 2를 내는 골격이다. 소비자의 정책 snapshot·분석/화면/runner 인수와 DISC-agent-003/004/005 답변·구현이 아직 공유되지 않았다. 상태 문서만으로 다른 PC의 실행 프로세스가 살아 있다고 주장하지 않는다.
+- 이 PC의 세 앱은 `104761f49aec-4f5375dfb8b5`로 실행 중이며 Agent 모델은 DISABLED다. `ngrok config check`는 기본 설정 파일 없음으로 종료 1이다. Agent용 실제 키의 로컬 파일 경로·ngrok 설정 경로·공개 접속 허용 계정을 요청했으며 비밀 값 자체는 요청하지 않았다. 실제 모델 데모 범위/팀 배분 확인도 남아 있다. 관측은 `blocking-audit-runtime.json`, `blocking-audit-ngrok.*`에 보존했다.
+- 이전 두 goal 실행에서도 이 실제 모델 설정·소비자 연동 조건이 남아 있었고, 그동안 외부 DB 검증 재사용 방지와 영속 대기 만료를 독립적으로 완료해 공유했다. 이번 재확인에서는 새 제공 구현이나 답변이 없으며 다음 필수 연결은 외부 입력/공유 변경이 필요하다. 같은 성공 검사를 반복하거나 타인의 답변·DONE을 작성해 진행으로 대신하지 않는다.
+- 다음 재개 조건: 실제 모델 설정/허용 범위와 팀 배분 확인, 또는 소비자의 새 구현·합의/리더 수정 요청이다. 재개 시 전체 원격 변경을 읽고 필요한 검증부터 이어간다. 서비스/역할의 완료 상태는 IN_PROGRESS이고 실제 모델·공개 URL·팀 완료를 성공으로 표시하지 않는다.
+
 ## 2026-09-21T20:00:00+09:00 — 영속 QUEUED 기한과 포화/재시작 검증
 
 - 공유 결과(20:03): `104761f`의 전체 publish 종료 0/100.469초. Python 38개·문서·전체 Gradle check·3앱 재빌드/기동·DB/HTTP/근거 smoke를 통과했다. 기본 JUnit 132개 중 통과 123·실패 0·조건부 건너뜀 9개다. 별도 PostgreSQL/실제 worker 검사는 위 자료와 구분한다. 세 앱 buildId `104761f49aec-4f5375dfb8b5` 일치, 모델 DISABLED. 자료 `queue-deadline-publish.*`, `queue-published-runtime.json`.
