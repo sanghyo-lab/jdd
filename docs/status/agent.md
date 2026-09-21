@@ -1,21 +1,30 @@
 # 한재홍 — AI Agent 작업 상태
 
-- 상태: 사용자 /goal을 접수해 한재홍의 Agent 구현을 시작했다. 기존 접수 초안을 검토하고 입력 타입 오류를 수정해 로컬 HTTP/H2 테스트를 통과했다. 실제 PostgreSQL 접수·복구 검증을 진행하고 있으며 조사 실행기·모델·조회 도구는 이어 구현한다.
+- 상태: 조사 접수 API를 실제 PostgreSQL 동시 요청·재시작 보존까지 검증하고 `b2b46ef`로 공유했다. 영속 실행 상태·근거 저장·보고서 검증을 구현했으며 백그라운드 실행기·모델·조회 도구는 이어 연결한다.
 - 담당자: 한재홍 (역할 A)
 - GitHub 계정: 공유받은 뒤 기입
 - 작업 브랜치: `main`
 - 논의 소통 경로: [논의 목록·작성 규칙](../discussions/README.md). 새 논의의 답변은 해당 건의 Markdown에 직접 남기고 README의 상태·해소 근거를 함께 갱신한다. 기존 진행·검증 기록은 이 문서에서 유지한다.
 - 완료 선언: [agent.json](agent.json)의 IN_PROGRESS. 실제 검증 후 자기 DONE을 공유하고 [세 담당자 완료 기준](../team-completion.md)이 충족될 때까지 goal을 유지한다.
 - 시작 지침: [agent goal](../goals/agent.md), [복사할 goal 시작문](../prompts/goal-han-jaehong-agent.md), [필수 구현 프롬프트](../prompts/implement-voc-investigation-agent.md), [공통 실행](../local-development.md)
-- 작업 Issue·공유 커밋: 문서 보완 `3a8068e`(전체 publish 검증 통과). OpenAI 키 별도 제공의 후속 확인도 문서에 반영했다.
+- 작업 Issue·공유 커밋: 접수 API `b2b46ef`(전체 publish 검증 통과), 모델 오류 처리 논의 `f5c5d0f`(문서 검증·일반 push).
 - 담당 경로: `agent-app/`, `agent-core/`, `agent-infra/`
 - 준비된 자료: [구현 범위](../roles/han-jaehong-agent.md), [VOC·Agent 계약](../integration-contract.md), [커머스 조회 계약](../commerce-interface.md)
-- 다음 작업: 접수 API의 실제 PostgreSQL 동시 요청·재시작 보존을 검증·공유한 뒤, 영속 실행기·도구·근거·보고서 검증과 유료 호출 차단·비용 예약을 모의 모델로 연결한다. 기존 문서의 사용자 확정 대기는 이번 명시적 구현 goal 접수로 대체한다.
+- 다음 작업: 실행 소유권·스케줄러와 유료 호출 차단·영속 비용 예약을 연결한 뒤 서비스 프롬프트·모델·8개 조회 도구를 모의 모델로 검증한다. 기존 문서의 사용자 확정 대기는 명시적 구현 goal 접수로 대체한다.
 - 필요한 입력: 커머스 DDL·예제 로그·소스 스냅샷, OpenAI 모델명·API 주소·데모 실행 조건·예산 범위. 데모 전용 키는 전달됐지만 저장·설정·호출하지 않았다.
 - 검증 결과: 준비 PC에서 전체 Gradle check와 세 앱의 Docker 기동·smoke 통과. commerce SELECT 허용·쓰기/생성 권한 없음과 근거 볼륨 확인. 실제 모델·조사 시나리오는 미검증.
 - 연동 요청: 이상효의 업무 DDL·로그, 김아름의 실제 분석 요청을 연결할 예정. 초기 골격은 모델을 호출하지 않는다.
 
 작업 단위가 끝날 때 제공 가능한 기능, 변경한 계약, 실제 검증 명령·결과, 다음 작업을 갱신한다. 실패와 막힌 이유도 함께 기록한다.
+
+## 2026-09-21 — 실제 DB 접수 공유와 영속 실행 상태
+
+- 접수 공유: `b2b46ef`를 분리한 main 검증 clone에서 `scripts/dev publish`로 공유했다. 협업 자동 검사·문서·전체 Gradle check·세 앱 재빌드와 DB/HTTP/SELECT 권한/근거 볼륨 smoke를 통과했다. businessReady=false와 실제 모델 미검증을 유지한다.
+- 실제 PostgreSQL 접수: 합성 HTTP 동시 요청 8개가 같은 조사 `1c83804b-dc25-480f-b8ce-a8191e793e2a`를 반환했다. 입력 충돌·타입 오류·없는 근거를 확인했고 Agent만 재시작한 뒤 같은 ID·createdAt을 재조회했다. 원문 자료는 무시 경로 `runtime/submission/agent-20260921/intake-postgres.json`, `intake-postgres-http.log`, `intake-postgres-recovery.log`, `intake-publish.log`에 있다.
+- 실행 상태 구현: 신규 V3 마이그레이션으로 작업 상태·선점 토큰·종료 시한을 저장한다. 중복 선점 차단, 도구 시작·근거 원문/요약·종료의 원자적 저장, 최종 상태·검증 보고서 저장, 중단/시간 초과 시 근거 보존, 종료 후 늦은 응답 차단을 제공한다. 백그라운드 스케줄러와 모델은 아직 연결하지 않았다.
+- 보고서 검사: 같은 조사에 저장된 근거만 참조하고 사실 근거·후보 한계·사람의 조치·확인한 소스 경로·허용된 추가 입력 필드를 확인한다. 형식 검증은 원인 정확성 평가를 대신하지 않는다.
+- 검증: core 보고서 테스트 6개, 기존 app 9개와 실행 상태 7개를 H2에서 통과했다. 실행 상태 7개는 실제 PostgreSQL 17.6의 전용 `jdd_agent_execution_test`에서도 통과했고 3개 Flyway 마이그레이션 적용을 확인했다. 합성 관측을 사용했으며 실제 커머스 데이터·모델 결과가 아니다. 명령·종료 코드·원문은 `execution-tests.*`, `execution-postgres-tests.*`에 보존한다.
+- 협업: 김아름의 JDD-VOC-003과 기존 오류 매핑 요청을 구체화해 [DISC-20260921-agent-001](../discussions/DISC-20260921-agent-001-llm-errors.md) P1을 공유했다. 제공자 본인 제안 외 타인의 합의·구현·검증은 미확인이다. 실제 모델·ngrok 검증, 완료 선언은 수행하지 않았다.
 
 ## 최신 사용자 제한 — OpenAI 데모 전용 키와 $30 기준
 
