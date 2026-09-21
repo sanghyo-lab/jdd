@@ -1,18 +1,18 @@
 # 김아름 — VOC 티켓·AI 연동 작업 상태
 
-- 상태: 티켓 저장·조회·수정과 버전 충돌의 첫 구현·HTTP/DB 검증 완료, 전체 검증·공유 진행. 화면·실제 분석 연동은 다음 단위다.
+- 상태: 티켓 저장·조회·수정·버전 충돌을 검증하고 main에 공유했다. 정책 snapshot 호환성, 분석 연동·화면·runner는 진행 대상이다.
 - 담당자: 김아름 (역할 C)
 - GitHub 계정: `AhReumKim-ar`
 - 작업 브랜치: `main`
 - 완료 선언: [voc.json](voc.json)의 IN_PROGRESS. 실제 검증 후 자기 DONE을 공유하고 [세 담당자 완료 기준](../team-completion.md)이 충족될 때까지 goal을 유지한다.
 - 시작 지침: [voc goal](../goals/voc.md), [공통 실행](../local-development.md)
-- 작업 Issue·공유 커밋: 시작 후 기입
+- 공유 커밋: 티켓 `d8246e9`, 검증 안내 `d5d5484`, 주문 시각 정밀도 수정 `1d29d20`
 - 담당 경로: `voc-app/`, `voc-core/`, `voc-infra/`, `web/`, `scenario-runner/`
 - 준비된 자료: [구현 범위](../roles/kim-areum-voc.md), [VOC·Agent 계약](../integration-contract.md), [커머스 계약](../commerce-interface.md), [프론트 설계](../frontend-deployment.md)
-- 다음 작업: 티켓 단위 공유 후 분석 요청 스냅샷·영속 전달/조회·실제 Agent 접수 연결, 한국어 화면 구현
-- 필요한 입력: 한재홍의 실제 분석 API, 이상효의 시드·재현 방법, 배포 환경
-- 검증 결과: 준비 PC에서 전체 Gradle check와 세 앱의 Docker 기동·smoke 통과. VOC에서 Agent·커머스 진단 API의 HTTP 200 확인. 실제 티켓·프론트·시나리오는 미검증.
-- 연동 요청: 한재홍의 분석 API와 이상효의 재현 입력을 연결할 예정. scenario-runner는 미구현을 알리는 실패 종료 골격이다.
+- 다음 작업: 공통 snapshot의 정책 사본·Windows 경로 호환성, 분석 요청 스냅샷·영속 전달/조회·실제 Agent 접수 연결, 한국어 화면 구현
+- 제공받은 입력: Agent 조사 API·실행기·8개 조회 도구, commerce VOC-07/02/03 재현 자료. 실제 모델 검증 허용 범위·배포 환경은 별도다.
+- 검증 결과: 티켓 HTTP/H2·실제 PostgreSQL 계약, 전체 Gradle check, 세 앱 Docker 기동·smoke와 앱 재기동 후 티켓 보존 통과. 프론트·VOC runner·실제 모델은 미검증.
+- 연동 요청: 아래 논의의 P1 수락과 공통 생성기 책임을 기록했다. scenario-runner는 아직 미구현을 알리는 실패 종료 골격이다.
 
 작업 단위가 끝날 때 제공 가능한 기능, 변경한 계약, 실제 검증 명령·결과, 다음 작업을 갱신한다. 실패와 막힌 이유도 함께 기록한다.
 
@@ -66,3 +66,12 @@
 - JDD-VOC-008을 [DISC-20260921-voc-001](../discussions/DISC-20260921-voc-001-runner-metadata.md)로 등록했다. 기존 필수 완료 계약을 유지하고 실제 관측 전달 방식 합의 전에는 modelsUsed·usageSummary·verificationProfileId 구현과 필수 판정 추가를 보류하는 P1이다.
 - 김아름의 제안·수락만 기록했으며 한재홍·이상효 답변을 기다린다. 기존 티켓·분석·순차 runner 구현은 이 선택 확장 때문에 보류하지 않는다. 실제 사용량·모델 결과·완료 JSON을 만들지 않았다.
 - 문서 검사와 diff 검사를 통과했다. 코드 publish가 끝나는 안전한 경계에서 원격 변경을 통합하고 협업 문서 공유 절차로 즉시 전달한다.
+
+## 2026-09-21 — 티켓 단위 실제 공유와 협업 회신
+
+- 전체 publish 결과: 원격 `92dc81a`와 통합한 `1d29d20`을 일반 push했고 원격 포함을 확인했다. 코드 `d8246e9`와 주문 시각 회귀 수정이 함께 공유됐다. 동시 push에 따른 재통합·검증을 수행했으며 실패한 검증을 생략해 공유하지 않았다.
+- 검증 환경: 새 Agent 파일 테스트도 Windows 심볼릭 링크 권한 부족으로 실패했다. 로컬 게시 도구에서 동일한 전체 Python/Gradle 검사를 Linux로 실행했다. Python 31개 통과, Java 79개 중 73개 통과·외부 DB/스택 환경을 요구하는 조건부 6개 건너뜀·실패 0개다. 이 6개를 실제 검증 통과로 계산하지 않는다. 티켓의 별도 PostgreSQL 계약 5개 통과는 위 기록과 같다.
+- 실행 결과: buildId `1d29d20e8a54-e2ffbd8aa690`의 PostgreSQL과 세 앱 기동·마이그레이션·VOC HTTP 연결·Agent SELECT 전용 권한·근거 마운트 smoke 통과. 앱 재생성 후 같은 합성 티켓 ID·버전 2·필드·소수점 정밀도·시각 보존을 다시 확인했다. 원문은 로컬 `runtime/publication/voc/runtime/smoke.json`, `runtime/verification/linux-gradle-check`, `runtime/verification/ticket-restart.json`에 있다.
+- [DISC-20260921-commerce-001](../discussions/DISC-20260921-commerce-001-inventory-evidence.md): P1 수락과 runner 책임을 답변했다. 세 역할의 수락이 모여 AGREED다. 이 PC의 VOC runner 소비 검증은 남아 있으며 다른 담당자의 20회 결과를 자기 검증으로 기록하지 않는다.
+- [DISC-20260921-agent-002](../discussions/DISC-20260921-agent-002-policy-snapshot.md): P1 수락, 공통 snapshot·계약·검증을 맡았다. Windows manifest 경로의 역슬래시와 Agent 허용 경로 불일치도 확인해 함께 수정할 예정이다. 현재 smoke는 마운트 존재만 검사하므로 이를 소스·정책 소비 성공으로 해석하지 않는다.
+- Agent `71d74aa` 이후 기본 worker는 모델 비활성 상태에서 조사 FAILED/LLM_CONFIGURATION_ERROR를 저장한다. 다음 VOC 연동은 QUEUED 유지로 가정하지 않고 실제 실패·전달 오류·조회 오류를 구분한다. 실제 모델 호출은 0회이며 분석·화면·MVP·DONE을 완료하지 않았다.
