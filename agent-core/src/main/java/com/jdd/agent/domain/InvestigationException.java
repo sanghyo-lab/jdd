@@ -17,4 +17,8 @@ public final class InvestigationException extends RuntimeException {
     public static InvestigationException notFound() {
         return new InvestigationException("NOT_FOUND", "Investigation or evidence was not found");
     }
+
+    public static InvestigationException queueFull() {
+        return new InvestigationException("INVESTIGATION_QUEUE_FULL", "Investigation queue is full; retry the same request key later");
+    }
 }

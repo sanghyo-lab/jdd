@@ -18,7 +18,8 @@ tasks.withType(Test).configureEach {
     systemProperty 'LLM_PROVIDER', 'mock'
     def postgresModes = ['JDD_BUDGET_TEST_DB_URL', 'JDD_EXECUTION_TEST_DB_URL',
                          'JDD_TOOLS_TEST_DB_URL', 'JDD_HANDOFF_AGENT_DB_URL',
-                         'JDD_DISCONNECT_TEST_DB_URL', 'JDD_QUEUE_TEST_DB_URL'].collectEntries { name ->
+                          'JDD_DISCONNECT_TEST_DB_URL', 'JDD_QUEUE_TEST_DB_URL',
+                          'JDD_ADMISSION_TEST_DB_URL'].collectEntries { name ->
         [(name): providers.environmentVariable(name).isPresent()]
     }
     // Track only mode flags, never credentials or database URLs in task fingerprints.

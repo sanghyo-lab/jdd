@@ -238,8 +238,24 @@
       "owner": "agent",
       "status": "OPEN",
       "description": "VOC-AGENT-EXPORT-001 reports that the ledger exporter cannot locate Docker Compose on native Windows with its restricted environment. It discarded Windows profile/installation variables and assumed docker compose exists.",
-      "resolution": "Preserve only required OS/profile/Docker environment names, probe the plugin then standalone Compose, and sanitize subprocess discovery/export failures. Keep the read-only SQL and no-model-call behavior. Await native Windows consumer verification and Agent owner acknowledgement.",
+      "resolution": "Preserve only required OS/profile/Docker environment names, probe the plugin then standalone Compose, and sanitize subprocess discovery/export failures. Keep the read-only SQL and no-model-call behavior. Await native Windows consumer verification and Agent owner acknowledgement. Agent owner acknowledgement and integration verification arrived in 54fe313; native Windows VOC acceptance is still pending.",
       "verification": "Six regression tests pass for environment filtering, plugin/fallback selection and failure handling; failed attempts including the macOS temporary-path alias assertion remain in exporter-portability-{before,after,final} logs. Real macOS Docker/PostgreSQL export observes READ ONLY / REPEATABLE READ with zero ledger calls in exporter-portability-real-postgresql.json. No actual Windows execution or paid-model quality validation is claimed; finding remains OPEN."
+    },
+    {
+      "id": "LEAD-016",
+      "owner": "agent",
+      "status": "VERIFIED",
+      "description": "scripts/llm in 56cadd5 used os.getuid/getgid and POSIX launcher names unconditionally. A simulated OS without those APIs failed before any child process. Native Windows execution was not claimed.",
+      "resolution": "Agent owner independently supplied UID/GID fallback, Python workflow invocation and Windows Gradle wrapper selection in de13f74. Leader preserved and integrated that implementation without duplicate edits.",
+      "verification": "llm-windows-posix-api-review.json preserves the AttributeError boundary simulation; llm-windows-posix-api-after.json verifies the corrected same boundary with UID/GID 10001 and two mocked child commands. No actual login, process launch or model calls. Native Windows OAuth/mount validation remains part of pending integration."
+    },
+    {
+      "id": "LEAD-017",
+      "owner": "agent",
+      "status": "VERIFIED",
+      "description": "After DISC-agent-005 P1 agreement, intake still accepted all 16 concurrent new requests despite a configured capacity of three and returned 202 on a full queue.",
+      "resolution": "Add V8 singleton admission lock, READ COMMITTED transaction for key recheck/count/insert, capacity 20 bounded to 1..100, and 429 INVESTIGATION_QUEUE_FULL with Retry-After 5. Preserve existing IDs/conflicts and all stored investigations; add the agreed consumer behavior to the shared contract.",
+      "verification": "Before: QueueAdmissionTest 3/3 failed, preserved in queue-admission-before/result.xml. After: H2 admission/API/execution 24 passed; final PostgreSQL 17.6 HTTP/DB admission 4/4 passed without skips in queue-admission-postgresql-01. Sixteen distinct requests yield 3 accepted/13 rejected; sixteen same-key requests use one slot/ID. Conflict 409, invalid input 400, 1/100 boundaries, lower-capacity preservation and claim/expiry slot recovery pass; API/OAuth/budget rows remain zero. Agent owner and VOC worker/UI consumer acceptance remain pending; this is not final approval."
     }
   ]
 }

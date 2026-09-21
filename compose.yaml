@@ -65,6 +65,7 @@ services:
     environment:
       APP_RUNTIME: test
       LLM_PROVIDER: mock
+      JDD_AGENT_QUEUE_CAPACITY: ${JDD_AGENT_QUEUE_CAPACITY:-20}
       SERVER_PORT: 8080
       DB_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-jdd}?currentSchema=agent
       DB_USERNAME: jdd_agent

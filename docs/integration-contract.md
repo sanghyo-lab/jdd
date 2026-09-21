@@ -101,6 +101,8 @@ VOC는 요청을 먼저 저장하고 서버 작업 실행기로 Agent에 전달�
 
 Agent는 `(ticketId, requestKey)`를 유일하게 저장한다. 같은 키·입력으로 재호출하면 기존 조사 ID와 현재 상태를 반환하고, 입력이 다르면 `409 REQUEST_KEY_CONFLICT`를 반환한다. 비교에는 정규화한 ticketVersion·message·context·previousInvestigationId·schemaVersion을 사용한다. JSON 키 순서는 비교에 영향을 주지 않는다. 중복 요청에서도 `202` 응답 형식은 동일하다.
 
+QUEUED 수용량은 기본 20건(Agent 설정 1~100)이며 DB 잠금·개수 검사·삽입을 한 트랜잭션으로 처리한다. 가득 찬 경우 새 요청은 `429 INVESTIGATION_QUEUE_FULL`, `retryable=true`, `Retry-After: 5`이고 조사·모델 예약을 만들지 않는다. 이미 받은 키의 기존 결과/409가 수용량 거절보다 우선한다. RUNNING은 별도 실행 동시성으로 제한한다. 접수 시 대기 만료를 영속 저장하며 기본 10분(1초~1시간), 같은 키·재시작·설정 변경으로 연장하지 않는다. 만료된 QUEUED는 모델 실행 없이 FAILED/INVESTIGATION_TIMEOUT이 되고 기존 ID·입력·근거를 유지한다.
+
 조사 상태는 `QUEUED`, `RUNNING`, `COMPLETED`, `NEEDS_INPUT`, `FAILED`다. 추가 정보로 재조사할 때에는 티켓 내용을 보완하고 새 버전·키와 같은 티켓의 previousInvestigationId로 새 조사를 만든다. 존재하지 않거나 다른 티켓의 이전 조사 ID는 `404 NOT_FOUND`로 처리한다. 기존 결과를 보존한다.
 
 ### 조사 조회 DTO
@@ -240,6 +242,7 @@ Agent는 조사에 속한 근거인지, VOC는 티켓에 연결된 조사인지 
 | 입력 형식·지원하지 않는 schemaVersion | `400` | `INVALID_REQUEST` |
 | 티켓·조사·근거가 없거나 해당 대상에 연결되지 않음 | `404` | `NOT_FOUND` |
 | 같은 요청 키의 입력 충돌 | `409` | `REQUEST_KEY_CONFLICT` |
+| 새 조사 접수 대기열 포화 | `429`, `Retry-After: 5` | `INVESTIGATION_QUEUE_FULL`, retryable=true |
 | 티켓 버전 불일치 | `409` | `TICKET_VERSION_CONFLICT` |
 | 인증 없음·잘못된 인증 / 접근 권한 없음 | `401` / `403` | `UNAUTHORIZED` / `FORBIDDEN` |
 | Agent에 일시적으로 연결할 수 없음 | VOC 전달·조회 오류 | `AGENT_UNAVAILABLE`, retryable=true |
@@ -259,7 +262,9 @@ retryable=true는 자동 유료 재조사 허가가 아니다. 실패한 조사�
 
 VOC가 Agent 상태를 조회하지 못하면 마지막 확인 상태·시각과 syncError를 표시한다. 통신 실패만으로 Agent 실행 상태를 FAILED로 바꾸지 않는다. 분석 실패를 새 실행으로 재시도할 때에는 새 요청 키를 사용한다. 접수 여부가 불확실한 전달 실패는 같은 키로 재전송해 기존 조사를 먼저 확인한다.
 
-초기 연결 설정은 접속 제한 3초, 요청 제한 10초, 접수 전달 최대 3회(재시도 간격 1초·2초), 조사 상태 조회 간격 2초로 시작한다. 설정으로 변경할 수 있게 하고 실제 시연에서 조정한다. 영구적인 4xx 오류는 자동 재전송하지 않는다. 조회 오류 시 간격을 최대 30초까지 늘리고 오류를 표시한다. 자동 조회의 전체 시간 한도도 설정하고, 이를 넘기면 마지막 상태를 보존한 채 수동 새로고침으로 전환한다.
+초기 연결 설정은 접속 제한 3초·요청 제한 10초다. 일반 연결 장애의 접수 전달은 최대 3회(재시도 간격 1초·2초)다. 대기열 429는 [DISC-agent-005 P1](discussions/DISC-20260921-agent-005-queue-limits.md)에 따라 submissionError로 구분하며, 최초 전달 외 최대 3회 자동 재전송한다. 같은 저장 입력·키와 영속 횟수를 유지하고 Retry-After 이상인 5/10/20초 + jitter를 적용한다. 소진 후에는 수동 동일 키 재전송을 안내하며 새 키를 자동 생성하지 않는다. 영구적인 다른 4xx는 자동 재전송하지 않는다.
+
+조사 상태 polling은 기본 대기 10분+실행 3분을 고려한 관측 창 14분·최대 5초 간격으로 시작한다. 설정은 실제 대기/실행 한도에 맞춘다. 조회 오류나 관측 종료는 마지막 상태·시각과 조회 오류를 표시하며 조사를 FAILED로 바꾸거나 다시 실행하지 않는다. 관측 창이 끝나면 수동 새로고침으로 전환한다. 이 계약은 VOC 소비자의 실제 구현/화면 검증을 대신하지 않는다.
 
 VOC 서버가 요청 전달과 상태 조회를 실행하므로 브라우저를 닫아도 계속 진행한다. 재시작 시 PENDING 전달과 미종료 조사 연결을 DB에서 복원한다. 초기 Agent는 단일 실행 인스턴스를 전제로 QUEUED 작업을 재개하고, 재시작 시 남은 RUNNING 작업은 FAILED·INTERRUPTED로 기록한다. 중단된 조사의 근거는 보존한다.
 

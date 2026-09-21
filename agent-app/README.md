@@ -32,7 +32,10 @@ GET /api/investigations/{investigationId}/evidence/{evidenceId}
 - 근거는 조사 ID와 근거 ID를 함께 조회한다. 소속이 다르거나 없는 근거는 `404 NOT_FOUND`다. 저장된 원문 조회는 모델을 호출하지 않는다.
 - v1에 없는 입력 필드, 잘못된 시각, 정수가 아닌 ticketVersion, 공백 문의, 10,000자를 넘는 문의는 `400 INVALID_REQUEST`다.
 - 입력·조회 결과는 `agent.investigations`, 관측 원문은 `agent.investigation_evidence`에 저장한다. 요청 키의 DB 유일 제약으로 동시 접수도 한 조사만 생성한다.
-- 단일 SQL 접수는 즉시 커밋된다. 백그라운드 실행기는 저장된 입력을 읽어 브라우저 연결과 독립적으로 실행한다.
+- 접수 트랜잭션은 공유 admission 행 잠금 안에서 기존 키·QUEUED 개수·삽입을 확인하고 커밋한다. 백그라운드 실행기는 저장된 입력을 읽어 브라우저 연결과 독립적으로 실행한다.
+- 기본 QUEUED 수용량은 20건이며 Agent의 `JDD_AGENT_QUEUE_CAPACITY`(1~100)로 정한다. 기본 Compose도 같은 환경변수를 전달한다.
+  가득 차면 새 입력은 `429 INVESTIGATION_QUEUE_FULL`, `retryable=true`, `Retry-After: 5`이며 조사/모델 예약을 만들지 않는다.
+  이미 받은 같은 키는 기존 ID/상태를 반환하고 다른 입력은 409다. RUNNING은 worker 동시성으로 따로 제한한다.
 
 필드 상세는 [v1 계약](../docs/integration-contract.md)을 따른다.
 
@@ -53,8 +56,9 @@ QUEUED의 대기 만료는 접수 시 `queued_deadline_at`에 저장하며 같�
 V6 이전 기록은 원래 createdAt + 10분으로 이관한다. 실행 슬롯이 가득 차도 worker가 만료 작업을 최대 100건씩
 FAILED/INVESTIGATION_TIMEOUT으로 정리하며, 선점 쿼리도 만료 작업을 배제한다. 같은 키는 종료된 기존 ID를 반환한다.
 worker/DB가 중단된 동안에는 상태 갱신이 지연되지만 복구 후 만료 작업을 모델로 보내지 않는다.
-대기열 수용량·새 접수 429는 [DISC-agent-005](../docs/discussions/DISC-20260921-agent-005-queue-limits.md)의
-소비자 합의·구현이 남아 있으며 현재 접수 용량을 제한한다고 주장하지 않는다.
+[DISC-agent-005](../docs/discussions/DISC-20260921-agent-005-queue-limits.md)의 합의에 따라 V8이 접수 잠금 행을 추가한다.
+기존 조사/근거는 변경하지 않는다. 기존 QUEUED가 상한보다 많으면 새 접수를 거절하고 선점/만료 정리로 빈자리가 생길 때까지 기다린다.
+VOC는 미접수 429를 전달 오류로 표시하고 같은 저장 입력/키로 제한 재전송한다. 실제 VOC 화면/전달 인수는 별도다.
 이 저장 계층의 합성 검증을 실제 VOC 조사·모델 품질 검증으로 간주하지 않는다.
 
 `InvestigationRunner`가 도구 반복을 소유한다. 모델 요청→서버 인자 검증→실제 도구 호출→근거 커밋→후속 모델 요청→보고서 검사 순서다.
@@ -131,7 +135,7 @@ python3 agent-app/scripts/check_intake.py
 근거 테스트의 원문은 테스트가 DB에 넣은 합성 데이터이며 모델 분석 결과가 아니다.
 Docker 스택에서는 실제 PostgreSQL 접수·재조회·재시작 보존을 별도로 확인한다.
 
-별도 PostgreSQL 테스트의 여섯 DB 모드는 Gradle 입력에 반영한다.
+별도 PostgreSQL 테스트의 일곱 DB 모드는 Gradle 입력에 반영한다.
 URL·비밀번호 자체는 작업 fingerprint에 넣지 않는다. 외부 DB 모드에서는 DB·근거 파일이
 소스와 독립적으로 바뀔 수 있으므로 UP-TO-DATE/빌드 캐시로 검증을 대체하지 않고 매번 실행한다.
 H2 모드로 돌아오면 PostgreSQL 결과를 재사용하지 않는다. 전용 DB·필수 환경변수·초기화 조건은
@@ -162,6 +166,15 @@ Agent를 재시작한 뒤 `python3 agent-app/scripts/check_intake.py --verify-ex
 ```
 
 `InvestigationRunnerTest`는 모의 모델의 도구 요청·저장 후 후속 요청·보고서/인자 수정 한도·실패·반복 HTTP 조회를 검증한다.
+
+`QueueAdmissionTest`는 기본 H2와 전용 PostgreSQL `jdd_agent_admission_test`에서 실제 HTTP 동시 접수·상한·동일 키·409·429/Retry-After·선점/만료 후 빈자리 회복을 확인한다.
+worker를 끄고 API/OAuth 호출/예산 행이 0임을 검사한다. 외부 모드는 `JDD_ADMISSION_TEST_DB_URL`, `JDD_ADMISSION_TEST_DB_USER`,
+`JDD_ADMISSION_TEST_DB_PASSWORD`로 지정하며 매 검사 전에 해당 전용 DB의 합성 조사만 초기화한다.
+`JDD_ADMISSION_TEST_REPORT_DIR`를 새 로컬 디렉터리로 지정하면 실제 HTTP 응답/DB 행 관측을 추가 보존한다.
+
+```bash
+./gradlew :agent-app:test --tests com.jdd.agent.QueueAdmissionTest
+```
 
 `QueueWaitingTest`는 실제 PostgreSQL/HTTP/worker의 유일한 실행 슬롯을 모의 모델로 점유한 동안
 다른 요청이 대기 2초 후 모델 호출 없이 만료되는지 확인한다. 반복 GET/같은 키 POST는 기존 FAILED를

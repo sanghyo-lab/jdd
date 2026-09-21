@@ -18,6 +18,10 @@ public class InvestigationExceptionHandler {
 
     @ExceptionHandler(InvestigationException.class)
     ResponseEntity<ApiError> domain(InvestigationException exception) {
+        if ("INVESTIGATION_QUEUE_FULL".equals(exception.code())) {
+            return ResponseEntity.status(429).header("Retry-After", "5")
+                    .body(new ApiError(exception.code(), exception.getMessage(), true));
+        }
         int status = switch (exception.code()) {
             case "NOT_FOUND" -> 404;
             case "REQUEST_KEY_CONFLICT" -> 409;
