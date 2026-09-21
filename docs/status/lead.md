@@ -16,6 +16,18 @@
 
 
 
+
+## 2026-09-22T07:44:36+09:00 — 화면·실제 재현 runner 통합과 직접 검토
+
+- 81fc1c4 full publish 종료0/280.006초: Python70통과, Java193개 중184통과/9조건부제외, web14통과·실패0. 세 앱 PostgreSQL/HTTP/근거 연결과 buildId `81fc1c41bd04-028f6e9a6796`을 확인했다. 실제 모델 호출0이며 일반 publish를 업무 MVP로 계산하지 않는다.
+- 위임 main 커밋을 직접 검사 후 이 clone의 main에 통합했다: scenario 2c81adf/a023d75 → 5ee7333/bad1978, web0a53410/594f753 → c419791/4221b83, 제출문서9203f64 → 674fea6. 각 원본 clone·실행 원문을 보존했으며 Agent 구현 커밋은 가져오거나 push하지 않았다.
+- runner는 실제 HTTP·9개 문의·동일키·VOC 재시작, PostgreSQL 자료/로그 줄/실행 소스/정책을 비교한다. 리더 코드 검사에서 LOG path 이중 build와 content 배열 가정을 발견해 실제 raw/entry 계약으로 보완했다(LEAD-023). NORMAL의 정상 설명 가설을 장애로 단정하는 추가 제약을 제거하고 독립 의미 검수는 필수로 남겼다. coordinator는 입력 기한·활성 재시작 복원 종료 대기를 갖춘다. Java15/Python6 검사 통과이며 실패한 최초 검사도 보존했다.
+- 위임 helper 실제 준비/복구 종료0/20.625초, 모델/조사 장부 전후0. 실제 Agent 읽기 도구 DATA107/LOG19/CODE8/POLICY8 총142개 반환 원문을 수정된 검사기로 비교해 종료0/1.739초였다. 원문 `runtime/collaboration/scenario-completion/runtime/verification/scenario-20260922/actual-48947dbc996a/verification.json`, `actual-tools-result.json`. 실제 모델 보고서 검증은 아니다.
+- 화면은 분석 접수/이력/같은키 재전송/새키 재조사/리포트·근거4종/오류 안내와 shop을 제공한다. 실제 브라우저 분석6개는 mock 설정 오류의 저장·분리와 이력/390폭이고 합성 리포트16개는 대역 응답 검사다. 실제 shop8개는 주문·5000원쿠폰·55000원결제·동일결제ID·취소·동일환불ID·재고10·모바일390 및 쿠폰USED 재조회다. 초기 실패와 스크린샷을 `runtime/collaboration/voc-web-completion/runtime/submission/`에 보존했다.
+- LEAD-024: 주문/취소 뒤 쿠폰 목록이 이전 AVAILABLE을 보여 VOC-06의 실제 USED를 가리던 UI를 실제 재조회로 보완했다. 커머스의 의도한 결함은 유지하며 DB/로그7줄/실행 소스 대조도 통과했다. 이 PC에서 리더의 새 통합 빌드 독립 브라우저·업무 반복 검증을 이어 실행한다.
+- 실제 모델 장부 요청은 [DISC-20260922-commerce-001](../discussions/DISC-20260922-commerce-001-model-observations.md)로 구체화했다. 한재홍의 readiness·항목별 코드 직접 인용·장부 제공 인수와 김아름 소비 확인을 기다리며 타인의 DONE/수락을 대신하지 않는다.
+- 공식 JDD 전용 OAuth login 종료0과 auth 파일0600 준비를 확인했다. 모델 ID는 사용자 답변 대기이며 실제 모델0회다. 개발 세션 인증은 복제하지 않았고 로그인 원문·토큰은 비공유다. 브라우저 스킬의 연결 가능한 브라우저가0개여서 별도 Chromium의 실제 화면으로 독립 검증한다.
+
 ## 2026-09-22T07:34:53+09:00 — 위임 범위 정정·VOC 필수 연결과 Agent 담당자 요청
 
 - 사용자 최신 지시 “aiagent는 다른분이하고있다”에 따라 `agent_completion`의 추가 구현/push를 중단했다. 한재홍의 기존 Agent 작업을 유지하고 이상효 위임 범위는 VOC 화면·shop·runner·리더 통합 검증이다. 이미 검증한 인용 수정은 독립 clone의 미공유 commit `15c804c`에 보존해 담당자에게 인계하며 리더가 대신 공유하지 않는다. 세 역할 DONE·최종 승인은 계속 IN_PROGRESS다.
