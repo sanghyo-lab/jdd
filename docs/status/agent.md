@@ -19,6 +19,9 @@
 
 ## 2026-09-21T20:00:00+09:00 — 영속 QUEUED 기한과 포화/재시작 검증
 
+- 공유 결과(20:03): `104761f`의 전체 publish 종료 0/100.469초. Python 38개·문서·전체 Gradle check·3앱 재빌드/기동·DB/HTTP/근거 smoke를 통과했다. 기본 JUnit 132개 중 통과 123·실패 0·조건부 건너뜀 9개다. 별도 PostgreSQL/실제 worker 검사는 위 자료와 구분한다. 세 앱 buildId `104761f49aec-4f5375dfb8b5` 일치, 모델 DISABLED. 자료 `queue-deadline-publish.*`, `queue-published-runtime.json`.
+- 깨끗한 최신 main의 `team-check` 종료 1을 `queue-unit-team-check.*`에 보존했다. 세 담당자와 리더가 모두 IN_PROGRESS다. 원격 `145f404`의 커머스 외부 DB 재검사 보완 전체를 검토·통합했고 새 소비자 답변은 아직 없다. 실제 모델 범위·비밀 설정과 VOC/web/runner·정책 사본·대기열 수용량 합의/구현은 미완료다.
+- 실제 가시 세션 이벤트 1,197건의 중간 사본은 `session/20260921T110155Z/`다. 이메일 32곳을 가렸고 SHA-256 `4c699ba00153f3cbcc7b978df0d22aaddb843db662f9a6a8d36ce2d0f8c6180a`를 manifest에 보존했다. 실제 세션 기록과 요약·내부 추론을 구분한다.
 - V6에 queued_deadline_at을 저장하고 새 접수 기본 10분(설정 1초~1시간)의 대기 기한을 적용했다. 이전 기록은 원래 createdAt + 10분으로 이관한다. 같은 키·재시작·설정 변경으로 기한을 갱신하지 않으며 RUNNING 3분과 별도로 계산한다.
 - worker가 모든 슬롯 사용 중에도 한 번에 최대 100개 만료 QUEUED를 FAILED/INVESTIGATION_TIMEOUT으로 정리한다. 선점 SELECT/UPDATE도 만료 행을 배제한다. 상태/필수 DTO 필드는 유지했고 접수 수용량/429는 [DISC-agent-005](../discussions/DISC-20260921-agent-005-queue-limits.md)의 직접 합의 후 연결할 미완료 작업이다.
 - H2 접수/실행 검사를 통과한 뒤 실제 PostgreSQL 실행 저장소 11개(실패 0·건너뜀 0)를 확인했다. QueueWaitingTest도 별도 PostgreSQL/HTTP/worker에서 통과했다. 실행 슬롯 포화 중 만료 ID `7e7fa782-7786-4730-8649-114b97ae388b`는 모의 모델을 호출하지 않았고 같은 키/GET 재조회로 재실행되지 않았다. 슬롯 해제 뒤 명시적 새 키만 실행돼 총 모의 2회·유료 0회다.
