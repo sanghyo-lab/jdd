@@ -1,5 +1,7 @@
 import contextlib
+import hashlib
 import io
+import json
 from pathlib import Path
 import subprocess
 import sys
@@ -116,6 +118,9 @@ class SnapshotTests(unittest.TestCase):
         git(self.root, "config", "commit.gpgsign", "false")
         (self.root / ".gitignore").write_text(".env\nruntime/\n")
         (self.root / ".env.example").write_text("POSTGRES_PASSWORD=replace-by-setup\n")
+        self.policy = self.root / "docs/business-policy.md"
+        self.policy.parent.mkdir()
+        self.policy.write_text("# 정상 정책\n적용 버전은 `demo-v1`이다.\n재고는 음수가 될 수 없다.\n", encoding="utf-8")
         self.source = self.root / "commerce-core/src/main/java/com/jdd/Stock.java"
         self.source.parent.mkdir(parents=True)
         self.source.write_text("class Stock {}\n")
@@ -158,6 +163,104 @@ class SnapshotTests(unittest.TestCase):
         outside = self.root / "answer.txt"
         outside.write_text("not runtime source")
         (self.source.parent / "linked.java").symlink_to(outside)
+        with self.assertRaisesRegex(WorkflowError, "symlink"):
+            self.repo.source_files()
+
+    def snapshot(self):
+        with contextlib.redirect_stdout(io.StringIO()):
+            build = self.repo.snapshot()
+        base = self.root / "runtime/evidence/source" / build
+        return base, json.loads((base / "manifest.json").read_text(encoding="utf-8"))
+
+    def test_policy_is_archived_byte_for_byte_with_portable_source_paths(self):
+        original = self.policy.read_bytes().replace(b"\n", b"\r\n")
+        self.policy.write_bytes(original)
+        base, manifest = self.snapshot()
+        self.assertEqual(manifest["policy"], {"version": "demo-v1", "path": "policy/business-policy.md",
+                                            "sha256": hashlib.sha256(original).hexdigest()})
+        self.assertEqual(manifest["policyVersion"], "demo-v1")
+        self.assertEqual((base / manifest["policy"]["path"]).read_bytes(), original)
+        self.assertEqual(list(manifest["files"]), ["commerce-core/src/main/java/com/jdd/Stock.java"])
+        self.assertNotIn("policy/business-policy.md", manifest["files"])
+        saved_manifest = (base / "manifest.json").read_bytes()
+        again, _ = self.snapshot()
+        self.assertEqual(again, base)
+        self.assertEqual((base / "manifest.json").read_bytes(), saved_manifest)
+
+    def test_new_policy_never_replaces_a_previous_build_policy(self):
+        first, original = self.snapshot()
+        first_bytes = (first / "policy/business-policy.md").read_bytes()
+        self.policy.write_text("# 새 정책\n적용 버전은 `demo-v2`이다.\n다른 업무 규칙.\n", encoding="utf-8")
+        second, changed = self.snapshot()
+        self.assertNotEqual(first, second)
+        self.assertEqual((first / "policy/business-policy.md").read_bytes(), first_bytes)
+        self.assertEqual(changed["policyVersion"], "demo-v2")
+        self.assertNotEqual(original["policy"]["sha256"], changed["policy"]["sha256"])
+        self.assertEqual((second / "policy/business-policy.md").read_bytes(), self.policy.read_bytes())
+
+    def test_tampered_policy_or_manifest_is_rejected_without_repair(self):
+        base, manifest = self.snapshot()
+        policy = base / "policy/business-policy.md"
+        policy.write_text("tampered", encoding="utf-8")
+        with self.assertRaisesRegex(WorkflowError, "does not match"):
+            self.snapshot()
+        self.assertEqual(policy.read_text(), "tampered")
+        policy.write_bytes(self.policy.read_bytes())
+        mutations = [{"version": "other"}, {"path": "../../docs/business-policy.md"}, {"sha256": "0" * 64}]
+        for change in mutations:
+            with self.subTest(change=change):
+                altered = {**manifest, "policy": {**manifest["policy"], **change}}
+                encoded = json.dumps(altered).encode()
+                (base / "manifest.json").write_bytes(encoded)
+                with self.assertRaises(WorkflowError):
+                    self.snapshot()
+                self.assertEqual((base / "manifest.json").read_bytes(), encoded)
+        for key in ("buildId", "commitSha", "policyVersion"):
+            with self.subTest(key=key):
+                (base / "manifest.json").write_text(json.dumps({**manifest, key: "wrong"}))
+                with self.assertRaises(WorkflowError):
+                    self.snapshot()
+
+    def test_missing_legacy_policy_is_not_retroactively_created(self):
+        base, manifest = self.snapshot()
+        del manifest["policy"]
+        (base / "manifest.json").write_text(json.dumps(manifest))
+        (base / "policy/business-policy.md").unlink()
+        with self.assertRaisesRegex(WorkflowError, "archived policy"):
+            self.snapshot()
+        self.assertFalse((base / "policy/business-policy.md").exists())
+        self.assertNotIn("policy", json.loads((base / "manifest.json").read_text()))
+
+    def test_invalid_policy_version_or_utf8_is_not_snapshotted(self):
+        for content in (b"no version", "적용 버전은 `a`\n적용 버전은 `b`".encode(), b"\xff"):
+            with self.subTest(content=content):
+                self.policy.write_bytes(content)
+                with self.assertRaisesRegex(WorkflowError, "policy"):
+                    self.snapshot()
+        self.assertFalse((self.root / "runtime/evidence/source").exists())
+
+    def test_policy_and_snapshot_parent_symlinks_are_rejected(self):
+        original = self.policy.read_bytes()
+        outside = self.root / "outside-policy.md"
+        outside.write_bytes(original)
+        self.policy.unlink()
+        self.policy.symlink_to(outside)
+        with self.assertRaisesRegex(WorkflowError, "symlink"):
+            self.snapshot()
+        self.policy.unlink()
+        self.policy.write_bytes(original)
+        base, _ = self.snapshot()
+        (base / "policy/business-policy.md").unlink()
+        (base / "policy").rmdir()
+        (base / "policy").symlink_to(self.policy.parent, target_is_directory=True)
+        with self.assertRaisesRegex(WorkflowError, "symlink"):
+            self.snapshot()
+        self.assertEqual(self.policy.read_bytes(), original)
+
+    def test_source_root_symlink_is_not_followed(self):
+        linked = self.root / "commerce-app/src/main/java"
+        linked.parent.mkdir(parents=True)
+        linked.symlink_to(self.source.parent, target_is_directory=True)
         with self.assertRaisesRegex(WorkflowError, "symlink"):
             self.repo.source_files()
 

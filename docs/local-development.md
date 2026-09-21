@@ -91,13 +91,15 @@ verify-mvp를 새로 실행한 뒤 리더 승인을 작성한다. 새 문제를 
 
 ## 근거와 실행 산출물
 
-- runtime/evidence/source/<buildId>: commerce의 허용된 Java·마이그레이션만 복사한 소스와 manifest
+- runtime/evidence/source/<buildId>: commerce의 허용된 Java·마이그레이션 소스, manifest와 정상 정책 사본 policy/business-policy.md
 - runtime/evidence/logs/commerce/<buildId>: 업무 로그 생성 경로. 초기 골격은 업무 이벤트를 아직 생성하지 않음
 - runtime/smoke.json: 실제 로컬 기동·연동 검사 결과
 - runtime/scenarios.json: scenario-runner 구현 후 실제 MVP 검증 결과
 
 buildId는 커밋과 로컬 빌드 입력 해시를 포함한다. 개발 중 미커밋 변경은 manifest의 workingTreeDirty에 표시된다.
 같은 buildId의 기존 스냅샷은 덮어쓰지 않는다. 공식 시연·평가는 커밋된 코드에서 실행한다.
+새 manifest는 `/` 상대 경로, policyVersion과 policy의 version·path·sha256을 기록한다. 정책은 소스 검색 파일 목록에서 분리한다.
+기존 스냅샷의 변조·누락·정책 불일치는 실패로 알리고 자동으로 덮어쓰거나 복구하지 않는다. 예전 정책 사본이 없는 build는 보존하고 새 코드로 새 build를 만든다.
 비밀 값·런타임 파일은 Git에서 제외된다. Agent에는 소스·로그·정책 볼륨을 읽기 전용으로 제공한다.
 
 ## 최초 환경에서 막히는 경우

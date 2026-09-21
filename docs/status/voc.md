@@ -75,3 +75,11 @@
 - [DISC-20260921-commerce-001](../discussions/DISC-20260921-commerce-001-inventory-evidence.md): P1 수락과 runner 책임을 답변했다. 세 역할의 수락이 모여 AGREED다. 이 PC의 VOC runner 소비 검증은 남아 있으며 다른 담당자의 20회 결과를 자기 검증으로 기록하지 않는다.
 - [DISC-20260921-agent-002](../discussions/DISC-20260921-agent-002-policy-snapshot.md): P1 수락, 공통 snapshot·계약·검증을 맡았다. Windows manifest 경로의 역슬래시와 Agent 허용 경로 불일치도 확인해 함께 수정할 예정이다. 현재 smoke는 마운트 존재만 검사하므로 이를 소스·정책 소비 성공으로 해석하지 않는다.
 - Agent `71d74aa` 이후 기본 worker는 모델 비활성 상태에서 조사 FAILED/LLM_CONFIGURATION_ERROR를 저장한다. 다음 VOC 연동은 QUEUED 유지로 가정하지 않고 실제 실패·전달 오류·조회 오류를 구분한다. 실제 모델 호출은 0회이며 분석·화면·MVP·DONE을 완료하지 않았다.
+
+## 2026-09-21 — 정책 보관과 Windows 소스 경로 호환
+
+- [DISC-20260921-agent-002](../discussions/DISC-20260921-agent-002-policy-snapshot.md)의 공통 생성기·계약을 구현했다. 새 build의 정책 원문을 바이트 그대로 보관하고 선언 버전·고정 경로·SHA-256을 연결한다. manifest 소스 경로를 POSIX 형식으로 통일하고 정책은 소스 검색 목록에서 제외한다.
+- 불변성: 기존 build의 소스·정책·manifest 불일치와 경로 이탈·링크를 실패로 알린다. 과거 정책 사본을 현재 파일로 소급 생성하거나 손상 파일을 자동 교체하지 않는다. 기존 소비자 필드와 정책 마운트는 유지한다.
+- 실제 검증: 수정 전 새 회귀 테스트 실패 확인 → Linux 협업 테스트 38개 통과 → Windows 네이티브 핵심 4개 통과. 개발 snapshot `c2bdb4e1542c-983995caabc9`의 허용 소스 25개를 실제 Agent 조회 클래스로 Linux에서 읽어 원문·해시 일치를 확인했다. 모델·DB 호출은 없다.
+- 원문: 로컬 `runtime/verification/snapshot-before.log`, `snapshot-after.log`; Windows 검사와 실제 소스 조회 결과는 작업 실행 출력에 있다. 전체 publish 결과는 공유 후 추가한다.
+- 남은 연동: Agent 담당자의 정책 사본 우선 조회·구형 manifest 호환·실제 사본 소비 검증과 commerce의 새 snapshot 검증. 동시 공유된 commerce 수락도 보존해 전원 P1 합의를 확인했다. 생성기 제공만으로 논의를 RESOLVED나 역할 DONE으로 처리하지 않는다.

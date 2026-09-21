@@ -176,7 +176,7 @@ INVENTORY_READ는 즉시 기록하며 트랜잭션 성공 이벤트와 구분한
 
 ## 5. 실행 소스 계약
 
-각 빌드는 고유한 `buildId`를 사용하고 로그와 같은 값을 기록한다. Agent가 읽는 `/evidence/source/{buildId}/` 아래에 저장소 상대 경로를 유지한 소스와 `manifest.json`을 둔다. 시연 빌드는 커밋된 소스로 만들고 manifest에 `buildId`, 실제 `commitSha`, `createdAt`, `policyVersion: "demo-v1"`을 기록한다. 같은 `buildId`의 내용을 다른 코드로 교체하지 않는다.
+각 빌드는 고유한 `buildId`를 사용하고 로그와 같은 값을 기록한다. Agent가 읽는 `/evidence/source/{buildId}/` 아래에 저장소 상대 경로를 유지한 소스와 `manifest.json`을 둔다. 시연 빌드는 커밋된 소스로 만들고 manifest에 `buildId`, 실제 `commitSha`, `createdAt`, `policyVersion`을 기록한다. 현재 정책 버전은 `demo-v1`이며 생성기는 정책 원문의 버전 선언을 읽는다. `files`의 경로는 Windows에서도 `/`를 사용하는 POSIX 상대 경로다. 같은 `buildId`의 내용을 다른 코드나 정책으로 교체하지 않는다.
 
 허용할 소스 범위:
 
@@ -186,6 +186,12 @@ INVENTORY_READ는 즉시 기록하며 트랜잭션 성공 이벤트와 구분한
 - `commerce-infra/src/main/resources/db/migration/`
 
 정상 정책은 별도 `business-policy.md`로 제공한다. Agent 소스 조회는 해당 스냅샷의 경로·1부터 시작하는 줄 번호·내용을 반환한다. `fixtures/`, `scenario-runner/`, 테스트 소스, 평가 정답과 기타 문서는 검색 대상에 포함하지 않는다. 테스트 전용 동기화 구현도 테스트 영역에 둔다.
+
+새 스냅샷은 [정책 사본 논의 P1](discussions/DISC-20260921-agent-002-policy-snapshot.md)에 따라 정상 정책 원문의 바이트를 `policy/business-policy.md`에 함께 보관한다. manifest의 추가 `policy` 객체는 `version`, 고정 `path`, 원문 바이트의 `sha256`을 가진다. `policy.version`과 기존 `policyVersion`은 같아야 한다. 정책은 `files` 목록과 소스 검색 범위에 추가하지 않고 `readBusinessPolicy`로만 조회한다.
+
+생성기는 기존 스냅샷 재사용 시 build·commit·내용 해시·정책 메타데이터·실제 파일 해시와 심볼릭 링크/경로 이탈을 확인한다. 누락·변조를 자동 복구하거나 기존 build에 현재 정책을 소급 추가하지 않는다. 정책 사본이 없는 예전 build를 생성기로 다시 준비하려면 새 코드로 새 build를 만든다.
+
+Agent 소비자는 새 `policy`가 있으면 고정 경로·버전·해시를 검증한 사본을 우선 읽고, 사본이 잘못됐으면 현재 정책으로 대체하지 않는다. 예전 manifest에 `policy` 자체가 없는 경우만 현재 정책 파일을 읽는 호환 경로를 두며 조회 시점의 원문이라는 한계를 표시한다. 기존에 저장한 정책 근거 GET은 저장 원문을 그대로 반환한다. 실제 데모 검증은 정책 사본을 포함하는 새 build에서 수행한다. 생성기 제공과 Agent 소비자 반영·실제 검증 상태는 위 논의에서 구분해 추적한다.
 
 ## 6. 최초 전달 자료와 호환성 검증
 

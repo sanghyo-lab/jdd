@@ -306,14 +306,39 @@ class Repository:
         files = []
         for prefix in ("commerce-app/src/main/java", "commerce-core/src/main/java",
                        "commerce-infra/src/main/java", "commerce-infra/src/main/resources/db/migration"):
-            folder = self.root / prefix
+            folder = self.checked_path(prefix)
             if folder.exists():
                 for path in sorted(folder.rglob("*")):
-                    if path.is_symlink():
-                        raise WorkflowError("Source snapshots do not follow symlinks: " + str(path))
+                    self.checked_path(path.relative_to(self.root).as_posix())
                     if path.is_file():
                         files.append(path)
         return files
+
+    def checked_path(self, relative):
+        # Check every component, including directory symlinks/Windows junctions.
+        if (not relative or relative.startswith("/") or "\\" in relative or ":" in relative
+                or any(part in ("", ".", "..") for part in relative.split("/"))):
+            raise WorkflowError("Invalid snapshot path: " + relative)
+        path = self.root
+        for part in relative.split("/"):
+            path = path / part
+            if path.is_symlink() or getattr(path, "is_junction", lambda: False)():
+                raise WorkflowError("Source snapshots do not follow symlinks or junctions: " + relative)
+        return path
+
+    def policy_snapshot(self):
+        path = self.checked_path("docs/business-policy.md")
+        try:
+            content = path.read_bytes()
+            text = content.decode("utf-8")
+        except (OSError, UnicodeError) as error:
+            raise WorkflowError("The business policy must be an available UTF-8 file.") from error
+        versions = re.findall(r"적용 버전은 `([^`\r\n]+)`", text)
+        if (len(content) > 1024 * 1024 or len(versions) != 1
+                or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}", versions[0])):
+            raise WorkflowError("The business policy needs one valid version and must fit the evidence size limit.")
+        return content, {"version": versions[0], "path": "policy/business-policy.md",
+                         "sha256": hashlib.sha256(content).hexdigest()}
 
     def build_identity(self):
         output = self.run(["git", "ls-files", "-co", "--exclude-standard", "-z"], capture=True).stdout
@@ -325,8 +350,7 @@ class Repository:
                 continue
             path = self.root / name
             if path.is_file():
-                if path.is_symlink():
-                    raise WorkflowError("Build inputs must not be symlinks: " + name)
+                self.checked_path(name)
                 digest.update(name.encode() + b"\0" + path.read_bytes() + b"\0")
         commit = self.git("rev-parse", "HEAD")
         return commit, digest.hexdigest()
@@ -334,29 +358,41 @@ class Repository:
     def snapshot(self):
         self.setup()
         commit, content_hash = self.build_identity()
+        policy_content, policy = self.policy_snapshot()
         build_id = commit[:12] + "-" + content_hash[:12]
-        destination = self.root / "runtime/evidence/source" / build_id
-        manifest_path = destination / "manifest.json"
-        files = self.source_files()
-        checksums = {str(p.relative_to(self.root)): hashlib.sha256(p.read_bytes()).hexdigest() for p in files}
+        prefix = "runtime/evidence/source/" + build_id
+        destination = self.checked_path(prefix)
+        manifest_path = self.checked_path(prefix + "/manifest.json")
+        source_content = {p.relative_to(self.root).as_posix(): p.read_bytes() for p in self.source_files()}
+        checksums = {name: hashlib.sha256(content).hexdigest() for name, content in source_content.items()}
         if manifest_path.exists():
-            saved = json.loads(manifest_path.read_text())
-            if saved["files"] != checksums or saved["contentSha256"] != content_hash:
+            saved = json.loads(manifest_path.read_text(encoding="utf-8"))
+            if "policy" not in saved:
+                raise WorkflowError("Snapshot has no archived policy; create a new build. Existing snapshot was not changed.")
+            expected = {"schemaVersion": "1.0", "buildId": build_id, "commitSha": commit,
+                        "files": checksums, "contentSha256": content_hash,
+                        "policyVersion": policy["version"], "policy": policy}
+            if any(saved.get(key) != value for key, value in expected.items()):
                 raise WorkflowError("An immutable source snapshot was changed: " + build_id)
-            for name, checksum in checksums.items():
-                if hashlib.sha256((destination / name).read_bytes()).hexdigest() != checksum:
+            for name, checksum in {**checksums, policy["path"]: policy["sha256"]}.items():
+                path = self.checked_path(prefix + "/" + name)
+                if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != checksum:
                     raise WorkflowError("Snapshot content does not match its manifest: " + name)
         else:
+            if destination.exists():
+                raise WorkflowError("An incomplete source snapshot exists; it was not overwritten: " + build_id)
             destination.mkdir(parents=True, exist_ok=False)
-            for source in files:
-                target = destination / source.relative_to(self.root)
+            for name, content in {**source_content, policy["path"]: policy_content}.items():
+                target = self.checked_path(prefix + "/" + name)
                 target.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copyfile(source, target)
+                target.write_bytes(content)
+            if self.build_identity() != (commit, content_hash):
+                raise WorkflowError("Build inputs changed during snapshot creation; retry from a stable worktree.")
             manifest = {"schemaVersion": "1.0", "buildId": build_id, "commitSha": commit,
                         "contentSha256": content_hash, "workingTreeDirty": bool(self.git("status", "--porcelain")),
                         "createdAt": datetime.now(timezone.utc).isoformat(),
-                        "policyVersion": "demo-v1", "files": checksums}
-            manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
+                        "policyVersion": policy["version"], "policy": policy, "files": checksums}
+            manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
         log_root = self.root / "runtime/evidence/logs/commerce"
         log_dir = log_root / build_id
         log_dir.mkdir(parents=True, exist_ok=True)
