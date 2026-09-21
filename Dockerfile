@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 FROM eclipse-temurin:21-jdk-jammy AS build
 WORKDIR /workspace
 COPY gradlew gradlew.bat settings.gradle build.gradle gradle.properties ./
@@ -13,7 +14,8 @@ COPY voc-core ./voc-core
 COPY voc-infra ./voc-infra
 COPY scenario-runner ./scenario-runner
 RUN chmod +x gradlew
-RUN ./gradlew --no-daemon :commerce-app:bootJar :agent-app:bootJar :voc-app:bootJar
+RUN --mount=type=cache,id=jdd-gradle,target=/root/.gradle,sharing=locked \
+    ./gradlew --no-daemon :commerce-app:bootJar :agent-app:bootJar :voc-app:bootJar
 ARG APP_MODULE
 RUN cp ${APP_MODULE}/build/libs/app.jar /app.jar
 

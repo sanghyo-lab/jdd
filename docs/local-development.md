@@ -6,7 +6,7 @@
 ## 준비물
 
 - Git, Java 21, Python 3.9 이상
-- 실행 중인 Docker Desktop 또는 Docker Engine/Colima와 Docker Compose
+- 실행 중인 Docker Desktop 또는 Docker Engine/Colima와 Docker Compose·Buildx(BuildKit)
 - 저장소 읽기·쓰기 인증
 - web 구현 후에는 팀이 package.json에 고정한 Node/npm
 
@@ -25,6 +25,9 @@ Spring AI 2.0.1은 버전 기준만 기록했으며 실제 모델 연결은 agen
 setup은 .env가 없을 때만 로컬 DB 암호를 생성한다. 기존 .env는 유지한다.
 up은 실행 버전의 소스 스냅샷을 만들고 DB·앱 3개를 빌드해 시작한다. 첫 실행에는 컨테이너와 의존성 다운로드가 필요하다.
 Docker Compose plugin과 독립 docker-compose 명령을 모두 지원한다.
+`docker buildx version`으로 빌더를 확인한다. Docker Desktop에는 포함되며 Engine/Colima에서는
+해당 설치 방식의 Buildx 플러그인을 준비한다. Docker 빌드는 Gradle 캐시를 유지하므로 소스 수정 때마다
+Wrapper·의존성을 다시 다운로드하지 않는다. 같은 캐시는 빌드 간 잠금으로 보호하며 실행 이미지에는 넣지 않는다.
 
 | 서비스 | 로컬 주소 | DB 권한 |
 | --- | --- | --- |
