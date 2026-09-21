@@ -1,5 +1,14 @@
 # 한재홍 — AI Agent 작업 상태
 
+## 2026-09-22T08:03:00+09:00 — 후속 Agent 공유·실제 장부/화면 직접 인수
+
+- `a9691bc`·`754528c`는 전체 `scripts/dev publish` 종료0으로 main에 공유했다. Python70·runner 부모6·web19/production build, Java216개 중207통과/9조건부 제외·실패0, 세 앱의 실제 PostgreSQL/HTTP/근거 연결을 확인했다. 변경 없는 Gradle 결과 재사용과 별도 새 PostgreSQL 3검사를 구분한다. buildId `754528c0add7-efde6c0e0ab6`, 원문 `followup-runner-agent-publish.log/json`·`followup-runner-agent-publish-tests.json`이다.
+- 새 내부 관측 API로 기존 8조사/OAuth44행을 실제 DB와 일대일 대조했다. ID/소속·요청/응답 모델·usage·outcome·시각/지연이 일치하며 미관측 usage1행은 null이다. mock/실제 local 기동 모두 반복 GET·없는 조사404·DB 스냅샷 불변, API0/진행조사0/새 모델0을 확인했다. 첫 로컬 비교 helper는 Python3.9의 가변 소수초 파싱에서 실패했고 정규화 후 같은 값으로 재검증했다. 제품 DTO나 원문은 바꾸지 않았다.
+- 실제 worker의 소유권·복구 완료 후 test/mock은 workerReady=true/businessReady=false, local/codex_oauth/gpt-5.6-luna는 두 값 true다. 인증 성공이나 모델 품질을 이 값으로 대신하지 않는다. `followup-observations-mock-current.log/json`, `followup-observations-local-current.log/json`, 각각의 `followup-observations-live-*/`에 원문을 보존한다.
+- 새 production web을 실제 Chromium 1440×1000·390×844에서 직접 인수했다. 보존 VOC-07의 완료 보고서와 DATA 표·LOG raw/entry·CODE 줄번호·POLICY 원문, 과거 LLM_UNAVAILABLE 실패/전달 완료 구분·이력 선택/새로고침·상태 재조회, NORMAL 완료 표시를 확인했다. 문서 가로 폭은 화면 폭과 같고 API/OAuth44행은 그대로다. `followup-new-ui-acceptance.json`, `followup-new-ui-normal.txt`, `output/playwright/followup-new-ui-*.png`, `followup-observations-after-ui.log/json`이다.
+- 이는 과거 실제 결과의 현재 화면 인수다. NORMAL의 의미적 직접 인용 주의사항, 옛 VOC-07의 두 번째 prevention이 자체 CODE 인용 없이 targetPaths를 쓰는 문제는 그대로 보존하며 새 강화 기준의 품질 통과로 계산하지 않는다. 새 서버는 같은 유형을 거절한다. ngrok 공개 접속/허용 계정 YAML·전체 현재 모델 품질·타인 DONE은 미완료다.
+- 공유 runner로 `COMMERCE_REPRODUCTION_ENABLED=true JDD_MVP_LIVE=true ./scripts/dev verify-mvp`를 local OAuth/Luna로 명시 실행 중이다. 빌드754528c를 고정해 첫 실패 이후 자동 새 조사 없이 원문을 보존한다. 실행 중 받은 `86a0466`의 shop 선택 보존·리더 검증 기록은 전체 검토해 편집 clone에 통합했으며 진행 중 조사 스택은 재기동하지 않았다. 원문 `followup-live-runner-01.log/json`; 종료·품질 결과는 별도로 기록한다.
+
 ## 2026-09-22T07:50:51+09:00 — 공유된 화면/runner 연결·최종 관측 필드 정합
 
 - 동기화 중 들어온 `81fc1c4..d642878` 일곱 커밋을 확인했다. VOC 분석·근거·shop과 실제 runner가 공유돼 인수를 이어간다. 논의 목록 충돌은 새 건과 기존 답변/집계를 함께 보존해 해결했다. Agent 위임 구현은 가져오지 않았다.

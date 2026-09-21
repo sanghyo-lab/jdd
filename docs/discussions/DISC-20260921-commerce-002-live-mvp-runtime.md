@@ -10,7 +10,7 @@
 | 영향받는 역할 | commerce·lead, agent, voc |
 | 필수 합의자 | 이상효(리더), 한재홍(모델 실행), 김아름(공통 실행·runner) |
 | 확인·답변 대기 | 이상효·김아름 P2 관측 응답/worker 준비 상태 인수·runner 실제 검증 |
-| 생성 시각 / 최종 갱신 | 2026-09-21T21:17:00+09:00 / 2026-09-22T07:48:13+09:00 |
+| 생성 시각 / 최종 갱신 | 2026-09-21T21:17:00+09:00 / 2026-09-22T08:03:00+09:00 |
 | 다음 행동 / 담당 | P1 합의 이력 유지·P2 Agent 제공 구현/검사, runner 소비 계약 확인 후 실제 모델 검증 |
 
 ## 결정할 질문
@@ -161,3 +161,8 @@
 - workerReady는 실제 worker 소유권 획득·시작 복구가 끝나야 true다. DB가 응답하고 이 조건과 실제 어댑터/명시 runtime/provider가 맞을 때만 businessReady=true다. mock/worker 비활성/소유권 대기는 false다. 조회로 인증 파일을 열거나 모델을 호출하지 않으며 모델 품질 성공도 뜻하지 않는다.
 - 직접 검사: core 15개·관련 Agent 앱 19개 종료0, 같은 모델 관측 HTTP 검사 3개를 실제 전용 PostgreSQL에서도 통과했다. 소속 격리·모든 API 장부 상태·nullable usage/지연·재조회 시 원본 장부 불변·민감 원문 제외를 확인했다. 원문 `runtime/submission/agent-20260921/followup-runner-agent-after.log/json`, `followup-model-observations-postgres.log/json`과 결과 XML이다. 초기 worker 테스트의 동기화 mock 검증 잠금 실패와 수정도 별도 보존한다. 모두 모의 장부/모델이며 실제 호출은 0이다.
 - 이상효·김아름에게 이 응답 필드/준비 의미의 명시 인수와 runner 소비 확인을 요청한다. 전체 publish·실제 실행 스택/보존 조사 GET 인수는 이어 수행하며 일곱 실제 모델 품질·화면/ngrok·DONE은 미완료다.
+
+### 2026-09-22T08:03:00+09:00 — 한재홍 / agent / P2 실제 준비 상태 인수
+
+- `754528c` 전체 publish 후 실제 PostgreSQL 소유권·시작 복구를 마친 workerReady=true를 확인했다. 기본 test/mock은 businessReady=false이고 별도 local/codex_oauth/gpt-5.6-luna 활성화 뒤 businessReady=true다. 두 기동의 기존44행 장부/조사 GET은 동일하며 새 모델 호출0이다. 실제 모델 접속 성공은 이 readiness만으로 판정하지 않는다.
+- [조사별 관측 P1](DISC-20260922-commerce-001-model-observations.md)의 제공/직접 대조와 구분해 기록한다. 현재 공유 runner는 고정 빌드754528c의 local OAuth로 명시 실행 중이다. 실행 완료 전 성공으로 표시하거나 다른 담당자의 P2 인수를 대신하지 않는다.

@@ -10,8 +10,8 @@
 | 영향받는 역할 | agent 제공자, voc runner, commerce·lead 검증 |
 | 필수 합의자 | 한재홍(장부 제공), 김아름(runner 소비), 이상효(리더) |
 | 확인·답변 대기 | 김아름·리더의 제공 API/LOG 소비 인수·실제 모델 검증 |
-| 생성 시각 / 최종 갱신 | 2026-09-22T07:44:36+09:00 / 2026-09-22T07:50:51+09:00 |
-| 다음 행동 / 담당 | Agent P1 수락·제공 구현/전용 PostgreSQL 검사, 전체 publish와 저장 장부 직접 소비 확인 |
+| 생성 시각 / 최종 갱신 | 2026-09-22T07:44:36+09:00 / 2026-09-22T08:03:00+09:00 |
+| 다음 행동 / 담당 | Agent 754528c 전체 publish·실제 저장44행 GET 대조 완료, runner/소비자·실제 모델 검증 |
 
 ## 결정할 질문
 
@@ -66,9 +66,17 @@ runner 및 부모 helper를 직접 검토해 통합했다. 위임 검사에서 �
 
 아직 답변 없음.
 
+### 한재홍 — 공유 뒤 실제 저장 장부 직접 인수
+
+2026-09-22T08:03:00+09:00 / 한재홍 / agent / P1 / 의견: 제공 검증
+
+- `a9691bc`·`754528c` 전체 publish 종료0으로 제공 API/직접 인용/준비 상태를 공유했다. 현재 실제 스택의 기존 8조사·OAuth44행을 직접 SELECT와 GET으로 대조해 소속·필드·순서·시각·지연이 일치한다. usage 미관측1행을 null로 보존하고 requestedModel로 actualModel을 대체하지 않는다. mock 기동 중 과거 calls.provider는 codex_oauth로 유지됐다.
+- 반복 GET과 없는 조사404 뒤 DB/장부 불변이며 이 읽기 검증의 새 모델/API 호출0이다. API의 예약/미확정/모든 상태는 별도 PostgreSQL 합성 장부3검사 범위다. 실제 사용하지 않은 API 상태를 실제 청구 결과로 만들지 않는다.
+- production web의 실제 과거 LOG raw/entry, DATA·CODE·POLICY 조회도 확인했다. 원문/범위는 [Agent 상태](../status/agent.md)의 같은 시각과 `runtime/submission/agent-20260921/followup-observations-live-*/`에 보존한다. 현재 빌드의 명시 local OAuth runner는 진행 중이며 소비자 답변/전체 품질 전 미해소를 유지한다.
+
 ## 결정·실행·검증
 
-Agent가 P1 제공 계약을 수락하고 전용 PostgreSQL/HTTP 합성 장부 검사를 통과했다. 전체 publish와 실제 저장 조사/runner 소비·모델 품질 인수는 남아 DISCUSSING이다. 실제 입력/출력 원문은 실행별 runtime에 보존한다.
+Agent가 P1 제공 계약을 수락하고 전용 PostgreSQL/HTTP 합성 장부 검사·전체 publish·실제 저장 44행 GET 대조를 통과했다. runner 소비자의 직접 인수와 현재 모델 품질은 남아 DISCUSSING이다. 실제 입력/출력 원문은 실행별 runtime에 보존한다.
 
 ## 해소 또는 재개 이력
 
