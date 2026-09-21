@@ -26,6 +26,24 @@ status는 최근 다섯 커밋만 출력한다. 마지막으로 검토한 원격
 이 기록은 각 에이전트가 관리하는 작업 지침이며 status/watch에 자동 검토 기능이 구현됐다는 뜻은 아니다.
 소스를 반영한 뒤에는 영향받는 빌드·마이그레이션·앱 재기동·회귀 검증을 수행하고 실행 buildId를 확인한다.
 
+## 협업 문서만 공유할 때
+
+협업 지침·논의·역할 상태 설명은 다음 절차로 바로 공유한다. 문서 한 건의 답변을 앱 환경 준비에 묶지 않는다.
+
+1. 자신의 변경 파일만 명시적으로 add·commit한다. 사용자 파일은 보존한다.
+2. fetch 후 추적 파일·인덱스가 깨끗하고 Git 작업이 없을 때 최신 main을 통합한다.
+   편집 중에는 pull/rebase하지 않는다. 미추적 파일과 겹치면 별도 깨끗한 main clone에서 공유한다.
+3. `git diff --name-only origin/main...HEAD`와 실제 diff로 미공유 커밋 전체가 협업 문서뿐인지 확인한다.
+   허용 대상은 AGENTS.md, README.md, docs/collaboration.md, docs/autonomous-development.md,
+   docs/discussions/*.md, docs/status/*.md다. 소스·설정·API/업무 계약·검증 기준·완료/승인 JSON 변경은 이 절차로 우회하지 않는다.
+4. `python3 scripts/check_docs.py`, `git diff --check origin/main...HEAD`를 실행하고 논의 목록/본문의 상태·답변·집계를 대조한다.
+   Windows는 확인된 Python 실행기로 같은 검사 파일을 실행한다.
+5. `git push origin main`으로 바로 공유한다. 동시 push로 거절되면 새 변경을 보존해 통합하고 범위·문서 검증 후 다시 push한다.
+6. fetch한 origin/main에 공유 커밋이 포함되는지 확인하고 실제 검증·공유 결과를 자기 상태에 기록한다.
+
+코드·설정·계약 변경은 기존 publish 검증을 수행한다. 문서 공유에 전체 앱 검증 성공을 붙이지 않는다.
+역할 DONE·리더 승인·team-check의 실제 검증과 내용 해시 규칙은 바뀌지 않는다.
+
 ## 담당자 간 요청
 
 역할 상태와 완료 선언은 각자 docs/status/<role>.md와 자기 완료 JSON에만 작성한다. 세 담당자의 파일을 매 반복 읽는다.

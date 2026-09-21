@@ -62,6 +62,13 @@ agent 역할은 docs/prompts/implement-voc-investigation-agent.md도 필수 구�
 8. 세 담당자의 DONE이 모이면 이상효는 개발리더로 전체 코드 검사와 실제 통합 검증을 새로 수행한다.
    지적 사항을 직접 수정하거나 담당자에게 요청하고, 수정·담당자 완료 갱신·리더 재검증 후 최종 승인한다.
 
+### 협업 문서만 변경한 단위의 즉시 공유
+
+협업 지침·논의·역할 상태 설명만 변경한 단위는 [문서 공유 절차](docs/autonomous-development.md#협업-문서만-공유할-때)를 적용한다.
+최신 main 통합 → 변경 범위 확인 → 문서·차이 검증 → 즉시 일반 push 순서로 공유하며 앱 준비·전체 빌드를 기다리지 않는다.
+소스·실행 설정·API/업무 계약·테스트·완료/승인 JSON이 섞이면 기존 scripts/dev publish와 필요한 검증을 적용한다.
+문서 공유 성공은 앱 실행·MVP 성공이나 DONE을 뜻하지 않는다. 팀 완료 기준과 내용 해시 판정은 그대로 유지한다.
+
 ## 논의와 답변
 
 - 논의 목록과 작성 규칙은 [docs/discussions/README.md](docs/discussions/README.md)를 따른다.
