@@ -7,13 +7,14 @@
 - 3인 분담: AI Agent / 이커머스 / VOC 티켓 관리·AI 연동
 - GitHub 작업 방식: 각자 별도 clone의 `main`에서 개발하고, 검증한 변경을 커밋·push해 공유
 - 실행 골격: Gradle 백엔드 모듈 10개, 커머스·조사·VOC의 세 실행 단위
-- 프론트 제안: `web`의 Next.js·React·TypeScript, 로컬 실행 + ngrok 데모 연결
+- 프론트: `web`의 Next.js·React·TypeScript, 인증된 문의 작업실
 - 조사 대상: 주문·결제·쿠폰·취소·재고에 관한 7개 문의 시나리오
 
 현재는 **세 역할의 구현·통합 검증 진행 중**이다. 커머스 업무 API와 일곱 VOC의 실제 PostgreSQL 재현을 제공한다.
 Agent는 조사 접수·영속 실행·8개 실제 조회 도구·근거/보고서 검증·비용 제어와 모델 연결 코드를 제공한다.
-VOC는 티켓·분석 입력 사본을 저장하고 Agent 전달·조회·근거 중계를 실행한다. 화면·runner와 실제 VOC 모델 품질은 검증을 이어간다.
-실제 AI 조사·팀 완료 여부는 [담당자 상태](docs/status/commerce.md)와 team-check로 확인한다.
+VOC는 티켓·분석 입력 사본을 저장하고 Agent 전달·조회·근거 중계를 실행한다. 로그인·티켓 화면은 제공하며 조사·리포트·근거 화면과 runner는 통합 중이다.
+Agent 담당자 PC에서 실제 VOC-07 한 건을 검수했지만 정상 보고서의 직접 인용 보완, 나머지 VOC·리더 PC의 실제 모델 검증은 남아 있다.
+실행별 결과와 한계는 [해커톤 보고서](docs/hackathon-report.md), 최종 팀 완료 여부는 `./scripts/dev team-check`로 확인한다.
 
 ## 각자 시작하기
 
@@ -29,6 +30,16 @@ VOC는 티켓·분석 입력 사본을 저장하고 Agent 전달·조회·근거
 ```
 
 위 명령으로 각자의 PostgreSQL·커머스·Agent·VOC를 실행하고 연결을 확인한다.
+Java 21·Docker·Python과 화면용 Node.js 24 LTS가 필요하다. 화면은 [web 실행 안내](web/README.md)에 따라
+Git에서 제외된 `web/.env.local`에 접속 암호·서명 비밀·origin을 설정한 뒤 실행한다.
+
+```bash
+npm --prefix web ci
+npm --prefix web run build
+npm --prefix web run start -- --port 3000
+```
+
+`http://127.0.0.1:3000`에서 로그인해 문의를 등록한다. 설정한 실제 origin을 사용하며 같은 `.next`를 재빌드할 때는 web을 먼저 중지한다.
 기본 Agent는 `test/mock`이며 실제 모델을 호출하지 않는다. 로컬 모델은 프로젝트 전용 Codex OAuth,
 배포 모델은 OpenAI API를 별도로 설정한다. 로그인·명시 실행·모델 미검증 범위는
 [LLM 실행 안내](docs/llm-runtime.md)와 [사용·비용 정책](docs/planning/demo-llm-policy.md)을 따른다.
