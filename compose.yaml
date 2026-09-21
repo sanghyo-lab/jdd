@@ -1,0 +1,111 @@
+name: ${COMPOSE_PROJECT_NAME:-jdd}
+
+x-app: &app
+  restart: unless-stopped
+  mem_limit: 640m
+  healthcheck:
+    test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8080/actuator/health"]
+    interval: 5s
+    timeout: 3s
+    retries: 30
+    start_period: 30s
+
+services:
+  db:
+    image: postgres:17.6
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-jdd}
+      POSTGRES_USER: ${POSTGRES_USER:-jdd_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run scripts/dev setup}
+      COMMERCE_DB_PASSWORD: ${COMMERCE_DB_PASSWORD:?Run scripts/dev setup}
+      AGENT_DB_PASSWORD: ${AGENT_DB_PASSWORD:?Run scripts/dev setup}
+      VOC_DB_PASSWORD: ${VOC_DB_PASSWORD:?Run scripts/dev setup}
+      EVIDENCE_DB_PASSWORD: ${EVIDENCE_DB_PASSWORD:?Run scripts/dev setup}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./infra/postgres/01-roles.sql:/docker-entrypoint-initdb.d/01-roles.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+
+  commerce:
+    <<: *app
+    build:
+      context: .
+      args:
+        APP_MODULE: commerce-app
+    environment:
+      SERVER_PORT: 8080
+      DB_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-jdd}?currentSchema=commerce
+      DB_USERNAME: jdd_commerce
+      DB_PASSWORD: ${COMMERCE_DB_PASSWORD}
+      APP_BUILD_ID: ${APP_BUILD_ID:?Use scripts/dev up}
+      APP_COMMIT_SHA: ${APP_COMMIT_SHA:?Use scripts/dev up}
+      COMMERCE_LOG_ROOT: /evidence/logs/commerce
+    ports:
+      - "127.0.0.1:${COMMERCE_PORT:-8080}:8080"
+    volumes:
+      - ./runtime/evidence/logs/commerce:/evidence/logs/commerce
+    depends_on:
+      db:
+        condition: service_healthy
+
+  agent:
+    <<: *app
+    build:
+      context: .
+      args:
+        APP_MODULE: agent-app
+    environment:
+      SERVER_PORT: 8080
+      DB_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-jdd}?currentSchema=agent
+      DB_USERNAME: jdd_agent
+      DB_PASSWORD: ${AGENT_DB_PASSWORD}
+      EVIDENCE_DB_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-jdd}?currentSchema=commerce
+      EVIDENCE_DB_USERNAME: jdd_evidence
+      EVIDENCE_DB_PASSWORD: ${EVIDENCE_DB_PASSWORD}
+      SOURCE_ROOT: /evidence/source
+      LOG_ROOT: /evidence/logs/commerce
+      POLICY_PATH: /evidence/policy/business-policy.md
+      APP_BUILD_ID: ${APP_BUILD_ID}
+      APP_COMMIT_SHA: ${APP_COMMIT_SHA}
+    ports:
+      - "127.0.0.1:${AGENT_PORT:-8081}:8080"
+    volumes:
+      - ./runtime/evidence/source:/evidence/source:ro
+      - ./runtime/evidence/logs/commerce:/evidence/logs/commerce:ro
+      - ./docs/business-policy.md:/evidence/policy/business-policy.md:ro
+    depends_on:
+      commerce:
+        condition: service_healthy
+
+  voc:
+    <<: *app
+    build:
+      context: .
+      args:
+        APP_MODULE: voc-app
+    environment:
+      SERVER_PORT: 8080
+      DB_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-jdd}?currentSchema=voc
+      DB_USERNAME: jdd_voc
+      DB_PASSWORD: ${VOC_DB_PASSWORD}
+      AGENT_BASE_URL: http://agent:8080
+      COMMERCE_BASE_URL: http://commerce:8080
+      APP_BUILD_ID: ${APP_BUILD_ID}
+      APP_COMMIT_SHA: ${APP_COMMIT_SHA}
+    ports:
+      - "127.0.0.1:${VOC_PORT:-8082}:8080"
+    depends_on:
+      agent:
+        condition: service_healthy
+      commerce:
+        condition: service_healthy
+
+volumes:
+  postgres-data:

@@ -1,0 +1,14 @@
+plugins { id 'org.springframework.boot' }
+dependencies {
+    implementation project(':commerce-core')
+    implementation project(':commerce-infra')
+    implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-jdbc'
+    implementation 'org.springframework.boot:spring-boot-starter-flyway'
+    runtimeOnly 'org.postgresql:postgresql'
+    runtimeOnly 'org.flywaydb:flyway-database-postgresql'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testRuntimeOnly 'com.h2database:h2'
+}
+tasks.named('bootJar') { archiveFileName = 'app.jar' }

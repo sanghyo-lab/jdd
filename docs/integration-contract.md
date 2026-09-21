@@ -1,6 +1,6 @@
 # VOC·Agent 연동 인터페이스 v1
 
-**김아름**이 VOC·프론트, **한재홍**이 Agent를 구현할 때 사용하는 공통 계약이다. **이상효**가 제공할 API·DB·로그·소스는 [커머스 인터페이스](commerce-interface.md)에 정의한다. 이 문서는 구현 기준이며 현재 실행 중인 API는 없다. 담당별 범위는 [구현 문서 모음](roles/README.md)에 있다.
+**김아름**이 VOC·프론트, **한재홍**이 Agent를 구현할 때 사용하는 공통 계약이다. **이상효**가 제공할 API·DB·로그·소스는 [커머스 인터페이스](commerce-interface.md)에 정의한다. 아래 업무 API는 구현 전이며, 실행 골격의 진단 API는 [로컬 개발 안내](local-development.md)에 있다. 담당별 범위는 [구현 문서 모음](roles/README.md)에 있다.
 
 ## 0. 공통 표현
 

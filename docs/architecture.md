@@ -2,7 +2,7 @@
 
 ## 1. 설계 기준
 
-이 문서는 3명이 Java·Spring Boot로 이틀 동안 구현할 구조 제안이다. 현재 저장소에는 설계 문서가 있으며, 아래 디렉터리와 빌드 설정은 구현 대상이다.
+이 문서는 3명이 Java·Spring Boot로 이틀 동안 구현할 구조다. 현재 모듈·Spring Boot 실행 골격·Compose·DB 초기화·협업 도구를 준비했으며 업무 기능은 구현 전이다. [각 PC 실행 방법](local-development.md)과 [역할별 goal](goals/README.md)을 따른다.
 
 - 하나의 저장소에 백엔드 Gradle 모듈 10개와 프론트 프로젝트 `web`을 둔다. 백엔드 빌드 스크립트는 Groovy DSL을 기본안으로 한다.
 - 상시 실행하는 Spring Boot 애플리케이션은 `commerce-app`, `agent-app`, `voc-app` 세 개다. 한재홍은 AI, 이상효는 커머스, 김아름은 VOC 티켓과 AI 연동을 담당한다. [담당별 구현 문서](roles/README.md)
@@ -228,9 +228,9 @@ include 'voc-app', 'voc-core', 'voc-infra'
 include 'scenario-runner'
 ```
 
-- Java 21을 기본 후보로 하고, Java Toolchain과 테스트 설정을 통일한다.
+- Java 21 Toolchain과 Gradle Wrapper 9.3.1을 사용한다.
 - Spring Boot 플러그인은 세 `app` 모듈에 적용한다. 세 앱의 실행 파일은 `bootJar`로 만들고, 여섯 `core`·`infra` 모듈에는 `java-library`를 적용해 일반 JAR로 사용한다. `scenario-runner`에는 Java `application` 플러그인과 테스트 설정을 둔다. [Spring Boot 패키징 문서](https://docs.spring.io/spring-boot/gradle-plugin/packaging.html)
-- Spring Boot와 Spring AI의 호환 버전을 중앙에서 고정한다. 확인한 공식 문서에서 Spring AI 2.0.x는 Spring Boot 4.0.x·4.1.x를 지원한다. 정확한 패치 버전은 초기 빌드와 모델 호출을 검증하며 확정한다. [Spring AI 시작 문서](https://docs.spring.io/spring-ai/reference/getting-started.html)
+- Spring Boot 4.1.1로 실행 골격을 빌드한다. Spring AI의 기준 버전은 gradle.properties의 2.0.1이며 모델 의존성과 호출은 agent 담당이 연결한다. Spring AI 2.0.x는 Spring Boot 4.0.x·4.1.x를 지원한다. [Spring AI 시작 문서](https://docs.spring.io/spring-ai/reference/getting-started.html)
 - `core`에는 유스케이스와 도구가 필요한 의존성을, `infra`에는 사용하는 저장·조회 기술 의존성을 선언한다.
 - 앱은 명시적인 설정 Import와 범위가 정해진 Component·Entity·Repository 스캔으로 필요한 구현체를 조립한다.
 - 프론트는 `web`에서 Node.js 패키지 도구로 독립 빌드하고, Vercel에 배포한다. UI가 소비하는 API 계약과 보고서 JSON 구조를 백엔드와 함께 관리한다.

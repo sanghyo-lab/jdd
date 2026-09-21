@@ -6,11 +6,29 @@
 - 주 기술: Java, Spring Boot
 - 3인 분담: AI Agent / 이커머스 / VOC 티켓 관리·AI 연동
 - GitHub 작업 방식: 각자 별도 clone의 `main`에서 개발하고, 검증한 변경을 커밋·push해 공유
-- 구조 제안: Gradle 백엔드 모듈 10개, 커머스·조사·VOC의 세 실행 단위
+- 실행 골격: Gradle 백엔드 모듈 10개, 커머스·조사·VOC의 세 실행 단위
 - 프론트 제안: `web`의 Next.js·React·TypeScript, Vercel 배포
 - 조사 대상: 주문·결제·쿠폰·취소·재고에 관한 7개 문의 시나리오
 
-현재 단계는 구조 설계다. 모듈별 코드와 실행 설정은 설계에 따라 구현할 대상이다.
+현재는 **각 PC에서 역할별 개발을 시작할 준비 단계**다. 공통 Spring Boot 실행 골격·DB·동기화 도구를 준비했고, 주문·티켓·AI 분석 기능은 각 담당 goal에서 구현한다. 실제 goal은 아직 시작하지 않았다.
+
+## 각자 시작하기
+
+**[세 PC의 최초 준비와 역할별 goal 시작 명령](docs/goals/README.md)** 을 먼저 읽는다.
+
+- 이상효: [commerce goal](docs/goals/commerce.md)
+- 김아름: [voc goal](docs/goals/voc.md)
+- 한재홍: [agent goal](docs/goals/agent.md)
+
+```bash
+./scripts/dev up
+./scripts/dev smoke
+```
+
+위 명령으로 각자의 PostgreSQL·커머스·Agent·VOC를 실행하고 연결을 확인한다.
+설치 조건과 검증 범위는 [로컬 개발 안내](docs/local-development.md)에 있다.
+자동 개발은 [AGENTS.md](AGENTS.md)와 [협업 반복 규칙](docs/autonomous-development.md)을 따른다.
+원격 확인은 `./scripts/dev status`, 소스 반영은 `./scripts/dev sync`, 검증 후 공유는 `./scripts/dev publish`다.
 
 ## 담당자별 구현 문서
 

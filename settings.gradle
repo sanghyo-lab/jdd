@@ -1,0 +1,11 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+    }
+}
+rootProject.name = 'jdd'
+include 'commerce-app', 'commerce-core', 'commerce-infra'
+include 'agent-app', 'agent-core', 'agent-infra'
+include 'voc-app', 'voc-core', 'voc-infra'
+include 'scenario-runner'

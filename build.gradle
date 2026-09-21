@@ -1,0 +1,22 @@
+plugins {
+    id 'org.springframework.boot' version '4.1.1' apply false
+}
+
+allprojects {
+    group = 'com.jdd'
+    version = '0.1.0-SNAPSHOT'
+    repositories { mavenCentral() }
+}
+
+subprojects {
+    apply plugin: 'java'
+    java { toolchain { languageVersion = JavaLanguageVersion.of(21) } }
+    dependencies {
+        implementation platform("org.springframework.boot:spring-boot-dependencies:${springBootVersion}")
+        testImplementation platform("org.springframework.boot:spring-boot-dependencies:${springBootVersion}")
+        testImplementation 'org.junit.jupiter:junit-jupiter'
+        testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    }
+    tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
+    tasks.withType(Test).configureEach { useJUnitPlatform() }
+}

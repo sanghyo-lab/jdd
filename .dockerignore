@@ -1,0 +1,9 @@
+.git
+.idea
+.gradle
+**/build
+runtime
+.env
+.env.*
+web/node_modules
+web/.next

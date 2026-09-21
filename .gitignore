@@ -18,3 +18,8 @@ runtime/
 .env.*
 !.env.example
 !.env.*.example
+
+# Local development-agent identity and Python caches
+.jdd-role
+__pycache__/
+*.pyc

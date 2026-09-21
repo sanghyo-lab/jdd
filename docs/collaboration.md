@@ -2,7 +2,7 @@
 
 이 문서는 AI Agent, 이커머스 애플리케이션, VOC 티켓 관리·AI 연동을 세 명이 나누어 구현하는 작업 기준이다. 저장소는 하나를 사용하고, 사용자가 정한 방식에 따라 모든 개발을 `main`에서 진행한다. 각자 자신의 PC에 clone해서 작업한다. 같은 PC에서 여러 개발 에이전트를 실행할 때에도 독립된 clone을 사용해 각자의 `main`과 작업 파일을 분리한다.
 
-현재는 설계와 협업 템플릿을 준비한 단계다. `sanghyo-lab`의 GitHub 인증과 이 저장소의 쓰기 권한을 확인했다. 팀원 초대, Issue 생성, CI와 자동 실행은 아직 설정하지 않았다.
+현재는 역할별 goal 시작 지침, 공통 실행 골격과 동기화 도구를 준비한 단계다. `sanghyo-lab`의 GitHub 인증과 이 저장소의 쓰기 권한을 확인했다. 다른 PC의 인증·goal 실행, 팀원 초대, Issue 생성, CI는 아직 설정하지 않았다. [goal 시작 안내](goals/README.md)와 [자동 협업 규칙](autonomous-development.md)을 따른다.
 
 ## 1. 담당 범위
 
@@ -36,7 +36,7 @@ flowchart LR
 - 티켓 상태는 `OPEN`, `IN_PROGRESS`, `RESOLVED`를 사용한다. AI 조사 상태는 `QUEUED`, `RUNNING`, `COMPLETED`, `NEEDS_INPUT`, `FAILED`를 사용한다.
 - 조사 완료 후 티켓 화면에 결과를 표시한다. 티켓의 `RESOLVED` 전이는 담당자가 실제 조치를 확인했을 때 수행한다.
 
-앱 세 개의 실행·연동 비용을 줄이기 위해 PostgreSQL 한 인스턴스와 Compose 실행 환경을 공유한다. `commerce`, `agent`, `voc` 스키마와 마이그레이션은 각 담당 앱에서 관리한다. 첫 통합은 첫날에 끝내는 것을 목표로 한다.
+각 PC에서 앱 세 개와 PostgreSQL 한 인스턴스를 Compose로 실행한다. PC 사이에는 소스·계약을 공유하고 업무 DB·로그는 각각 보관한다. `commerce`, `agent`, `voc` 스키마와 마이그레이션은 각 담당 앱에서 관리한다. 첫 실제 업무 통합은 첫날에 끝내는 것을 목표로 한다.
 
 ## 3. 먼저 구현할 공통 규약
 

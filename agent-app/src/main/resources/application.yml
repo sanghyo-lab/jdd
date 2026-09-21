@@ -1,0 +1,29 @@
+server:
+  port: ${SERVER_PORT:8081}
+spring:
+  application:
+    name: agent-app
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/jdd?currentSchema=agent}
+    username: ${DB_USERNAME:jdd_agent}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 5
+      connection-timeout: 5000
+  flyway:
+    default-schema: agent
+    schemas: agent
+    create-schemas: false
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+jdd:
+  build-id: ${APP_BUILD_ID:local-dev}
+  commit-sha: ${APP_COMMIT_SHA:unknown}
