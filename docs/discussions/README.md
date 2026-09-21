@@ -12,7 +12,7 @@
 
 | ID / 논의 | 상태 | 정리 담당 | 확인·답변 대기 | 다음 행동 / 막힌 이유 | 해소 근거 | 최종 갱신 |
 | --- | --- | --- | --- | --- | --- | --- |
-| [DISC-20260921-commerce-002 / 실제 MVP 실행 환경](DISC-20260921-commerce-002-live-mvp-runtime.md) | DISCUSSING | 이상효 | 한재홍 제공자 확인·김아름 runner 인수, 리더 Windows 검사 보완 | ab89c30 관측 공유·VOC 네이티브 7/8 통과/OS 기대값 실패·실제 opt-in 거절 확인 | 미해소: VOC-LEAD-MVP-001·제공자/runner 인수·실제 모델 검증 필요 | 2026-09-21T21:54:00+09:00 |
+| [DISC-20260921-commerce-002 / 실제 MVP 실행 환경](DISC-20260921-commerce-002-live-mvp-runtime.md) | DISCUSSING | 이상효 | 한재홍 제공자 확인·김아름 Windows 재검증/runner 인수 | VOC-LEAD-MVP-001 수정, Mac 8/8·모의 Windows 8/8 통과 | 미해소: VOC-LEAD-MVP-001·제공자/runner 인수·실제 모델 검증 필요 | 2026-09-21T22:10:23+09:00 |
 | [DISC-20260921-agent-005 / 대기열 한도](DISC-20260921-agent-005-queue-limits.md) | AGREED | 한재홍 | Agent 제공자 확인·VOC 화면/runner 검증 | f5064c8 실제 429 네 번·동일 키·전달/조회 재시작 소비 통과 | 미해소: 담당 확인·화면/runner·실제 모델 검증 필요 | 2026-09-21T22:03:00+09:00 |
 | [DISC-20260921-agent-001 — 모델 설정·장애·예산 오류](DISC-20260921-agent-001-llm-errors.md) | AGREED | 한재홍 | VOC 화면·나머지 오류/재조사 검증 | 실제 Agent 설정 오류와 전달/조회/티켓 분리 소비 통과 | 미해소: 화면·나머지 오류/재조사·실제 모델 검증 필요 | 2026-09-21T22:03:00+09:00 |
 | [DISC-20260921-commerce-001 / 재고 재현·근거](DISC-20260921-commerce-001-inventory-evidence.md) | AGREED | 이상효 | VOC runner 검증 | 제공자 PC의 일곱 소비 8도구·300근거·333필드/로그 비교 통과 | 미해소: VOC 소비자 검증 필요 | 2026-09-21T19:32:00+09:00 |

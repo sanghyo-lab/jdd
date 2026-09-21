@@ -1,6 +1,7 @@
 """Networkless workflow tests. Synthetic reports stay in temporary repositories, never project DONE."""
 import copy
 import json
+import os
 from pathlib import Path
 import sys
 import tempfile
@@ -94,7 +95,7 @@ class LiveMvpTests(unittest.TestCase):
         self.assertEqual(self.repo.checks[0]['APP_RUNTIME'], 'test')
         self.assertEqual(self.repo.checks[0]['LLM_PROVIDER'], 'mock')
         args, kwargs = self.repo.commands[0]
-        self.assertEqual(args[0], './gradlew')
+        self.assertEqual(args[0], 'gradlew.bat' if os.name == 'nt' else './gradlew')
         self.assert_no_model_secrets(kwargs['env'])
         self.assertEqual(json.loads(self.latest.read_text()), self.repo.result)
         archived = list((self.repo.root / 'runtime/mvp').glob('*/previous-scenarios.json'))

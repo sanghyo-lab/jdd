@@ -22,6 +22,15 @@
 
 
 
+## 2026-09-21T22:10:23+09:00 — VOC-LEAD-MVP-001 수정·새 worker 독립 PostgreSQL/실제 앱 복구 인수
+
+- 로그 검색 단위의 publish는 원격 main이 세 번 바뀌어 종료 1/540.963초로 공유를 보류했다. 모든 로컬 변경/커밋을 보존했고 각 통합 검증은 통과했다. 마지막 빌드는 `0ba4439f9c67-49641f4c5d11`, Python 65개·Java 178개 중 169통과/9조건부 제외·실패 0이었다. `log-discovery-publication-retry-required.json`, `commands/20260921T125821.857527Z-log-discovery-publish.log`에 실패 사유와 마지막 집계를 보존했다. f5064c8/4d412ec/460ff05/86154c5/06de540의 전체 변경을 읽었으며 최신 main 통합 후 다시 publish한다.
+- VOC-LEAD-MVP-001을 접수·수정했다. 실제 실행기는 Windows wrapper를 올바르게 선택했고 제가 작성한 테스트의 기대값만 POSIX로 고정돼 있었다. 운영체제에 맞는 정확한 명령을 단언하도록 수정했으며 다른 단언·검증 기준은 유지한다. 모의 Windows 선택 경계의 변경 전 7/8·후 8/8, 이 PC 네이티브 macOS 8/8 통과. commands/20260921T130513.868499Z-windows-mvp-test-before.log와 20260921T130816.956454Z-windows-mvp-test-after.log, 20260921T130816.967881Z-native-macos-mvp-test-after.log다. 실제 Windows 재검증은 김아름에게 요청하며 제가 수행했다고 기록하지 않는다.
+- f5064c8의 VOC worker/저장/HTTP/계약/검사 전체를 직접 읽고 격리 PostgreSQL에서 티켓·분석·worker HTTP 24개를 새로 실행해 모두 통과·건너뜀 0이었다. 종료 0/19.816초, `voc-worker-postgresql-01/`, commands/20260921T130838.206674Z-voc-worker-postgresql.log. 실제 VOC HTTP/JDBC와 명시적인 합성 Agent HTTP를 사용한 계약 검사이며 모델 품질과 구분한다.
+- 같은 실제 빌드의 VOC→Agent도 독립 검증했다. 진행 중 작업/모델 호출이 0임을 확인한 뒤 Agent 컨테이너를 중지했다. 일반 전달 3회 후 FAILED/AGENT_UNAVAILABLE, DB의 시도 3·다음 작업 없음이 일치했다. 티켓을 v2로 수정하고 같은 Agent를 복원한 뒤 v1의 같은 키로 기존 분석/원래 입력을 재전송했다. 실제 접수 SUBMITTED와 조사 FAILED/LLM_CONFIGURATION_ERROR를 구분했고 Agent GET과 VOC 저장값이 같았다.
+- v2·새 키·이전 조사 연결은 새 ID를 만들고 두 입력/이력을 보존했다. 종료된 조사 새로고침·재전송은 그대로였고 티켓은 OPEN이었다. 이어 VOC 컨테이너만 교체해 HTTP·전체 PostgreSQL 행·두 Agent 조사 원문이 전후 같음을 확인했다. 종료 0/26.572초, `voc-agent-recovery-01/result.json`, commands/20260921T130839.369414Z-voc-agent-recovery.log. Agent 원래 컨테이너와 기본 test/mock 설정을 복원했고 API/OAuth 호출은 0이다. 본인 합성 자료 두 건은 종료 상태로 보존했다.
+- 위 두 Java/HTTP 검증 중 추적 편집은 Windows 검사 기대값과 설명 문서뿐이며 앱 실행 소스는 0ba4439와 같다. 실제 모델·화면·runner·최종 승인으로 계산하지 않는다. 한재홍의 86154c5는 다른 PC의 실제 OAuth 최소 응답 1회와 앞선 미확정 3회 기록으로 인수했으며, 이 PC의 인증/모델은 여전히 미준비다. README/보고서의 미구현 worker·전 팀 호출 0 설명을 현재 구현과 PC별 검증 범위에 맞췄다.
+
 ## 2026-09-21T21:58:21+09:00 — LEAD-019 로그 검색 보완·독립 파일/실제 보관 자료 인수
 
 - 빈 빌드 디렉터리를 내용 검색 한도에서 제외하고, 로그 파일 수정 시각 순으로 후보 빌드/파일을 선택했다. 메타데이터는 전체 항목 4,096개로 제한하고 실제 내용은 기존 32개 build/파일·4MiB·100줄 제한을 유지한다. 한도·미완성 기록은 부분 결과이며 수정 시각을 업무 발생 근거로 사용하지 않는다. 명시 buildId 조회·AND 조건·줄 번호/원문은 유지했다. 여러 빌드에 걸친 파일 한도의 읽은 개수 표시도 실제 개수와 맞췄다.
