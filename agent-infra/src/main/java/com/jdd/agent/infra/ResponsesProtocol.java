@@ -14,7 +14,14 @@ public final class ResponsesProtocol {
     public Map<String, Object> payload(InvestigationModel.Request request, String model) {
         var input = new ArrayList<Object>();
         input.add(Map.of("role", "user", "content", json.writeValueAsString(request.input())));
-        for (var message : request.history()) {
+        if (request.reviewDraft() != null) {
+            if (!request.tools().isEmpty()) throw new IllegalArgumentException("Report review cannot use tools");
+            input.add(Map.of("role", "user", "content", json.writeValueAsString(Map.of(
+                    "reviewDraft", request.reviewDraft(), "observations", observationsFor(request),
+                    "scope", "검수에는 인용한 CODE 원문과 저장된 DATA/LOG/POLICY를 제공합니다. 인용하지 않은 CODE 검색 구간은 제외했습니다."))));
+            if (!request.history().isEmpty() && request.history().getLast().kind() == InvestigationModel.MessageKind.FEEDBACK)
+                input.add(Map.of("role", "user", "content", request.history().getLast().text()));
+        } else for (var message : request.history()) {
             switch (message.kind()) {
                 case ASSISTANT -> {
                     if (!message.responseItems().isEmpty()) {
@@ -32,12 +39,14 @@ public final class ResponsesProtocol {
             }
         }
         if (request.remaining() != null) {
+            String guidance = request.reviewDraft() != null
+                    ? "최종 인용 검수 응답에는 수정할 기존 항목만 포함하고 나머지는 보존하세요. 추가 도구는 사용할 수 없습니다."
+                    : "원인·조치·예방이 있는 보고서는 초안 뒤 최종 인용 검수 응답 1회도 이 한도에 포함되므로 미리 확보하세요. "
+                    + "마지막 모델 응답에는 새 조회를 할 수 없습니다. 서로 의존하지 않는 필요한 조회는 한 응답에서 함께 요청하세요. "
+                    + "도구가 제공되지 않으면 추가 조회 없이 보고서를 반환하고 확인하지 못한 범위를 명시하세요.";
             input.add(Map.of("role", "user", "content", "서버 실행 한도: 이번 응답을 포함해 모델 응답 "
                     + request.remaining().modelCalls() + "회, 추가 조회 도구 " + request.remaining().toolCalls()
-                    + "회가 남았습니다. 원인·조치·예방이 있는 보고서는 초안 뒤 최종 인용 검수 응답 1회도 "
-                    + "이 한도에 포함되므로 미리 확보하세요. 마지막 모델 응답에는 새 조회를 할 수 없습니다. "
-                    + "서로 의존하지 않는 필요한 조회는 한 응답에서 함께 요청하세요. 도구가 제공되지 않으면 "
-                    + "추가 조회 없이 보고서를 반환하고 확인하지 못한 범위를 명시하세요. 한도 부족을 사용자 입력 부족으로 바꾸지 마세요."));
+                    + "회가 남았습니다. " + guidance + " 한도 부족을 사용자 입력 부족으로 바꾸지 마세요."));
         }
         var body = new LinkedHashMap<String, Object>();
         body.put("model", model); body.put("instructions", request.prompt().text()); body.put("input", input);
@@ -47,8 +56,9 @@ public final class ResponsesProtocol {
         // One model response may request multiple allowed reads; the service still executes them sequentially.
         body.put("parallel_tool_calls", true);
         body.put("store", false); body.put("stream", true); body.put("include", List.of("reasoning.encrypted_content"));
-        body.put("text", Map.of("format", Map.of("type", "json_schema", "name", "investigation_report",
-                "strict", true, "schema", reportSchema(request))));
+        body.put("text", Map.of("format", Map.of("type", "json_schema", "name",
+                request.reviewDraft() == null ? "investigation_report" : "investigation_report_review",
+                "strict", true, "schema", request.reviewDraft() == null ? reportSchema(request) : reviewSchema(request))));
         return body;
     }
     public InvestigationModel.Reply reply(JsonNode response) {
@@ -94,9 +104,7 @@ public final class ResponsesProtocol {
         return new InvestigationModel.Reply(text.toString(), List.copyOf(calls), List.copyOf(items));
     }
     private static Map<String, Object> reportSchema(InvestigationModel.Request request) {
-        var ids = request.history().stream().filter(message -> message.kind() == InvestigationModel.MessageKind.TOOL)
-                .flatMap(message -> message.observations().stream()).map(Investigation.EvidenceDetail::evidenceId)
-                .distinct().toList();
+        var ids = observationsFor(request).stream().map(Investigation.EvidenceDetail::evidenceId).toList();
         // One shared definition avoids repeating long IDs in every report section. Large histories
         // retain all observations and the existing server validation rather than truncating choices.
         boolean constrainIds = !ids.isEmpty() && ids.size() <= 250
@@ -116,6 +124,37 @@ public final class ResponsesProtocol {
         properties.put("missingInformation", array(object(Map.of("field", text(), "reason", text()))));
         var schema = new LinkedHashMap<String, Object>(object(properties));
         if (constrainIds) schema.put("$defs", Map.of("storedEvidenceId", Map.of("type", "string", "enum", ids)));
+        return schema;
+    }
+
+    private static List<Investigation.EvidenceDetail> observationsFor(InvestigationModel.Request request) {
+        var values = new LinkedHashMap<String, Investigation.EvidenceDetail>();
+        request.history().stream().filter(message -> message.kind() == InvestigationModel.MessageKind.TOOL)
+                .flatMap(message -> message.observations().stream()).forEach(e -> values.putIfAbsent(e.evidenceId(), e));
+        if (request.reviewDraft() == null) return List.copyOf(values.values());
+        var cited = new HashSet<String>();
+        var draft = request.reviewDraft();
+        draft.facts().forEach(item -> cited.addAll(item.evidenceIds()));
+        draft.hypotheses().forEach(item -> cited.addAll(item.evidenceIds()));
+        draft.actions().forEach(item -> cited.addAll(item.evidenceIds()));
+        draft.prevention().forEach(item -> cited.addAll(item.evidenceIds()));
+        return values.values().stream().filter(e -> e.type() != Investigation.EvidenceType.CODE || cited.contains(e.evidenceId())).toList();
+    }
+
+    private static Map<String, Object> reviewSchema(InvestigationModel.Request request) {
+        var report = reportSchema(request);
+        var properties = new LinkedHashMap<String, Object>();
+        ((Map<?, ?>) report.get("properties")).forEach((key, value) -> properties.put((String) key, value));
+        properties.remove("schemaVersion"); properties.remove("missingInformation");
+        properties.put("summary", Map.of("type", List.of("string", "null"),
+                "description", "요약 수정이 필요할 때만 새 요약을 적고, 변경하지 않으면 null입니다."));
+        var ids = new ArrayList<String>();
+        var draft = request.reviewDraft();
+        draft.facts().forEach(item -> ids.add(item.id())); draft.hypotheses().forEach(item -> ids.add(item.id()));
+        draft.actions().forEach(item -> ids.add(item.id())); draft.prevention().forEach(item -> ids.add(item.id()));
+        properties.put("removeItemIds", array(ids.isEmpty() ? text() : Map.of("type", "string", "enum", ids)));
+        var schema = new LinkedHashMap<String, Object>(object(properties));
+        if (report.containsKey("$defs")) schema.put("$defs", report.get("$defs"));
         return schema;
     }
     private static Map<String, Object> object(Map<String, Object> properties) {

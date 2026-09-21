@@ -1,5 +1,14 @@
 # 한재홍 — AI Agent 작업 상태
 
+## 2026-09-22T08:51:30+09:00 — DEMO-AGENT-001 접수·최종 검수의 부분 수정
+
+- 최신 공유 빌드9fa3e87의 전체 실제 runner도 종료1이다. VOC-01은 27근거/직접 원문 대조를 통과했지만 VOC-02는 앱 COMPLETED/47근거 뒤 `Report did not cite the case's actual business events`로 실패했다. 거절 사실/원인이 실제로 INVENTORY_READ ID를 인용했고 저장된 별도 COUPON_REJECTED를 쓰지 않았다. 후속9개 case는 PENDING이다. 기존 runner 기준을 낮추지 않고 첫 실패 이후 새 조사를 만들지 않았다.
+- VOC-01 OAuth6회 입력86,808/출력5,478/reasoning1,432·모델119,790ms, VOC-02 OAuth5회 입력78,530/출력3,880/reasoning1,051·117,841ms다. cached/cache write0이며 reasoning은 출력 일부다. 해당 스택78행/기존미관측1/API0/진행0을 대조했다. 실행 clone의 `runtime/mvp/20260921T233949.812761Z-b1286275/`와 이 PC `followup-live-runner-02.log/json`, `followup-observations-after-runner-02.log/json`에 보존한다.
+- `8702c43`의 영상 제작 환경 DEMO-AGENT-001도 접수했다. v7 최종 재작성에서 이미 보정한 DATA 인용이 다시 빠져 REPORT_VALIDATION_FAILED가 된 별도 반례이며 이 PC의 성공 사례로 덮지 않는다. 상대 스택/보고서를 대신 수정하거나 완료로 바꾸지 않는다.
+- v8은 검수 입력을 초안·자체 인용 CODE·실제 DATA/LOG/POLICY로 구성하고 이전 모델의 추정/암호화된 이력·인용하지 않은 CODE 검색 구간을 검수에서 제외한다. 원본 근거/일반 조사 이력은 보존한다. 검수 응답은 바꿀 기존 항목만 반환해 나머지 내용과 인용을 그대로 유지하고, 적용한 전체 결과는 기존 서버 검증을 다시 거친다. 없는/다른 구역 id·중복/수정삭제 충돌·알 수 없는 근거·빈 완료 사실을 거절한다.
+- 추가 호출·보정 횟수·8모델/24도구/3분 한도와 비용 장부는 늘리지 않았다. 조사별 실제 영향/효율은 공유 후 검증 전 미확정이다. VOC·web 공개 계약 필드를 바꾸지 않는다.
+- 부분 수정 회귀는 수정 전1실패를 보존하고 수정 후 core20/앱61 총81개 실패/제외0이다. 첫 core 테스트의 AssertJ 의존 착오는 기존 JUnit 단언으로 수정했으며 실패 로그를 보존했다. 사용하지 않는 새 테스트 의존성을 추가하지 않았다. 자료는 `followup-review-delta-before.log/xml`, `followup-review-delta-after.log/json`, `followup-review-delta-regression.log/json`, `followup-review-v8-regression.log/json`, `followup-review-v8-results/`다. 모의 검사는 실제 모델 호출0이며 전체 publish·실제 반례 재검증을 이어간다.
+
 ## 2026-09-22T08:41:00+09:00 — 시연 영상 제작·격리 환경의 VOC-02 최종 검수 회귀
 
 - 사용자 승인으로 전문 장표·미디어 담당에게 실제 제작을 위임했다. 8장 편집 PPTX·1920×1080 PNG 렌더/시각 검수, 로컬 여성 Yuna 샘플과 ffmpeg-full/libass·60→30fps/1.5배·48kHz 검증을 완료했다. 음성 음색의 청음과 일곱 최종 영상 완료는 아직 아니다. 프로모션 API/TTS 비용 호출0이다.

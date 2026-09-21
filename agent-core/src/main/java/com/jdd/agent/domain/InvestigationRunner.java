@@ -17,7 +17,10 @@ public final class InvestigationRunner {
                 throw new IllegalArgumentException("Invalid investigation limits");
         }
     }
-    public interface ReportDecoder { AnalysisReport decode(String candidate); }
+    public interface ReportDecoder {
+        AnalysisReport decode(String candidate);
+        ReportReview decodeReview(String candidate);
+    }
     private final InvestigationRepository repository;
     private final InvestigationExecutionRepository executions;
     private final InvestigationModel model;
@@ -60,16 +63,16 @@ public final class InvestigationRunner {
         var definitions = List.copyOf(tools.definitions());
         definitions.forEach(tool -> allowedTools.add(tool.name()));
         int executedTools = 0, repairedReports = 0, repairedArguments = 0;
-        boolean finalReviewRequested = false;
+        AnalysisReport reviewDraft = null;
         for (int iteration = 1; iteration <= limits.modelCalls(); iteration++) {
             if (!active(claim)) return;
             int remainingModels = limits.modelCalls() - iteration + 1;
             int remainingTools = limits.toolCalls() - executedTools;
             // Reserve the final inference for a report; no new evidence can be consumed afterwards.
-            var available = finalReviewRequested || remainingModels == 1 || remainingTools == 0
+            var available = reviewDraft != null || remainingModels == 1 || remainingTools == 0
                     ? List.<ToolDefinition>of() : definitions;
             var reply = model.next(new Request(claim.investigationId(), claim.stored().input(), prompt, iteration,
-                    available, List.copyOf(history), new Remaining(remainingModels, remainingTools)));
+                    available, List.copyOf(history), new Remaining(remainingModels, remainingTools), reviewDraft));
             if (!active(claim)) return;
             if (reply == null || reply.toolCalls() == null) throw reportFailure();
             history.add(Message.assistant(reply));
@@ -102,9 +105,14 @@ public final class InvestigationRunner {
                 continue;
             }
             AnalysisReport report = null;
+            ReportReview review = null;
             List<String> errors = List.of();
             try {
-                report = reports.decode(reply.text());
+                if (reviewDraft == null) report = reports.decode(reply.text());
+                else {
+                    review = reports.decodeReview(reply.text());
+                    report = review.applyTo(reviewDraft);
+                }
             } catch (RuntimeException invalidFormat) {
                 errors = List.of("Report JSON does not match the required schema");
             }
@@ -113,17 +121,23 @@ public final class InvestigationRunner {
                 errors = validator.validate(report, current.evidence());
             }
             if (errors.isEmpty()) {
-                if (!finalReviewRequested && requiresFinalReview(report)) {
+                if (reviewDraft == null && requiresFinalReview(report)) {
                     if (remainingModels < 2) throw limitFailure();
-                    finalReviewRequested = true;
+                    reviewDraft = report;
                     LOG.log(System.Logger.Level.INFO, "Report final review requested: investigationId={0}, iteration={1}",
                             claim.investigationId(), iteration);
                     history.add(Message.feedback("최종 인용 검수: 직전 보고서의 각 항목과 한계에 담긴 사실 표현을 "
                             + "그 항목이 인용한 저장 원문과 대조하세요. 관측 사실과 인과 추정을 분리하고, "
                             + "빈 조회만으로 특정 실패 단계나 처리 불필요를 단정하지 마세요. 인용을 바로잡거나 "
-                            + "미지지 표현을 삭제·축소한 전체 보고서 JSON을 반환하세요. 새 도구나 근거는 사용할 수 없습니다."));
+                            + "미지지 표현을 삭제·축소하세요. 전체 보고서를 다시 쓰지 말고 수정 항목만 review JSON으로 "
+                            + "반환하세요. 바꾸지 않은 항목의 내용·인용은 보존됩니다. 새 도구나 근거는 사용할 수 없습니다."));
                     continue;
                 }
+                if (review != null) LOG.log(System.Logger.Level.INFO,
+                        "Report final review applied: investigationId={0}, iteration={1}, replacementItems={2}, removedItems={3}, summaryProvided={4}",
+                        claim.investigationId(), iteration,
+                        review.facts().size() + review.hypotheses().size() + review.actions().size() + review.prevention().size(),
+                        review.removeItemIds().size(), review.summary() != null);
                 executions.complete(claim, report, clock.instant());
                 return;
             }

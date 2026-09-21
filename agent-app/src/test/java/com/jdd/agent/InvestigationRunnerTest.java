@@ -5,6 +5,7 @@ import com.jdd.agent.domain.Investigation.*;
 import com.jdd.agent.domain.InvestigationExecutionRepository.*;
 import com.jdd.agent.domain.InvestigationModel.*;
 import com.jdd.agent.infra.InvestigationPromptLoader;
+import com.jdd.agent.infra.InvestigationReportDecoder;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -52,7 +53,7 @@ class InvestigationRunnerTest {
     @Test void runsToolStoresEvidenceThenReturnsReportAndRepeatedHttpReadsDoNotCallModel() throws Exception {
         var claim = start();
         var runner = runner(request -> {
-            assertThat(request.prompt().version()).isEqualTo("investigation-system-v7");
+            assertThat(request.prompt().version()).isEqualTo("investigation-system-v8");
             assertThat(request.prompt().sha256()).hasSize(64);
             assertThat(request.prompt().text()).contains("같은 조사에 실제 저장한 관측", "requiresHumanAction");
             if (request.iteration() == 1) return toolReply("read-1", "getInventoryContext", "{}");
@@ -110,7 +111,7 @@ class InvestigationRunnerTest {
                 assertThat(request.history().stream().filter(m -> m.kind() == MessageKind.ASSISTANT).count()).isEqualTo(2);
                 assertThat(repository.findEvidence(claim.investigationId(), saved.getFirst().evidenceId())).contains(saved.getFirst());
             }
-            return reportReply(complexReport(saved, request.iteration() == 3 ? "Reviewed scope" : "Draft scope"));
+            return request.reviewDraft() == null ? reportReply(complexReport(saved, "Draft scope")) : reviewReply("Reviewed scope");
         }, tools(false), 3, 24).run(claim);
         assertThat(view(claim).status()).isEqualTo(Status.COMPLETED);
         assertThat(view(claim).report().summary()).isEqualTo("Reviewed scope");
@@ -138,6 +139,29 @@ class InvestigationRunnerTest {
         }
     }
 
+    @Test void partialReviewPreservesTheUnchangedCauseAndItsDirectCitations() {
+        var claim = start();
+        runner(request -> {
+            if (request.iteration() == 1) return toolReply("read-1", "getInventoryContext", "{}");
+            var saved = request.history().stream().filter(m -> m.kind() == MessageKind.TOOL)
+                    .flatMap(m -> m.observations().stream()).toList();
+            if (request.iteration() == 2) return reportReply(complexReport(saved, "Original summary"));
+            var changes = new java.util.LinkedHashMap<String, Object>();
+            changes.put("summary", null);
+            changes.put("facts", List.of(new Fact("f", "Only the observed scope", List.of(saved.getFirst().evidenceId()))));
+            changes.put("hypotheses", List.of()); changes.put("actions", List.of());
+            changes.put("prevention", List.of()); changes.put("removeItemIds", List.of());
+            return new Reply(json.writeValueAsString(changes), List.of());
+        }, tools(false), 3, 24).run(claim);
+        assertThat(view(claim).status()).isEqualTo(Status.COMPLETED);
+        assertThat(view(claim).report().summary()).isEqualTo("Original summary");
+        assertThat(view(claim).report().facts().getFirst().description()).isEqualTo("Only the observed scope");
+        assertThat(view(claim).report().hypotheses()).containsExactly(new Hypothesis("h", "Bounded explanation",
+                SupportLevel.PARTIAL, List.of(view(claim).evidence().getFirst().evidenceId()), List.of("Limited scope")));
+        assertThat(modelCalls).hasValue(3);
+        assertThat(toolCalls).hasValue(1);
+    }
+
     @Test void finalReviewIsValidatedAndUsesTheExistingRepairAllowance() {
         var claim = start();
         runner(request -> {
@@ -151,12 +175,38 @@ class InvestigationRunnerTest {
             if (request.iteration() == 4) assertThat(request.history().getLast().text()).contains("보고서 검증 오류");
             var saved = request.history().stream().filter(m -> m.kind() == MessageKind.TOOL)
                     .flatMap(m -> m.observations().stream()).toList();
-            return reportReply(complexReport(saved, request.iteration() == 4 ? "Repaired review" : "Draft"));
+            return request.reviewDraft() == null ? reportReply(complexReport(saved, "Draft")) : reviewReply("Repaired review");
         }, tools(false), 4, 24).run(claim);
         assertThat(view(claim).status()).isEqualTo(Status.COMPLETED);
         assertThat(view(claim).report().summary()).isEqualTo("Repaired review");
         assertThat(modelCalls).hasValue(4);
         assertThat(toolCalls).hasValue(1);
+    }
+
+    @Test void reviewChangesCannotIntroduceUnknownEvidenceOrPublishAnEmptyFactSet() {
+        for (boolean unknownEvidence : List.of(true, false)) {
+            modelCalls.set(0); toolCalls.set(0);
+            var claim = start();
+            runner(request -> {
+                if (request.iteration() == 1) return toolReply("read-1", "getInventoryContext", "{}");
+                if (request.reviewDraft() != null) {
+                    assertThat(view(claim).report()).isNull();
+                    var changes = new ReportReview(null,
+                            unknownEvidence ? List.of(new Fact("f", "Unsupported", List.of("unknown-evidence"))) : List.of(),
+                            List.of(), List.of(), List.of(), unknownEvidence ? List.of() : List.of("f"));
+                    return new Reply(json.writeValueAsString(changes), List.of());
+                }
+                var saved = request.history().stream().filter(m -> m.kind() == MessageKind.TOOL)
+                        .flatMap(m -> m.observations().stream()).toList();
+                return reportReply(complexReport(saved, "Unpublished draft"));
+            }, tools(false), 4, 24).run(claim);
+            assertThat(view(claim).status()).isEqualTo(Status.FAILED);
+            assertThat(view(claim).error().code()).isEqualTo("REPORT_VALIDATION_FAILED");
+            assertThat(view(claim).report()).isNull();
+            assertThat(view(claim).evidence()).hasSize(1);
+            assertThat(modelCalls).hasValue(4);
+            assertThat(toolCalls).hasValue(1);
+        }
     }
 
     @Test void missingDirectCauseCoverageUsesExistingRepairBudgetAndNeverPublishesUnrepairedReport() {
@@ -191,6 +241,7 @@ class InvestigationRunnerTest {
                     assertThat(request.tools()).isEmpty();
                     assertThat(view(claim).report()).isNull();
                 }
+                if (request.reviewDraft() != null) return reviewReply(null);
                 var causeIds = saved.stream().filter(e -> (repair && request.iteration() >= 3) || e.type() != EvidenceType.DATA)
                         .map(EvidenceDetail::evidenceId).toList();
                 return reportReply(new AnalysisReport("1.0", "Synthetic coverage check",
@@ -348,7 +399,7 @@ class InvestigationRunnerTest {
     private InvestigationRunner runner(Function<Request, Reply> function, InvestigationTools tools, int modelLimit, int toolLimit) {
         InvestigationModel model = request -> { modelCalls.incrementAndGet(); return function.apply(request); };
         return new InvestigationRunner(repository, executions, model, tools, InvestigationPromptLoader.load(),
-                value -> json.readValue(value, AnalysisReport.class), new InvestigationRunner.Limits(modelLimit, toolLimit, 1, 1), clock);
+                new InvestigationReportDecoder(json), new InvestigationRunner.Limits(modelLimit, toolLimit, 1, 1), clock);
     }
     private InvestigationTools tools(boolean failSecond) {
         return new InvestigationTools() {
@@ -369,6 +420,9 @@ class InvestigationRunnerTest {
     private Investigation view(Claim claim) { return repository.find(claim.investigationId()).orElseThrow().investigation(); }
     private Reply toolReply(String id, String name, String arguments) { return new Reply(null, List.of(new ToolCall(id, name, arguments))); }
     private Reply reportReply(AnalysisReport report) { return new Reply(json.writeValueAsString(report), List.of()); }
+    private Reply reviewReply(String summary) {
+        return new Reply(json.writeValueAsString(new ReportReview(summary, List.of(), List.of(), List.of(), List.of(), List.of())), List.of());
+    }
     private AnalysisReport complexReport(List<EvidenceDetail> saved, String summary) {
         var ids = saved.stream().map(EvidenceDetail::evidenceId).toList();
         return new AnalysisReport("1.0", summary, List.of(new Fact("f", "Observed state", ids)),

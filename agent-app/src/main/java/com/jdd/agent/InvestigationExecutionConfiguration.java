@@ -4,6 +4,7 @@ import com.jdd.agent.domain.*;
 import com.jdd.agent.infra.LlmRuntimeConfiguration;
 import com.jdd.agent.infra.JdbcOAuthCallJournal;
 import com.jdd.agent.infra.InvestigationPromptLoader;
+import com.jdd.agent.infra.InvestigationReportDecoder;
 import com.jdd.agent.infra.CommerceEvidenceDatabase;
 import com.jdd.agent.infra.CommerceDataTools;
 import com.jdd.agent.infra.LogEvidenceTools;
@@ -45,7 +46,7 @@ public class InvestigationExecutionConfiguration {
             @Value("${jdd.agent.limits.report-repairs:1}") int reportRepairs,
             @Value("${jdd.agent.limits.argument-repairs:1}") int argumentRepairs) {
         return new InvestigationRunner(repository, executions, model, tools, InvestigationPromptLoader.load(),
-                candidate -> json.readValue(candidate, Investigation.AnalysisReport.class),
+                new InvestigationReportDecoder(json),
                 new InvestigationRunner.Limits(modelCalls, toolCalls, reportRepairs, argumentRepairs), Clock.systemUTC());
     }
 }

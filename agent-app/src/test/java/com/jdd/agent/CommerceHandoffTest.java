@@ -4,6 +4,7 @@ import com.jdd.agent.domain.*;
 import com.jdd.agent.domain.Investigation.*;
 import com.jdd.agent.domain.InvestigationModel.*;
 import com.jdd.agent.infra.InvestigationPromptLoader;
+import com.jdd.agent.infra.InvestigationReportDecoder;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -94,7 +95,7 @@ class CommerceHandoffTest {
             return new Reply(json.writeValueAsString(report), List.of());
         };
         new InvestigationRunner(repository, executions, mock, tools, InvestigationPromptLoader.load(),
-                candidate -> json.readValue(candidate, AnalysisReport.class), new InvestigationRunner.Limits(3, 12, 0, 0), clock).run(claim);
+                new InvestigationReportDecoder(json), new InvestigationRunner.Limits(3, 12, 0, 0), clock).run(claim);
         var view = repository.find(id).orElseThrow().investigation();
         assertThat(view.status()).withFailMessage("Investigation failed: %s, progress=%s", view.error(), view.progress()).isEqualTo(Status.COMPLETED);
         assertThat(view.progress()).hasSize(8).allMatch(tool -> tool.status() == ToolStatus.SUCCEEDED);
@@ -186,7 +187,7 @@ class CommerceHandoffTest {
                     List.of(), List.of(), List.of(), List.of())), List.of());
         };
         new InvestigationRunner(repository, executions, mock, tools, InvestigationPromptLoader.load(),
-                candidate -> json.readValue(candidate, AnalysisReport.class), new InvestigationRunner.Limits(3, 24, 0, 0), clock).run(claim);
+                new InvestigationReportDecoder(json), new InvestigationRunner.Limits(3, 24, 0, 0), clock).run(claim);
         var view = repository.find(id).orElseThrow().investigation();
         var details = new ArrayList<JsonNode>();
         var report = new LinkedHashMap<String, Object>();
