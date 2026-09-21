@@ -28,6 +28,7 @@ final class EvidenceVerifier {
 
     EvidenceVerifier(Path root, String build, JsonNode manifest) throws IOException {
         this.root = root; this.build = build; this.manifest = manifest;
+        fixedDirectory("runtime/evidence/source/" + build);
         Path directory = root.resolve("runtime/evidence/source/" + build);
         Json.require(Json.read(safe(directory, "manifest.json")).equals(manifest), "Prepared source manifest changed");
         Json.require(manifest.path("buildId").asText().equals(build) && manifest.path("files").isObject()
@@ -70,21 +71,25 @@ final class EvidenceVerifier {
             }
             case "LOG" -> {
                 sameBuild(source);
-                Path file = safe(root.resolve("runtime/evidence/logs/commerce/" + build), Json.text(source, "path"));
+                fixedDirectory("runtime/evidence/logs/commerce/" + build);
+                String relative = Json.text(source, "path");
+                Json.require(relative.startsWith(build + "/") && relative.substring(build.length() + 1).indexOf('/') < 0,
+                        "LOG path must identify this build and one JSONL file");
+                Path file = safe(root.resolve("runtime/evidence/logs/commerce"), relative);
                 Json.require(file.getFileName().toString().endsWith(".jsonl") && Files.size(file) <= 64L * 1024 * 1024,
                         "Unexpected or oversized log file");
                 List<String> lines = Files.readAllLines(file, StandardCharsets.UTF_8);
                 int start = source.path("startLine").asInt(), end = source.path("endLine").asInt();
-                Json.require(start >= 1 && end >= start && end <= lines.size() && end - start < 100,
+                Json.require(start >= 1 && end == start && end <= lines.size(),
                         "Invalid log line range");
                 JsonNode content = detail.path("content");
-                Json.require(content.isArray() && content.size() == end - start + 1, "Log line count mismatch");
-                for (int index = start; index <= end; index++) {
-                    JsonNode observed = Json.MAPPER.readTree(lines.get(index - 1));
-                    Json.require(observed.equals(content.get(index - start)) && observed.path("buildId").asText().equals(build),
-                            "Log content differs from the actual JSONL line");
-                    Json.require(inScope(observed, preparedCase), "Log does not identify this synthetic case");
-                }
+                Json.require(content.isObject() && content.path("raw").isString() && content.path("entry").isObject(),
+                        "LOG content must preserve the raw JSONL and parsed entry");
+                String raw = lines.get(start - 1);
+                JsonNode observed = Json.MAPPER.readTree(raw);
+                Json.require(raw.equals(content.path("raw").asText()) && observed.equals(content.path("entry"))
+                        && observed.path("buildId").asText().equals(build), "Log raw/entry differs from the actual JSONL line");
+                Json.require(inScope(observed, preparedCase), "Log does not identify this synthetic case");
             }
             case "DATA" -> verifyData(detail, preparedCase);
             default -> throw new Json.VerificationFailure("Unknown evidence type");
@@ -93,6 +98,14 @@ final class EvidenceVerifier {
 
     private void sameBuild(JsonNode source) {
         Json.require(source.path("buildId").asText().equals(build), "Evidence belongs to another build");
+    }
+    private void fixedDirectory(String relative) {
+        Path path = root;
+        for (String part : relative.split("/")) {
+            path = path.resolve(part);
+            Json.require(!Files.isSymbolicLink(path) && Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS),
+                    "Runtime evidence directory is missing or follows a symlink");
+        }
     }
     static Path safe(Path directory, String relative) {
         Json.require(!relative.isBlank() && !relative.startsWith("/") && !relative.contains("\\") && !relative.contains(":"), "Invalid evidence path");

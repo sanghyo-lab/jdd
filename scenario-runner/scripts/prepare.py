@@ -54,6 +54,7 @@ class PreparedRun:
         self.server = None
         self.thread = None
         self.used = False
+        self.closing = False
         self.lock = threading.Lock()
         self.app = None
         self.manifest_path = self.directory / 'prepared-cases.json'
@@ -80,7 +81,8 @@ class PreparedRun:
             self._container_state()
             cases = self._prepare_cases()
             self.server = ThreadingHTTPServer(('127.0.0.1', 0), self._handler())
-            self.server.daemon_threads = True
+            # server_close waits for any accepted restart/restoration to finish.
+            self.server.daemon_threads = False
             self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
             self.thread.start()
             manifest = {'schemaVersion': '1.0', 'runId': self.run_id, 'buildId': self.build,
@@ -107,6 +109,8 @@ class PreparedRun:
         return False
 
     def _close(self):
+        with self.lock:
+            self.closing = True
         if self.server:
             self.server.shutdown()
             self.server.server_close()
@@ -119,7 +123,8 @@ class PreparedRun:
 
     def _docker(self, *args):
         result = subprocess.run(['docker', *args], cwd=self.repo.root, env=self.env,
-                                capture_output=True, text=True, timeout=70)
+                                capture_output=True, text=True,
+                                timeout=30 if args[0] in ('stop', 'start') else 10)
         if result.returncode:
             raise RuntimeError('Fixed container lifecycle command failed')
         return result.stdout.strip()
@@ -194,6 +199,10 @@ class PreparedRun:
         owner = self
 
         class Handler(BaseHTTPRequestHandler):
+            def setup(self):
+                super().setup()
+                self.connection.settimeout(3)
+
             def log_message(self, *args):
                 pass  # Never log the capability or incoming headers.
 
@@ -212,8 +221,11 @@ class PreparedRun:
                 except (ValueError, UnicodeError):
                     self.send_error(400)
                     return
+                except (TimeoutError, OSError):
+                    self.close_connection = True
+                    return
                 with owner.lock:
-                    if owner.used:
+                    if owner.used or owner.closing:
                         self.send_error(409)
                         return
                     owner.used = True

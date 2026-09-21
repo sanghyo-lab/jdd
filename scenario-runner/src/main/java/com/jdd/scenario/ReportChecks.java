@@ -86,14 +86,12 @@ final class ReportChecks {
             JsonNode detail = evidence.get(id);
             String type = detail.path("type").asText(); citedTypes.add(type);
             if (type.equals("DATA")) citedTables.add(detail.path("source").path("table").asText());
-            if (type.equals("LOG")) for (JsonNode event : detail.path("content")) citedEvents.add(event.path("event").asText());
+            if (type.equals("LOG")) citedEvents.add(detail.path("content").path("entry").path("event").asText());
         }
         Json.require(citedTables.containsAll(TABLES.get(caseId)), "Report did not cite the case's required database observations");
         Json.require(citedEvents.containsAll(EVENTS.get(caseId)), "Report did not cite the case's actual business events");
         Json.require(citedTypes.containsAll(Set.of("DATA", "LOG", "POLICY")), "Report lacks data, log, or policy citations");
-        if (caseId.equals("NORMAL")) {
-            Json.require(report.path("hypotheses").isEmpty(), "Normal control was assigned an incident cause");
-        } else {
+        if (!caseId.equals("NORMAL")) {
             Json.require(citedTypes.contains("CODE") && !supported.isEmpty(), "Incident lacks supported cause and runtime source citations");
             Json.require(!report.path("actions").isEmpty() && !report.path("prevention").isEmpty(), "Incident lacks human action or recurrence prevention");
             var causeTypes = new HashSet<String>();

@@ -5,6 +5,8 @@ from pathlib import Path
 import sys
 import tempfile
 import threading
+import time
+import socket
 import unittest
 from unittest.mock import patch
 from urllib.error import HTTPError
@@ -43,6 +45,7 @@ class PreparationBoundaryTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             instance = prepare.PreparedRun(FakeRepository(), directory)
             instance.server = prepare.ThreadingHTTPServer(('127.0.0.1', 0), instance._handler())
+            instance.server.daemon_threads = False
             instance.thread = threading.Thread(target=instance.server.serve_forever, daemon=True)
             instance.thread.start()
             url = 'http://127.0.0.1:%d/restart-voc' % instance.server.server_port
@@ -70,6 +73,53 @@ class PreparationBoundaryTest(unittest.TestCase):
             with patch.object(instance, '_docker', side_effect=[
                     json.dumps({'StartedAt': 'start', 'Running': True, 'Pid': 7}), 'different-project', 'voc']):
                 with self.assertRaisesRegex(RuntimeError, 'outside'): instance._container_state()
+
+    def test_close_waits_for_accepted_restart_to_restore_before_returning(self):
+        with tempfile.TemporaryDirectory() as directory:
+            instance = prepare.PreparedRun(FakeRepository(), directory)
+            instance.server = prepare.ThreadingHTTPServer(('127.0.0.1', 0), instance._handler())
+            instance.server.daemon_threads = False
+            instance.thread = threading.Thread(target=instance.server.serve_forever, daemon=True)
+            instance.thread.start()
+            started, release, restored, closed = (threading.Event() for _ in range(4))
+            def restart():
+                started.set()
+                self.assertTrue(release.wait(5))
+                restored.set()
+                return {'status': 'PASSED'}
+            def request():
+                url = 'http://127.0.0.1:%d/restart-voc' % instance.server.server_port
+                body = json.dumps({'runId': instance.run_id}).encode()
+                with urlopen(Request(url, data=body, method='POST', headers={
+                        'X-Jdd-Scenario-Capability': instance.token}), timeout=5) as response:
+                    self.assertEqual(200, response.status)
+            def close():
+                instance._close()
+                closed.set()
+            with patch.object(instance, '_restart', side_effect=restart):
+                caller = threading.Thread(target=request); caller.start()
+                self.assertTrue(started.wait(3))
+                closer = threading.Thread(target=close); closer.start()
+                self.assertFalse(closed.wait(0.8))
+                release.set(); caller.join(5); closer.join(5)
+                self.assertTrue(restored.is_set() and closed.is_set())
+
+    def test_partial_request_body_cannot_outlive_coordinator_shutdown(self):
+        with tempfile.TemporaryDirectory() as directory:
+            instance = prepare.PreparedRun(FakeRepository(), directory)
+            instance.server = prepare.ThreadingHTTPServer(('127.0.0.1', 0), instance._handler())
+            instance.server.daemon_threads = False
+            instance.thread = threading.Thread(target=instance.server.serve_forever, daemon=True)
+            instance.thread.start()
+            with socket.create_connection(instance.server.server_address, timeout=3) as connection:
+                wire = ('POST /restart-voc HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Length: 100\r\n'
+                        'X-Jdd-Scenario-Capability: ' + instance.token + '\r\n\r\n{').encode()
+                connection.sendall(wire)
+                time.sleep(0.05)
+                start = time.monotonic()
+                instance._close()
+                self.assertLess(time.monotonic() - start, 4)
+                self.assertFalse(instance.used)
 
 
 if __name__ == '__main__': unittest.main()

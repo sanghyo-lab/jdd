@@ -89,9 +89,15 @@ class EvidenceVerifierTest {
         Files.createDirectories(directory);
         var event = Json.object("buildId", BUILD, "requestId", "case-a-request", "event", "ORDER_CREATED");
         Files.writeString(directory.resolve("business.jsonl"), Json.MAPPER.writeValueAsString(event) + "\n");
-        var evidence = detail("LOG", Json.object("buildId", BUILD, "path", "business.jsonl", "startLine", 1, "endLine", 1), Json.MAPPER.valueToTree(List.of(event)));
+        var evidence = detail("LOG", Json.object("buildId", BUILD, "path", BUILD + "/business.jsonl", "startLine", 1, "endLine", 1),
+                Json.object("raw", Json.MAPPER.writeValueAsString(event), "entry", event));
         verifier.verify(evidence, prepared(Json.object()));
         var foreign = Json.object("prefix", "case-b", "database", Json.object(), "context", Json.object());
         assertThrows(Json.VerificationFailure.class, () -> verifier.verify(evidence, foreign));
+        ((ObjectNode) evidence.path("content")).put("raw", "invented raw line");
+        assertThrows(Json.VerificationFailure.class, () -> verifier.verify(evidence, prepared(Json.object())));
+        ((ObjectNode) evidence.path("content")).put("raw", Json.MAPPER.writeValueAsString(event));
+        ((ObjectNode) evidence.path("content")).set("entry", Json.object("buildId", BUILD, "event", "INVENTED"));
+        assertThrows(Json.VerificationFailure.class, () -> verifier.verify(evidence, prepared(Json.object())));
     }
 }
