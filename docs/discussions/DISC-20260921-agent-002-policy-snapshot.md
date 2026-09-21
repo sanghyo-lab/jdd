@@ -9,9 +9,9 @@
 | 정리 담당 | 한재홍 |
 | 영향받는 역할 | commerce, agent, voc |
 | 필수 합의자 | 이상효(정책·제공자), 김아름(공통 snapshot), 한재홍(조회) |
-| 확인·답변 대기 | agent·commerce(공유 생성기로 만든 새 실제 snapshot 인수) |
-| 생성 시각 / 최종 갱신 | 2026-09-21T18:24:49+09:00 / 2026-09-21T20:39:02+09:00 |
-| 다음 행동 / 담당 | 한재홍·이상효: 공유된 생성기의 새 snapshot 저장·재조회와 제공자 검증 |
+| 확인·답변 대기 | agent(공유 생성기로 만든 새 실제 snapshot 직접 인수) |
+| 생성 시각 / 최종 갱신 | 2026-09-21T18:24:49+09:00 / 2026-09-21T20:52:00+09:00 |
+| 다음 행동 / 담당 | 한재홍: 새 snapshot 직접 인수·상호 결과 확인 후 해소 기준 정리 |
 
 ## 결정할 질문
 
@@ -52,6 +52,14 @@
 - 구현 조율: 공통 유지 담당 김아름이 P1 수락과 생성기 담당을 직접 답변해 달라. 기존 제안대로 한재홍에게 생성기 변경을 위임하는 경우 Agent 소비 변경과 같은 단위에서 검증할 수 있다. 나는 진행 중인 해당 경로를 중복 편집하지 않는다.
 - 아직 VOC 답변·구현·과거 정책 조회/변조 거절의 검증이 남아 OPEN이다.
 
+### 이상효 — commerce / lead 추가 인수
+
+2026-09-21T20:52:00+09:00 / 이상효 / commerce·lead / P1
+
+- 의견: 제공자·독립 소비 검증 완료. `6b9ca6f`의 전체 publish 후 실제 buildId `6b9ca6f0de96-e27548161776`에서 소스 35개·정책의 바이트/해시를 실제 Agent 조회 클래스로 대조했다. 현재 정책을 없는 경로로 지정해도 archive를 읽으며 이전 정책 사본 없는 build의 manifest·소스 36개 해시는 그대로다.
+- 같은 build의 실제 PostgreSQL 재고 재현 1회로 8도구·25근거의 저장과 HTTP 재조회를 통과했다. 정책 `demo-v1`, `policy/business-policy.md`, `manifest-policy-snapshot-hash`와 보관본 22~29행 원문·SHA-256·커밋이 일치한다. 모의 모델 2회·유료 0회이며 실제 모델 판단 검증은 아니다.
+- 자료·명령·XML: [commerce 상태](../status/commerce.md)의 같은 시각 기록과 로컬 `generated-policy-consumption-01/`, `generated-policy-handoff-01/`, `policy-generator-legacy-baseline.json`. 조사 인수는 1개 통과·선택 6업무 입력 없는 1개 건너뜀·실패 0이다. 한재홍의 직접 인수/정리 답변은 대신 작성하지 않아 AGREED를 유지한다.
+
 ### 한재홍 — agent
 
 2026-09-21T18:24:49+09:00 / 한재홍 / agent / P1
@@ -90,8 +98,8 @@
 - 해당 빌드의 소스 35개 원문/해시와 보관 정책을 실제 Agent SourceEvidenceTools로 읽었다. 현재 정책 경로를 존재하지 않는 경로로 지정해도 manifest-policy-snapshot-hash로 보관 원문·해시가 일치했다. 모델 호출은 없다.
 - 로컬 재현 도구 runtime/verification/SourceSnapshotProbe.java와 publication clone의 runtime/evidence/source 아래 실제 사본을 사용했다. 이는 이 PC의 실제 파일 소비 검증이며 다른 PC의 저장 근거·HTTP 재조회 성공을 대신하지 않는다. Agent·commerce 직접 인수가 남아 AGREED를 유지한다.
 
-- 세 담당자가 P1을 직접 수락했다. 공통 생성기·계약은 김아름, 조회·저장 소비는 한재홍, 제공자 확인은 이상효가 맡는다. 김아름의 생성기·실제 파일 소비는 공유됐고 다른 PC의 직접 인수가 남아 있다.
-- 기존 구현 `f715885`, 새 Agent 소비 `a545332`와 [Agent 상태](../status/agent.md)를 제공했다. 생성기는 위 커밋으로 공유됐으며 Agent·commerce PC의 새 실제 snapshot 인수가 남아 있다.
+- 세 담당자가 P1을 직접 수락했다. 공통 생성기·계약은 김아름, 조회·저장 소비는 한재홍, 제공자 확인은 이상효가 맡는다. 김아름의 생성기·파일 소비와 이상효의 실제 파일/DB/HTTP 인수를 기록했다.
+- 기존 구현 `f715885`, 새 Agent 소비 `a545332`와 [Agent 상태](../status/agent.md)를 제공했다. Agent PC의 새 실제 snapshot 직접 인수와 정리 담당의 해소 확인은 남아 있다.
 
 ## 해소 또는 재개 이력
 

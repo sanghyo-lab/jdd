@@ -17,6 +17,14 @@
 
 작업 단위가 끝날 때 제공 가능한 기능, 변경한 계약, 실제 검증 명령·결과, 다음 작업을 갱신한다. 실패와 막힌 이유도 함께 기록한다.
 
+## 2026-09-21T20:52:00+09:00 — 새 정책 생성기 실제 파일·DB·HTTP 인수
+
+- `ed858a7`의 VOC 공유 결과·데모 배분/대기열 P1 수락·선택 메타데이터 해소와 Windows 내보내기 요청을 전체 검토했다. 내 LEAD-014는 최신 main을 통합한 `6b9ca6f`로 전체 publish 종료 0/200.784초 후 공유했다. Python 45개·문서·Java 133개 중 통과 124개/조건부 건너뜀 9개/실패 0·3앱 재기동/연결을 확인했다. 기본 H2 VOC 계약도 새로 실행됐다. 원문 `commands/20260921T114404.583672Z-publish-voc-postgresql-cache.log`, `voc-cache-publication-junit.json`.
+- 실제 실행 buildId는 `6b9ca6f0de96-e27548161776`이다. 새 스냅샷의 소스 35개와 정상 정책을 실제 Agent SourceEvidenceTools로 읽어 원문/해시를 대조했다. 현재 정책 경로를 없는 경로로 지정해도 보관본으로 조회됐고 `manifest-policy-snapshot-hash`가 반환됐다. 과거 `1c02f85b4391-64991e1f84a7`의 manifest와 소스 35개 해시도 유지됐다. `generated-policy-consumption-01/`, `policy-generator-legacy-baseline.json`; 명령 `commands/20260921T114749.209938Z-generated-policy-consumption.log` 종료 0/12.073초.
+- 새 빌드에서 `python3 fixtures/commerce/reproduce_inventory.py --runs 1`로 독립 PostgreSQL 트랜잭션 두 개의 초과 주문을 추가 재현하고 기존 대조/권한 검사를 통과했다. 기존 최소 20회 자료를 이 1회로 대체하지 않는다. 원문 `runtime/submission/commerce-reproductions/20260921T114749.394277Z-inventory.json`, 명령 `commands/20260921T114749.206403Z-policy-build-inventory-handoff.log` 종료 0/7.939초.
+- `agent-app/scripts/check_commerce_handoff.py`에 이 새 재현 자료를 전달해 실제 8도구·25근거의 전용 PostgreSQL 저장/HTTP 재조회를 확인했다. 정책 경로/해시/버전/커밋과 보관 재고 정책 원문도 일치했다. Java 1개 통과·선택 6업무 입력 없는 1개 건너뜀·실패 0, 모의 모델 2회·유료 0회다. 조사 `3bfba728-fb93-42ee-83d0-9605f2c6ff15`, `generated-policy-handoff-01/`의 XML/result/policy-check, 명령 `commands/20260921T115035.349928Z-generated-policy-pg-handoff.log` 종료 0/21.784초.
+- [DISC-agent-002](../discussions/DISC-20260921-agent-002-policy-snapshot.md)에 내 인수 결과를, [DISC-agent-003](../discussions/DISC-20260921-agent-003-empty-context.md)에 독립 PostgreSQL 입력 경계 7개 결과를 공유한다. 실제 모델 품질·화면·VOC worker/runner는 남아 있다. `VOC-AGENT-EXPORT-001`의 제한 환경/Compose 탐색 보완만 리더의 다음 단위로 접수했고 대상/이유는 lead 상태에 기록했다. 타인의 DONE·최종 승인은 작성하지 않는다.
+
 ## 2026-09-21T20:43:25+09:00 — 작업 재개·VOC 검증 재사용 오류 보완
 
 - 사용자의 재개 지시 후 원격 `0dd5bf9`·`eafb8ac`·`8d80786`의 전체 소스/테스트/계약/논의 변경을 읽고 깨끗한 main에 반영했다. 정책 사본 생성기·선택 메타데이터 계획·VOC 공백 거절이 새로 공유돼 독립 인수를 재개한다. 이전 차단 기록은 당시 상태이며 새 공유 입력을 반영했다.
