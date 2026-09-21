@@ -5,6 +5,8 @@ services:
       JDD_AGENT_MODEL_MODE: OPENAI
       JDD_AGENT_DEMO_MODE: "true"
       JDD_AGENT_PAID_CALLS_ALLOWED: "true"
+      # Keep demo investigations sequential alongside the model-call concurrency limit.
+      JDD_AGENT_WORKER_CONCURRENCY: "1"
       JDD_AGENT_DEMO_PROFILE: /run/jdd-demo/profile.json
       JDD_AGENT_OPENAI_API_KEY_FILE: /run/jdd-demo/openai-key
     volumes:

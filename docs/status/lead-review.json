@@ -216,6 +216,14 @@
       "description": "Repeated direct Commerce HTTP contract runs in the same external PostgreSQL mode could report UP-TO-DATE and reuse prior XML after the database changed.",
       "resolution": "commerce-app/build.gradle disables up-to-date and build-cache reuse whenever JDD_COMMERCE_HTTP_TEST_DB_URL is present. Only the mode flag enters the task fingerprint; H2 mode and all assertions remain intact.",
       "verification": "Dedicated jdd_commerce_http_test only: commerce-postgresql-cache-before/result.json records a successful but skipped second Gradle invocation, unchanged XML and mutated quantity 777; the independent verifier correctly exited 1. After the fix, both invocations without --rerun-tasks generated fresh XML and verified quantity 1: commerce-postgresql-cache-after/result.json, exit 0. Prior shared 18-contract PostgreSQL checks used --rerun-tasks and remain distinct. App DB and preserved VOC reproduction data were untouched. Final project approval remains pending."
+    },
+    {
+      "id": "LEAD-013",
+      "owner": "agent",
+      "status": "VERIFIED",
+      "description": "The explicit demo override inherited two investigation worker slots while the profile example and proposed demo plan permit one concurrent model call. Concurrent investigations could hit the ledger concurrency rejection. This was a configuration finding, not an observed paid-provider failure.",
+      "resolution": "Set JDD_AGENT_WORKER_CONCURRENCY=1 only in agent-app/compose.openai-demo.yaml. Keep standard development Compose, model activation conditions and all ledger limits unchanged; do not edit the owner's in-progress queue expiry/claim implementation.",
+      "verification": "Rendered Compose configuration before/after: demo-worker-concurrency-before.json has worker=2/model=1; demo-worker-concurrency-after.json has worker=1/model=1 and verifies the standard Compose has neither this override nor paid activation. Used the expired example profile and a nonexistent key path; no app activation or model calls. Actual paid-model concurrency/quality remains part of the pending approved demo."
     }
   ]
 }

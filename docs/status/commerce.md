@@ -17,6 +17,12 @@
 
 작업 단위가 끝날 때 제공 가능한 기능, 변경한 계약, 실제 검증 명령·결과, 다음 작업을 갱신한다. 실패와 막힌 이유도 함께 기록한다.
 
+## 2026-09-21T20:05:21+09:00 — 데모 worker와 호출 동시성 정렬
+
+- LEAD-013: 명시적 데모 override의 worker 동시성을 1로 고정했다. 기존 override는 기본 worker 2를 상속해 model concurrentCalls 1인 예제/배분 계획과 달랐다. 두 조사가 동시에 모델 경계에 도달하면 영속 장부의 동시 호출 제한에 걸릴 수 있으므로 조사도 순차 실행하도록 맞췄다. 그 실패를 실제 유료 모델에서 관측했다고 주장하지 않는다.
+- `docker compose ... -f agent-app/compose.openai-demo.yaml config --format json`을 키 없이 렌더링해 변경 전 worker 2/model 1, 변경 후 1/1을 확인했다. 일반 Compose에는 이 worker 설정과 유료 활성 변수가 추가되지 않았다. 만료된 예제 profile·존재하지 않는 키 경로만 사용했고 앱/키/예산 활성화는 하지 않았다.
+- 원문 `runtime/submission/commerce-20260921-resumed/demo-worker-concurrency-before.json`, `demo-worker-concurrency-after.json`. 실제 앱 동시 조사/모델 품질·비용 검증은 승인된 데모에서 별도로 확인한다. Agent가 진행 중인 대기 만료/선점 코드와는 겹치지 않는다.
+
 ## 2026-09-21T20:02:00+09:00 — 검증 캐시 수정 공유와 대기열 제안 확인
 
 - LEAD-012를 `145f404`로 전체 publish 종료 0/197.312초 후 공유했다. Python 38개·문서·전체 Gradle check·3앱/DB/HTTP/근거 smoke를 통과했다. 원문 `commands/20260921T105703.630075Z-publish-commerce-postgresql-cache.log`. 기본 H2 검사는 외부 DB 결과로 대체하지 않고 다시 실행했다.
