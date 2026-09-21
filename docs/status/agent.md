@@ -1,5 +1,12 @@
 # 한재홍 — AI Agent 작업 상태
 
+## 2026-09-22T07:50:51+09:00 — 공유된 화면/runner 연결·최종 관측 필드 정합
+
+- 동기화 중 들어온 `81fc1c4..d642878` 일곱 커밋을 확인했다. VOC 분석·근거·shop과 실제 runner가 공유돼 인수를 이어간다. 논의 목록 충돌은 새 건과 기존 답변/집계를 함께 보존해 해결했다. Agent 위임 구현은 가져오지 않았다.
+- [DISC-20260922-commerce-001 P1](../discussions/DISC-20260922-commerce-001-model-observations.md)을 수락하고 runner 소비에 맞춰 call별 investigationId·createdAt/callId/provider 정렬을 반영했다. 전용 PostgreSQL/HTTP 3개를 다시 통과했으며 실제 모델 호출0이다. 원문 `followup-model-observations-contract-postgres.log/json`이다.
+- LOG-AGENT-CONTRACT-001의 현재 실제 raw/entry·build가 포함된 path·한 줄 범위를 제공자 코드와 대조하고 공개 근거 계약을 정정했다. 실제 모델 근거를 변경하거나 새 검증을 만들지 않았다. 기존 P2는 worker 준비 의미, 새 P1은 조사 장부/LOG 소비로 연결하며 양쪽 미해소 기록을 유지한다.
+- 새 공유 코드의 전체 검사·스택 재기동 후 기존 완료/실패 보고서와 44행 장부를 읽기 전용으로 대조한다. 이어 실제 PC/모바일 분석·근거 화면과 허용된 local OAuth 시나리오를 확인한다. 데이터/실패/비용 장부를 초기화하거나 타인 DONE을 작성하지 않는다.
+
 ## 2026-09-22T07:48:13+09:00 — 리더 후속 요청 세 건 구현·직접 검증
 
 - `81fc1c4`에서 Agent 위임 중단과 한재홍 담당 유지 정정을 확인했다. AGENT-LEAD-CITATION-021은 공유 main에서 독립 재현했다. 다른 항목의 CODE 인용 또는 다른 경로/비CODE 근거만으로 prevention.targetPaths가 통과한 회귀 2실패를 보존하고, 해당 prevention.evidenceIds의 CODE 원문 경로와 직접 연결하도록 수정했다. core 15개 통과다. 미공유 `15c804c`를 읽거나 검증했다고 주장하지 않는다. 일반 자연어 주장의 의미적 인용 완전성까지 해결한 것은 아니다.

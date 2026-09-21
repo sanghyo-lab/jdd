@@ -12,7 +12,7 @@
 
 | ID / 논의 | 상태 | 정리 담당 | 확인·답변 대기 | 다음 행동 / 막힌 이유 | 해소 근거 | 최종 갱신 |
 | --- | --- | --- | --- | --- | --- | --- |
-| [DISC-20260922-commerce-001 / 실제 모델 장부 관측](DISC-20260922-commerce-001-model-observations.md) | OPEN | 이상효 | 한재홍 제공자·김아름 소비 합의 | RUNNER-AGENT-OBS-001 schema·소속/null/실제 호출 모델 검증 | 미해소: 제공자 구현·실제 소비 필요 | 2026-09-22T07:44:36+09:00 |
+| [DISC-20260922-commerce-001 / 실제 모델 장부 관측](DISC-20260922-commerce-001-model-observations.md) | DISCUSSING | 이상효 | 김아름·리더의 API/LOG 소비 인수·실제 모델 검증 | Agent P1 수락·제공 구현·최종 PostgreSQL/HTTP 3검사, LOG 계약 정정 | 미해소: 전체 공유·실제 저장 장부/runner 소비 필요 | 2026-09-22T07:50:51+09:00 |
 | [DISC-20260921-commerce-002 / 실제 MVP 실행 환경](DISC-20260921-commerce-002-live-mvp-runtime.md) | DISCUSSING | 이상효 | 이상효·김아름 P2 관측/준비 상태 인수·runner 실제 검증 | Agent 조사별 장부 관측·workerReady 제공, core 15·앱 19·PostgreSQL 3 검사 통과 | 미해소: P2 소비 인수·runner·실제 모델 검증 필요 | 2026-09-22T07:48:13+09:00 |
 | [DISC-20260921-agent-005 / 대기열 한도](DISC-20260921-agent-005-queue-limits.md) | AGREED | 한재홍 | VOC 화면/runner 검증 | Agent 실제 PostgreSQL 4개·VOC 영속 전달 직접 인수 완료 | 미해소: 화면/runner 소비 검증 필요 | 2026-09-21T22:46:02+09:00 |
 | [DISC-20260921-agent-001 — 모델 설정·장애·예산 오류](DISC-20260921-agent-001-llm-errors.md) | AGREED | 한재홍 | VOC 화면·나머지 오류/재조사 검증 | 실제 OAuth 실패→새 키 완료·정상 보고서/근거 중계 인수, 직접 인용 주의사항 보존 | 미해소: 화면·전체 오류/예산 재조사 소비 검증 필요 | 2026-09-22T00:11:00+09:00 |

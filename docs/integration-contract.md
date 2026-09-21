@@ -201,11 +201,16 @@ QUEUED·RUNNING은 report=null, error=null이다. COMPLETED는 유효한 report�
 | type | source 필드 | content 형식 |
 | --- | --- | --- |
 | `DATA` | `schema: string`, `table: string`, `recordIds: string[]`, `queryDescription: string` | `{columns: string[], rows: object[]}` |
-| `LOG` | `buildId: string`, `path: string`, `startLine: integer`, `endLine: integer` | 해당 범위의 JSON 로그 객체 배열 |
+| `LOG` | `buildId: string`, `path: string`, `startLine: integer`, `endLine: integer`, `eventId: string` | `{raw: string, entry: object}`: 실제 JSONL 한 줄과 파싱한 객체 |
 | `CODE` | `buildId: string`, `path: string`, `startLine: integer`, `endLine: integer` | 소스 문자열 |
 | `POLICY` | `version: string`, `path: string`, `section: string` | 정책 문자열 |
 
-줄 번호는 1부터 시작하고 끝 줄을 포함한다. CODE 경로는 소스 스냅샷 아래의 저장소 상대 경로, LOG 경로는 해당 빌드 로그 폴더 아래의 상대 경로다. 연속되지 않은 로그 구간은 서로 다른 근거로 저장한다. 결과가 제한으로 잘렸으면 truncated=true로 표시하고, 그 범위를 넘어서는 결론에는 추가 조회가 필요하다.
+줄 번호는 1부터 시작하고 끝 줄을 포함한다. CODE 경로는 소스 스냅샷 아래의 저장소 상대 경로다.
+LOG 경로는 LOG_ROOT 아래의 `<buildId>/<file>.jsonl`이며 buildId를 다시 앞에 붙이지 않는다.
+현재 제공자는 한 줄을 한 근거로 저장하므로 LOG의 startLine=endLine이다. content.raw는 줄 끝 개행을
+제외한 JSONL 원문이고 content.entry는 그 원문을 파싱한 객체다. 여러 줄·연속되지 않은 줄은 별도
+근거로 보존하며 객체 배열로 재구성하지 않는다. 결과가 제한으로 잘렸으면 truncated=true로 표시하고,
+그 범위를 넘어서는 결론에는 추가 조회가 필요하다.
 
 ```json
 {

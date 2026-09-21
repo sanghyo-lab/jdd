@@ -3,15 +3,15 @@
 | 항목 | 내용 |
 | --- | --- |
 | ID | DISC-20260922-commerce-001 |
-| 상태 | OPEN |
+| 상태 | DISCUSSING |
 | 제안 버전 | P1 |
 | 작성자 / 역할 | 이상효 / commerce·lead |
 | 정리 담당 | 이상효 |
 | 영향받는 역할 | agent 제공자, voc runner, commerce·lead 검증 |
 | 필수 합의자 | 한재홍(장부 제공), 김아름(runner 소비), 이상효(리더) |
-| 확인·답변 대기 | 한재홍·김아름 |
-| 생성 시각 / 최종 갱신 | 2026-09-22T07:44:36+09:00 / 2026-09-22T07:44:36+09:00 |
-| 다음 행동 / 담당 | RUNNER-AGENT-OBS-001 제공자 응답·구현·실제 장부 소비 확인 |
+| 확인·답변 대기 | 김아름·리더의 제공 API/LOG 소비 인수·실제 모델 검증 |
+| 생성 시각 / 최종 갱신 | 2026-09-22T07:44:36+09:00 / 2026-09-22T07:50:51+09:00 |
+| 다음 행동 / 담당 | Agent P1 수락·제공 구현/전용 PostgreSQL 검사, 전체 publish와 저장 장부 직접 소비 확인 |
 
 ## 결정할 질문
 
@@ -54,7 +54,13 @@ runner 및 부모 helper를 직접 검토해 통합했다. 위임 검사에서 �
 
 ### 한재홍 — agent
 
-아직 답변 없음.
+2026-09-22T07:50:51+09:00 / 한재홍 / agent / P1 / 의견: 수락·제공 구현
+
+- 새 건 등록과 `ScenarioRunner.validateModel`을 확인하고 P1의 경로·응답 필수 필드·무호출/비밀 제외·미관측 null 보존을 수락한다. 동시 작업 중 만든 제공 구현에 각 call의 저장 investigationId를 추가하고 createdAt/callId/provider 순으로 맞췄다. 마지막 provider는 동일 callId 동률의 안정 순서만 정한다. 추가 ledgerState는 API의 예약/미확정 상태이며 OAuth는 null이다.
+- API elapsedMillis는 측정·저장하지 않아 null이고, OAuth만 저장된 직접 측정값을 반환한다. API 시각 차이로 지연을 추정하지 않는다. actualModel은 원래 응답 관측이며 requestedModel로 대체하지 않는다. 현재 runtime/provider와 과거 행의 provider는 별개다. [정확한 관측 DTO](../llm-runtime.md#조사별-내부-모델-관측)를 참고한다.
+- 실제 전용 PostgreSQL/HTTP 3개 검사를 두 번 통과했다. 두 번째는 최종 조사 ID·동률 정렬·nullable usage/지연·모든 API 장부 상태·타 조사/없는 조사 격리·GET 반복 장부 불변·민감 원문 제외를 확인했다. `runtime/submission/agent-20260921/followup-model-observations-contract-postgres.log/json`에 보존한다. 합성 장부 검사이며 모델 실제 호출은 0이다.
+- LOG-AGENT-CONTRACT-001: 실제 `LogEvidenceTools`의 source.path=`<buildId>/<file>.jsonl`, startLine=endLine, eventId와 content의 raw/entry 제공을 확인한다. raw는 줄 끝 LF/CR을 제외한 실제 한 줄이며 entry는 같은 줄을 파싱한 객체다. [공개 근거 계약](../integration-contract.md)을 구현에 맞춰 정정했다. 같은 형식을 사용한 기존 실제 저장 근거 인수는 722c39f 및 후속 OAuth 기록에 있으며 이번 문서 정정을 새 모델 검사로 계산하지 않는다.
+- 동시 작성한 기존 [DISC-commerce-002 P2](DISC-20260921-commerce-002-live-mvp-runtime.md)는 workerReady/실행 준비 의미 인수로 이어가고 조사별 API/LOG 소비 답변은 이 건에 모은다. 양쪽 기록과 기존 P1 수락을 보존한다. 전체 publish 및 새 실행 스택의 보존 조사/장부 GET 인수는 이어 수행하며 소비자·실제 runner/모델 품질 확인 전 미해소다.
 
 ### 김아름 — voc
 
@@ -62,8 +68,10 @@ runner 및 부모 helper를 직접 검토해 통합했다. 위임 검사에서 �
 
 ## 결정·실행·검증
 
-소비 구현의 계약 제안이며 제공자 수락 전 OPEN이다. 실제 모델·장부 HTTP 소비는 미검증이고 실제 입력/출력 원문은 실행별 runtime에 보존한다.
+Agent가 P1 제공 계약을 수락하고 전용 PostgreSQL/HTTP 합성 장부 검사를 통과했다. 전체 publish와 실제 저장 조사/runner 소비·모델 품질 인수는 남아 DISCUSSING이다. 실제 입력/출력 원문은 실행별 runtime에 보존한다.
 
 ## 해소 또는 재개 이력
 
 2026-09-22T07:44:36+09:00 / 이상효: 요청을 건별 P1으로 등록. 타인의 수락·구현·DONE을 대신 기록하지 않는다.
+
+2026-09-22T07:50:51+09:00 / 한재홍: P1 제공 수락·구현/전용 PostgreSQL 검사·LOG 계약 정정. 소비 인수와 실제 모델 검증 대기로 DISCUSSING.

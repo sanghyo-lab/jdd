@@ -111,14 +111,14 @@ web/ngrok에서 직접 공개하거나 중계하지 않는다. 응답은 `schema
 
 | calls 필드 | 의미 |
 | --- | --- |
-| callId / requestedModel / actualModel | 저장된 호출 ID·요청 모델·관측 응답 모델. 미관측 actualModel은 null |
+| callId / investigationId / requestedModel / actualModel | 저장된 호출·소속 조사 ID·요청 모델·관측 응답 모델. 미관측 actualModel은 null |
 | provider | 호출 장부의 codex_oauth 또는 openai_api. 현재 설정으로 과거 행을 바꾸지 않음 |
 | outcome | 저장된 HTTP/중단 결과. API receipt가 없으면 RESERVED/DISPATCHED/CANCELLED 같은 저장 상태 |
 | ledgerState | API의 RESERVED/DISPATCHED/CONFIRMED/UNKNOWN/CANCELLED. OAuth에는 해당 장부 상태가 없어 null |
 | usage | 기존 ModelUsage의 inputTokens/outputTokens/cachedInputTokens/cacheWriteTokens/reasoningTokens. 객체·개별 미관측 값은 null |
 | createdAt / elapsedMillis | 저장 시각과 관측 지연. OAuth가 직접 측정한 값만 반환. API는 HTTP 지연을 저장하지 않아 null |
 
-한 번의 반복 읽기 스냅샷에서 두 장부를 조사 ID로 제한하고 createdAt/provider/callId 순으로 반환한다.
+한 번의 반복 읽기 스냅샷에서 두 장부를 조사 ID로 제한하고 createdAt/callId/provider 순으로 반환한다.
 API 예약·미확정 행도 제외하지 않으며 모델 요청을 실행한 성공 건수로 해석하면 안 된다. API 생성/정산
 시각의 차이는 실제 HTTP 지연으로 추정하지 않는다. 합계·성공률·USD 환산을 새로 만들지 않는다.
 캐시 입력/쓰기와 reasoning은 기존 입력/출력의 부분이므로 중복 합산하지 않는다. 요청 옵션·프롬프트·

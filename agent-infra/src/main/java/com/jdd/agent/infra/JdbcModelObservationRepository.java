@@ -29,22 +29,22 @@ public class JdbcModelObservationRepository implements ModelObservationRepositor
         if (jdbc.queryForObject("SELECT count(*) FROM agent.investigations WHERE investigation_id = ?",
                 Integer.class, investigationId) == 0) return Optional.empty();
         var calls = new ArrayList<>(jdbc.query("""
-                SELECT call_id, requested_model, actual_model, outcome, usage_json, created_at, elapsed_millis
+                SELECT call_id, investigation_id, requested_model, actual_model, outcome, usage_json, created_at, elapsed_millis
                 FROM agent.oauth_model_calls WHERE investigation_id = ?
-                """, (rs, row) -> new Call(rs.getString("call_id"), rs.getString("requested_model"),
+                """, (rs, row) -> new Call(rs.getString("call_id"), rs.getString("investigation_id"), rs.getString("requested_model"),
                 rs.getString("actual_model"), "codex_oauth", rs.getString("outcome"), null,
                 rs.getString("usage_json") == null ? null : json.readValue(rs.getString("usage_json"), ModelUsage.class),
                 rs.getObject("created_at", OffsetDateTime.class).toInstant(), rs.getObject("elapsed_millis", Long.class)),
                 investigationId));
         calls.addAll(jdbc.query("""
-                SELECT call_id, request_json, state, receipt_json, created_at
+                SELECT call_id, investigation_id, request_json, state, receipt_json, created_at
                 FROM agent.model_calls WHERE investigation_id = ?
                 """, (rs, row) -> {
             var request = json.readTree(rs.getString("request_json"));
             String receiptValue = rs.getString("receipt_json");
             JsonNode receipt = receiptValue == null ? null : json.readTree(receiptValue);
             JsonNode usage = receipt == null ? null : receipt.get("usage");
-            return new Call(rs.getString("call_id"), request.path("pricing").path("model").asText(null),
+            return new Call(rs.getString("call_id"), rs.getString("investigation_id"), request.path("pricing").path("model").asText(null),
                     receipt == null ? null : receipt.path("actualModel").asText(null), "openai_api",
                     receipt == null ? rs.getString("state") : receipt.path("outcome").asText(null), rs.getString("state"),
                     usage == null || usage.isNull() ? null : json.treeToValue(usage, ModelUsage.class),
@@ -52,7 +52,7 @@ public class JdbcModelObservationRepository implements ModelObservationRepositor
                     // Reservation/settlement timestamps are not measured HTTP latency.
                     null);
         }, investigationId));
-        calls.sort(Comparator.comparing(Call::createdAt).thenComparing(Call::provider).thenComparing(Call::callId));
+        calls.sort(Comparator.comparing(Call::createdAt).thenComparing(Call::callId).thenComparing(Call::provider));
         return Optional.of(List.copyOf(calls));
     }
 }

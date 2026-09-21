@@ -67,7 +67,7 @@ class ModelObservationHttpTest {
         assertThat(first.body()).doesNotContain(privateCall, "private-prompt-metadata", "private-request-options",
                 "private-provider-request", "request_json", "receipt_json", "Authorization", "auth.json");
         var observedCall = call(body, observed);
-        assertThat(observedCall.propertyNames()).containsExactlyInAnyOrder("callId", "requestedModel", "actualModel",
+        assertThat(observedCall.propertyNames()).containsExactlyInAnyOrder("callId", "investigationId", "requestedModel", "actualModel",
                 "provider", "outcome", "ledgerState", "usage", "createdAt", "elapsedMillis");
         assertThat(observedCall.path("provider").asText()).isEqualTo("codex_oauth");
         assertThat(observedCall.path("elapsedMillis").asLong()).isEqualTo(25);
@@ -76,6 +76,12 @@ class ModelObservationHttpTest {
         assertThat(observedCall.path("usage").path("reasoningTokens").asLong()).isEqualTo(10);
         assertThat(call(body, pending).path("usage").isNull()).isTrue();
         assertThat(call(body, pending).path("elapsedMillis").isNull()).isTrue();
+        var orderedIds = new java.util.ArrayList<String>();
+        for (var saved : body.path("calls")) {
+            assertThat(saved.path("investigationId").asText()).isEqualTo(id);
+            orderedIds.add(saved.path("callId").asText());
+        }
+        assertThat(orderedIds).isSorted(); // All stored creation timestamps intentionally tie.
         for (var entry : callIds.entrySet()) {
             var saved = call(body, entry.getValue());
             assertThat(saved.path("provider").asText()).isEqualTo("openai_api");
