@@ -12,6 +12,11 @@
 다른 담당자의 DONE을 대신 작성하지 않는다. 전체 코드 수정 권한으로 직접 보완한 내용과 영향을 여기에 공유한다.
 
 
+## 2026-09-21T21:20:00+09:00 — 보고서·실행 안내와 미해결 지적 갱신
+
+- 루트 README와 해커톤 보고서를 실제 코드에 맞췄다. 제거된 Spring AI/로컬 API 데모·DISABLED 설명을 현재 Responses/local OAuth/deployed API/test mock으로 갱신했고 VOC 입력 사본·큐 제한의 실제 검증과 산출물 위치를 추가했다. 실제 AI·화면·시간 절감률은 미검증/미측정으로 유지한다.
+- LEAD-018을 lead-review.json의 OPEN에 기록했다. DISC-commerce-002의 P1은 04af7b9로 문서 검증 후 공유됐으며 제공자·runner 담당자의 직접 답변이 필요하다. 완료 검증의 기준을 낮추거나 모델을 호출하지 않았다. 이번 단위에 검토 JSON·보고서가 포함되어 전체 publish 절차를 따른다.
+
 ## 2026-09-21T21:17:00+09:00 — 수용량 공유·VOC 영속 요청 독립 인수·LEAD-018
 
 - 수용량 보완 `f1d6082`의 전체 publish 종료 0/195.993초. Python 57개, Java 158개(149통과·9조건부 제외·실패/오류 0), 세 앱 재기동·PostgreSQL/HTTP/근거 연결을 통과했다. buildId `f1d60822a48e-c5c367ca49d9`, Agent MOCK. 원문 `commands/20260921T121144.138721Z-queue-admission-publish.log`, `queue-admission-publication-junit-runtime.json`이다.

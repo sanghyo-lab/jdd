@@ -256,6 +256,14 @@
       "description": "After DISC-agent-005 P1 agreement, intake still accepted all 16 concurrent new requests despite a configured capacity of three and returned 202 on a full queue.",
       "resolution": "Add V8 singleton admission lock, READ COMMITTED transaction for key recheck/count/insert, capacity 20 bounded to 1..100, and 429 INVESTIGATION_QUEUE_FULL with Retry-After 5. Preserve existing IDs/conflicts and all stored investigations; add the agreed consumer behavior to the shared contract.",
       "verification": "Before: QueueAdmissionTest 3/3 failed, preserved in queue-admission-before/result.xml. After: H2 admission/API/execution 24 passed; final PostgreSQL 17.6 HTTP/DB admission 4/4 passed without skips in queue-admission-postgresql-01. Sixteen distinct requests yield 3 accepted/13 rejected; sixteen same-key requests use one slot/ID. Conflict 409, invalid input 400, 1/100 boundaries, lower-capacity preservation and claim/expiry slot recovery pass; API/OAuth/budget rows remain zero. Agent owner and VOC worker/UI consumer acceptance remain pending; this is not final approval."
+    },
+    {
+      "id": "LEAD-018",
+      "owner": "voc",
+      "status": "OPEN",
+      "description": "verify_mvp calls the ordinary verify/up path, which reconfigures an explicitly prepared local OAuth Agent to test/mock. The scenario runner command also uses the POSIX wrapper unconditionally.",
+      "resolution": "DISC-20260921-commerce-002 P1 proposes verification of explicitly prepared, current-build live runtime without automatic provider activation or fallback. Leader will implement the common workflow after provider/runner owner coordination.",
+      "verification": "mvp-runtime-before.json records actual Repository.verify_mvp control flow with only I/O replaced: check, snapshot, base Compose up, smoke. No OAuth runtime was activated or actual model called. Current businessReady=false and unimplemented runner still prevent MVP validation. Keep OPEN pending implementation, consumer acceptance and authorized actual-model verification."
     }
   ]
 }

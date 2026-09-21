@@ -11,7 +11,8 @@
 - 조사 대상: 주문·결제·쿠폰·취소·재고에 관한 7개 문의 시나리오
 
 현재는 **세 역할의 구현·통합 검증 진행 중**이다. 커머스 업무 API와 일곱 VOC의 실제 PostgreSQL 재현을 제공한다.
-Agent는 조사 접수·영속 실행·근거/보고서 검증·비용 제어를 구현했으며 실제 모델/조회 도구와 VOC 티켓·화면은 이어 연결한다.
+Agent는 조사 접수·영속 실행·8개 실제 조회 도구·근거/보고서 검증·비용 제어와 모델 연결 코드를 제공한다.
+VOC의 티켓·분석 요청·입력 사본은 영속 저장하며, Agent 전달·화면과 실제 모델 품질은 이어 검증한다.
 실제 AI 조사·팀 완료 여부는 [담당자 상태](docs/status/commerce.md)와 team-check로 확인한다.
 
 ## 각자 시작하기
@@ -28,6 +29,9 @@ Agent는 조사 접수·영속 실행·근거/보고서 검증·비용 제어를
 ```
 
 위 명령으로 각자의 PostgreSQL·커머스·Agent·VOC를 실행하고 연결을 확인한다.
+기본 Agent는 `test/mock`이며 실제 모델을 호출하지 않는다. 로컬 모델은 프로젝트 전용 Codex OAuth,
+배포 모델은 OpenAI API를 별도로 설정한다. 로그인·명시 실행·모델 미검증 범위는
+[LLM 실행 안내](docs/llm-runtime.md)와 [사용·비용 정책](docs/planning/demo-llm-policy.md)을 따른다.
 설치 조건과 검증 범위는 [로컬 개발 안내](docs/local-development.md)에 있다.
 자동 개발은 [AGENTS.md](AGENTS.md)와 [협업 반복 규칙](docs/autonomous-development.md)을 따른다.
 커머스 업무 재현·입력·로그·복구 검증은 [Commerce 실행 안내](commerce-app/README.md)를 따른다. 모델 호출 없이 독립 실행할 수 있다.
