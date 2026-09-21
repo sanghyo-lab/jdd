@@ -1,2 +1,10 @@
 plugins { id 'application' }
 application { mainClass = 'com.jdd.scenario.ScenarioRunner' }
+dependencies { implementation 'tools.jackson.core:jackson-databind' }
+tasks.named('run') { workingDir rootProject.projectDir }
+tasks.register('prepareTests', Exec) {
+    workingDir rootProject.projectDir
+    commandLine(System.getProperty('os.name').toLowerCase().contains('windows') ? 'python' : 'python3',
+            '-m', 'unittest', 'discover', '-s', 'scenario-runner/src/test/python', '-v')
+}
+tasks.named('check') { dependsOn 'prepareTests' }
