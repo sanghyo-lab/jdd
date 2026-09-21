@@ -1,5 +1,16 @@
 # 한재홍 — AI Agent 작업 상태
 
+## 2026-09-21T23:07:13+09:00 — 조회 묶음 실제 인수·보고서 전송 실패 보존·티켓 웹 직접 확인
+
+- `3cc8bd4`와 macOS 공통 검사 보완 `b1f2d45`를 전체 publish 종료 0으로 공유했다. Python 67개·Java 186개 중 성공 177/조건부 제외 9·실패/오류 0, web 13개/production build와 세 앱/실제 DB/HTTP/근거 연결이 통과했다. 원문 `followup-budget-aware-publish-02.log/json`, `followup-publication-junit.json`이다. 앞선 macOS 실패도 별도 보존한다.
+- 같은 티켓의 새 키/previousInvestigationId로 실제 local/codex_oauth 재조사 `d11c09b6-e9d5-45d6-a2bd-3892107743d9`를 실행했다. Agent build `b1f2d4598197-17a765bb9033`, 보존 commerce build `8bd5699533be-057bb12f48d9`. 모델의 세 응답에서 3/4/2개 도구 요청을 처리해 총 9도구·24근거를 저장했다. 실제 여러 함수 요청의 call ID/후속 결과 처리는 동작한다.
+- 네 번째 응답은 45,013ms에 TRANSPORT_FAILURE_USAGE_UNKNOWN/LLM_UNAVAILABLE로 끝났다. 기존 45초 전송 상한과 일치하며 보고서는 저장되지 않았다. 첫 세 호출에서 관측한 입력 22,374·출력 2,906·reasoning 270(출력 일부), cached/cache write 0을 보존한다. 네 번째의 모델/usage는 null이며 합계가 전체 사용량이라고 주장하지 않는다. 해당 스택은 OAuth 합계 12행·API/배포 예산 0, 기존 실패 이력과 다른 배포 장부는 보존했다.
+- 다음 보완: v4 버전 프롬프트에서 도구 요청 응답의 중간 설명/JSON을 생략하고 최종 근거·한계·조치/예방 검증을 간결하게 작성하도록 했다. 실제 최종 보고서 수신을 위해 로컬 HTTP 상한을 90초로 조정하되 worker 전체 3분·취소·8회 모델/24회 도구·입력/스트림 상한·API fallback 금지를 유지한다. 타임아웃 모의 검사는 기존 짧은 제한을 그대로 사용하며 관련 25개를 통과했다(`followup-concise-tests.log`, `followup-concise-results/`). 수정 후 실제 결과는 후속 기록한다.
+- 김아름 `495dbcc` 웹을 Node 24.21.0의 production 서버로 실행해 Playwright 브라우저에서 PC 1440×900·모바일 390×844를 확인했다. 잘못된 암호 안내·티켓 생성/한재홍 배정·빈 선택 ID 생략·유효 ID 양끝 문자 보존·동시 수정 409 시 초안 보존/최신 비교·명시 갱신/재저장·새로고침 복원·기존 실패/새 조사 이력 분리를 확인했다. 합성 티켓 `900d57d0-8dc9-45e0-aaeb-8ae4cfd5400b`는 최종 v3/IN_PROGRESS이며 실제 사용자 티켓은 수정하지 않았다. 모바일 document 폭=viewport=390이다.
+- 화면 캡처는 `output/playwright/followup-desktop-conflict.png`, `followup-mobile-conflict.png`, 원문은 `.playwright-cli/`와 `followup-web-ticket.json`에 보존했다. 올바른 암호 로그인은 실제 HTTP 200/HttpOnly·Strict 쿠키로 확인하고 브라우저에 해당 세션을 복원했다. 올바른 암호의 브라우저 폼 제출 성공까지 실행했다고 주장하지 않는다. 임시 접속 비밀은 로컬 제외 파일 0600으로만 관리한다.
+- 인증된 web→VOC→Agent 저장 결과/24개 근거의 원문 일치·같은 키/수동 refresh의 추가 모델 0회, 무인증 401·다른 Origin 403·Agent/관리 중계 404를 확인했다. `followup-web-http.json`, `followup-web-relay.json`. 공개 ngrok·보고서 패널·runner 성공은 아니다. AGENT-VOC-WEB-001: 로그인 브라우저에서 /favicon.ico 404가 관측되므로 김아름의 후속 화면 단위에서 처리 요청한다. 핵심 티켓 흐름 실패와는 구분한다.
+- [DISC-agent-003](../discussions/DISC-20260921-agent-003-empty-context.md)에 화면 입력 직접 인수를 추가한다. 기존 잘못된 티켓의 오류 안내·분석/보고서/근거 화면은 김아름 진행 중이므로 논의 전체는 유지한다.
+
 ## 2026-09-21T22:56:48+09:00 — 실제 VOC-07 OAuth 실패 보존·조회 묶음/보고서 호출분 보완
 
 - 김아름의 f5064c8 전달 기능을 통해 한 건의 합성 VOC-07을 수동으로 실제 조사했다. 대기열이 비었음을 확인한 뒤 별도 로컬 스택을 `scripts/llm run-local`로 준비했다. 동시에 공유된 티켓 웹 `495dbcc`가 반영된 Agent buildId는 `495dbccb5370-552e8da21477`이며 조사 대상의 보존된 commerce buildId는 `8bd5699533be-057bb12f48d9`다.

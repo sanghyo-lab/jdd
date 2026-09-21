@@ -22,7 +22,9 @@ public final class CodexOAuthInvestigationModel implements InvestigationModel, A
         this(authFile, model, json, clock, OAuthCallJournal.NONE);
     }
     public CodexOAuthInvestigationModel(Path authFile, String model, JsonMapper json, Clock clock, OAuthCallJournal journal) {
-        this(authFile, model, json, clock, URI.create("https://chatgpt.com/backend-api/codex/responses"), Duration.ofSeconds(45), journal);
+        // A real tool investigation reached the former 45s cap while producing its final report.
+        // Keep a bounded call and the worker's independent 3-minute investigation cancellation.
+        this(authFile, model, json, clock, URI.create("https://chatgpt.com/backend-api/codex/responses"), Duration.ofSeconds(90), journal);
     }
     public static CodexOAuthInvestigationModel localMock(Path authFile, String model, JsonMapper json, Clock clock, URI endpoint, Duration timeout) {
         return new CodexOAuthInvestigationModel(authFile, model, json, clock, ResponsesHttp.loopback(endpoint), timeout, OAuthCallJournal.NONE);

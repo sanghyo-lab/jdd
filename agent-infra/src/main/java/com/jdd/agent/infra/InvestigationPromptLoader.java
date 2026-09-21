@@ -10,7 +10,7 @@ import java.util.HexFormat;
 public final class InvestigationPromptLoader {
     private InvestigationPromptLoader() {}
     public static Prompt load() {
-        String version = "investigation-system-v3";
+        String version = "investigation-system-v4";
         try (var stream = InvestigationPromptLoader.class.getResourceAsStream("/prompts/" + version + ".md")) {
             if (stream == null) throw new IllegalStateException("Investigation system prompt is missing");
             byte[] bytes = stream.readAllBytes();
