@@ -1,6 +1,6 @@
 # 김아름 — VOC 티켓·AI 연동 작업 상태
 
-- 상태: 티켓 저장·조회·수정·버전 충돌을 검증하고 main에 공유했다. 정책 snapshot 호환성, 분석 연동·화면·runner는 진행 대상이다.
+- 상태: 티켓 API·정책 snapshot 호환성·공백 입력 수정을 검증하고 main에 공유했다. 영속 분석 연동·화면·runner는 진행 대상이다.
 - 담당자: 김아름 (역할 C)
 - GitHub 계정: `AhReumKim-ar`
 - 작업 브랜치: `main`
@@ -9,7 +9,7 @@
 - 공유 커밋: 티켓 `d8246e9`, 검증 안내 `d5d5484`, 주문 시각 정밀도 수정 `1d29d20`
 - 담당 경로: `voc-app/`, `voc-core/`, `voc-infra/`, `web/`, `scenario-runner/`
 - 준비된 자료: [구현 범위](../roles/kim-areum-voc.md), [VOC·Agent 계약](../integration-contract.md), [커머스 계약](../commerce-interface.md), [프론트 설계](../frontend-deployment.md)
-- 다음 작업: 공통 snapshot의 정책 사본·Windows 경로 호환성, 분석 요청 스냅샷·영속 전달/조회·실제 Agent 접수 연결, 한국어 화면 구현
+- 다음 작업: 분석 요청 스냅샷·요청 키/이력 영속 저장, 서버의 Agent 전달/조회·재시작 복구, 한국어 화면 구현
 - 제공받은 입력: Agent 조사 API·실행기·8개 조회 도구, commerce VOC-07/02/03 재현 자료. 실제 모델 검증 허용 범위·배포 환경은 별도다.
 - 검증 결과: 티켓 HTTP/H2·실제 PostgreSQL 계약, 전체 Gradle check, 세 앱 Docker 기동·smoke와 앱 재기동 후 티켓 보존 통과. 프론트·VOC runner·실제 모델은 미검증.
 - 연동 요청: 아래 논의의 P1 수락과 공통 생성기 책임을 기록했다. scenario-runner는 아직 미구현을 알리는 실패 종료 골격이다.
@@ -94,3 +94,15 @@
 - AGENT-VOC-003의 실제 201 → 400 불일치를 확인하고 P1 방향을 적용한다. VOC 생성/PATCH에서 명시적인 빈 문자열·공백만인 context 값을 거절한다. 생략/null은 정보 없음으로 유지하고 유효한 식별자 문자를 trim하거나 바꾸지 않는다.
 - 회귀 검증: HTTP 테스트에서 빈 customerId가 수정 전 201로 저장되는 실패를 재현했다. 수정 후 `gradlew.bat --no-daemon :voc-app:test` 7개를 통과했다. 다섯 선택 ID의 빈 문자열·공백·탭/개행·유니코드 공백, 실패 시 버전/저장 내용 보존, null 생략과 정상 문자의 보존을 확인했다.
 - 실패 원문은 로컬 `runtime/verification/blank-context-before.log`·`blank-context-before.xml`, 성공은 `blank-context-after.log`다. 계약에 화면의 빈 입력 생략과 기존 잘못된 티켓의 전달 오류·수정·새 키 안내 기준을 추가했다. 화면·영속 분석 전달의 구현과 실제 VOC → Agent 재검증은 아직 남아 있다.
+
+## 2026-09-21T20:39:02+09:00 — 미공유 단위 게시 완료와 실제 소비 확인
+
+- 공유: 정책 생성기 0dd5bf9, 선택 메타데이터 계획 eafb8ac, 입력 경계 8d80786을 일반 main push했다. fetch 후 작업 폴더와 origin/main의 ahead/behind 0/0, 통합 복사본과 전체 파일 일치를 확인했다. 사용자 미추적 readiness 문서는 원래 해시 그대로 보존했다.
+- 지연 원인: 동시 main 변경·공동 README 충돌을 양쪽 기록 보존으로 통합했다. GitHub DNS와 Docker Hub DNS/TLS 실패, 실행 승인 검토의 시간 초과도 있었다. 실패 결과를 숨기거나 강제 push하지 않았다.
+- 로컬 게시 도구는 transient Git 전송만 최대 3회 재시도하고, Docker 내장 해석기를 사용해 외부 frontend 다운로드를 제외했다. 동일 JDK·Dockerfile 빌드/실행 명령과 전체 검사를 유지했다. 보조 도구·로그는 runtime에만 두며 전역 설정·공유 검사 기준은 바꾸지 않았다.
+- 최종 검사: Linux Python 45개 통과, 문서 검사 통과, 전체 Java 133개 중 124개 통과·외부 환경 조건부 9개 건너뜀·실패/오류 0. 이 9개는 실제 검증 성공에 포함하지 않는다. 빌드 8d8078685a0f-40824ff52249의 세 앱·PostgreSQL·마이그레이션·HTTP·읽기 전용 근거 연결 smoke를 통과했다.
+- 같은 공유 빌드의 실제 HTTP 추가 확인: 공백 POST/PATCH 40건 거절, 정상/생략/null 11건의 VOC 생성→Agent 접수와 같은 키 동일 ID, 기존 공백 티켓 불변·Agent의 재시도 불가 400, 재생성 후 기존 티켓 ID/버전/필드/시각 보존을 통과했다. 모델 DISABLED에서 수행한 수동 HTTP 연결이며 아직 VOC 영속 전달 worker 검증은 아니다.
+- 실제 Agent SourceEvidenceTools로 Windows 소스 35개와 보관 정책의 원문·해시를 대조했다. 현재 정책 파일이 없는 경로에서도 보관 정책을 읽었다. Agent·commerce PC의 직접 인수 결과는 각자 기록해야 하므로 정책 논의는 AGREED다.
+- 원문: runtime/verification/policy-context-publish-local-frontend.log, linux-gradle-check, context-handoff.json, ticket-restart.json, SourceSnapshotProbe.java와 publication clone의 runtime/smoke.json·runtime/evidence/source. 테스트 입력은 합성이며 실제 모델·web·MVP·DONE은 미검증이다.
+- 논의: 선택 메타데이터 결정은 원격 포함을 확인해 RESOLVED. 데모 배분 P1과 대기열 P1에 직접 수락하고 본문·목록을 갱신했다. 유료 활성화 조건, 큐 수용량/429·VOC 영속 전달/조회/화면의 구현·검증이 남아 둘은 AGREED다.
+- Agent 요청 VOC-AGENT-EXPORT-001: agent-app/scripts/export_model_calls.py의 Windows Compose 탐색/실행 환경을 보완해 달라. 동일 허용 환경에서 docker compose version은 하위 명령 없음으로 종료 1, DOCKER_CONFIG 지정 후 export도 종료 1이었다. 별도 Agent 계정 READ ONLY SQL에서는 예산/모델 호출/대기·실행 모두 0을 확인했다. 요청 없이 진행 가능한 다음 작업은 영속 분석 요청 API다.
