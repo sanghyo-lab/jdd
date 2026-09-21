@@ -17,6 +17,15 @@
 
 작업 단위가 끝날 때 제공 가능한 기능, 변경한 계약, 실제 검증 명령·결과, 다음 작업을 갱신한다. 실패와 막힌 이유도 함께 기록한다.
 
+## 2026-09-21T19:44:00+09:00 — 공유 결과와 남은 인수 조건
+
+- PostgreSQL 계약 검증 단위를 `67ec034`로 전체 publish 종료 0/193.825초 후 공유했다. 최신 Agent `4c20c9a`의 제공자 예산 오류 구분·토크나이저 재사용·회귀 전체를 읽고 통합했다. 현재 세 앱의 buildId는 `67ec034fa347-c076e59e00d0`로 일치하며 Agent 모델은 DISABLED다.
+- 전체 check의 Python 38개, 문서 검사, Gradle check, 세 앱/DB/근거 smoke 통과. 현재 JUnit 126개 중 통과 119·실패 0·조건부 건너뜀 7개다. 건너뛴 CommerceEvidencePostgresTest 5개와 CommerceHandoffTest 2개는 별도 실제 PostgreSQL 환경에서 실행한 `postgresql-contracts-01/`, `seven-agent-handoff-01/`의 성공 근거와 구분한다.
+- 깨끗하고 동기화된 main에서 `./scripts/dev team-check`를 실행해 종료 1을 확인했다. origin/main의 세 역할과 리더는 모두 IN_PROGRESS다. 원문 `commands/20260921T104259.009314Z-team-check-after-postgresql-contracts.log`. 역할 DONE·리더 APPROVED·goal 완료를 작성하지 않았다.
+- 남은 구현 인수: COMMERCE-001의 VOC runner, DISC-agent-002의 공통 정책 snapshot, JDD-VOC-001/002/007/009의 분석 전달·근거/이력 화면·runner와 DISC-agent-001/003의 오류/공백 입력 처리다. VOC 상태의 진행 중 소유 범위를 중복 편집하지 않고 공유된 구현과 직접 검증 결과를 기다린다.
+- 사용자에게 DISC-agent-004의 구체적인 데모 모델/예산 범위, 로컬 비밀 파일 경로·공개 로그인 허용 범위·ngrok 설정 경로를 요청한 상태다. 답변·팀 배분·각 PC 조건 확인 전 유료 호출이나 공개 터널을 시작하지 않는다. ngrok CLI 3.39.11 설치는 완료됐으나 설정 파일이 없어 공개 검증은 아직 불가능하다.
+- 실제 세션의 가시 이벤트 674건을 `session/20260921T103949.430037Z-visible-events.masked.jsonl`로 중간 내보내고 이메일 14곳을 가렸다. 원본 캡처 해시·행 출처·제출 사본 해시/0600·비밀/이메일 패턴 검사를 통과했다. 원문과 요약, 이전 중간 캡처를 구분하며 최종 제출 시 다시 갱신한다.
+
 ## 2026-09-21T19:38:00+09:00 — 같은 HTTP 계약의 실제 PostgreSQL 검증
 
 - `fixtures/commerce/check_http_postgresql.py`와 CommerceHttpTest의 명시적 외부 DB 모드를 추가했다. 기존 18개 HTTP 계약의 입력·동시성·롤백·시각 정밀도 단언을 그대로 사용한다. 전용 로컬 DB `jdd_commerce_http_test`만 허용하고 초기화 직전에 실제 DB/스키마를 확인한다. 기본 H2도 유지하며 Gradle 입력에 DB 모드를 반영해 서로의 실행 결과를 재사용하지 않는다.
