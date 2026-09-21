@@ -47,6 +47,7 @@ services:
       APP_BUILD_ID: ${APP_BUILD_ID:?Use scripts/dev up}
       APP_COMMIT_SHA: ${APP_COMMIT_SHA:?Use scripts/dev up}
       COMMERCE_LOG_ROOT: /evidence/logs/commerce
+      COMMERCE_REPRODUCTION_ENABLED: ${COMMERCE_REPRODUCTION_ENABLED:-false}
     ports:
       - "127.0.0.1:${COMMERCE_PORT:-8080}:8080"
     volumes:

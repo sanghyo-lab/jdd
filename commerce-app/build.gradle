@@ -1,4 +1,6 @@
 plugins { id 'org.springframework.boot' }
+// Local reproduction controls are compiled separately from the Agent-visible main source tree.
+sourceSets.main.java.srcDir 'src/reproduction/java'
 dependencies {
     implementation project(':commerce-core')
     implementation project(':commerce-infra')

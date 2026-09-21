@@ -27,3 +27,5 @@ management:
 jdd:
   build-id: ${APP_BUILD_ID:local-dev}
   commit-sha: ${APP_COMMIT_SHA:unknown}
+  commerce-log-root: ${COMMERCE_LOG_ROOT:runtime/evidence/logs/commerce}
+  reproduction-enabled: ${COMMERCE_REPRODUCTION_ENABLED:false}
