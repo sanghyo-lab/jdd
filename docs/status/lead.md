@@ -16,6 +16,12 @@
 
 
 
+## 2026-09-21T22:23:48+09:00 — LEAD-020 / VOC-LEAD-020 실제 Agent HTTP 본문 제한 누락
+
+- 현재 c46b0c1의 HttpAgentGateway를 실제 loopback HTTP 서버로 검사했다. 정상 접수 뒤 같은 연결에서 requestTimeout=400ms·본문 지연 1,500ms를 주면 1,510ms 후 ACCEPTED였다. 450만 바이트 이상인 UTF-8 응답도 문자 수가 기존 4,194,304 아래라 ACCEPTED였다. 크기 검사는 이미 전체 본문을 메모리에 받은 뒤 수행한다. 두 검사 모두 기대한 거절에 실패했고 종료 1/2.926초였다.
+- 근거는 `runtime/submission/commerce-20260921-resumed/voc-http-body-bounds-before.json`, `commands/20260921T132312.895955Z-voc-http-body-bounds-before.log`다. 실제 Java HTTP 전송·명시적인 합성 upstream이며 실제 모델/API·앱 DB 쓰기는 0회다. 서비스 장애를 실제로 발생시켰다고 주장하지 않는다.
+- 김아름 진행 범위는 web·접근 제어·이후 runner다. 리더가 voc-infra HttpAgentGateway의 본문 수신 시간/바이트 제한과 독립 전송 회귀·실행 설명만 보완한다. 기존 동일 키·429·저장/lease·DTO와 화면 경로는 유지한다. VOC-LEAD-020으로 담당자에게 수정 인수와 전송/복구 소비 확인을 요청한다. 소스/검증 완료 후 lead-review.json에 반영하고 전체 publish한다.
+
 ## 2026-09-21T22:20:14+09:00 — 로그·Windows 수정 공유 완료와 팀 미완료 확인
 
 - 140f8d5의 로그 검색 수정과 9965c73의 Windows 검사/worker 인수 기록을 최신 main에 공유했다. 재시도 publish는 종료 0/309.401초, Python 65개·Java 178개 중 169통과/9조건부 제외·실패 0, 세 앱 재빌드·재기동·실제 PostgreSQL/HTTP/근거 연결 통과다. 앞선 원격 경합 종료 1 기록도 보존했다.
