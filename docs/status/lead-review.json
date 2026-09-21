@@ -128,6 +128,22 @@
       "description": "Default PostgreSQL jdd database denies TEMP to commerce; inventory fixture reset failed before HTTP reproduction.",
       "resolution": "878f602: fixtures/commerce/VOC-07/reset.sql captures scoped order IDs with psql gset and quoted arrays; no TEMP privilege or wider deletion.",
       "verification": "20260921T085827.981243Z-inventory.json retained failure; 20260921T085927.924315Z-inventory.json records 20/20 actual container repetitions and controls; inventory-reset-existing-20260921.json confirms reset with existing orders. Artifacts under runtime/submission/commerce-reproductions; final project review pending."
+    },
+    {
+      "id": "LEAD-001",
+      "owner": "commerce",
+      "status": "VERIFIED",
+      "description": "Source rebuilds repeatedly downloaded Gradle and dependencies in each image build.",
+      "resolution": "e080390 adds shared locked BuildKit Gradle cache; docs/local-development.md lists Buildx prerequisite.",
+      "verification": "publish-coupons log 20260921T090655.493458Z: after coupon Java changes Gradle build succeeded in 11s with cached dependencies, all three services rebuilt and smoke passed; no inference about developer investigation time."
+    },
+    {
+      "id": "LEAD-003",
+      "owner": "commerce",
+      "status": "VERIFIED",
+      "description": "Unsupported HTTP methods were converted to 500 INTERNAL_ERROR by CommerceErrors.",
+      "resolution": "9a4b688 explicitly returns 405 for unsupported method and 415 for unsupported media type with the standard DTO.",
+      "verification": "Actual HTTP before/after JSON under runtime/submission/commerce-reproductions/unsupported-method-*.json shows 500 then 405; HTTP/H2 regression covers both 405 and 415."
     }
   ]
 }

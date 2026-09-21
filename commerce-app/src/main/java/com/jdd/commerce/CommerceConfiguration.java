@@ -1,6 +1,7 @@
 package com.jdd.commerce;
 
 import com.jdd.commerce.inventory.port.InventoryReadObserver;
+import com.jdd.commerce.payment.port.RefundFault;
 import java.time.Clock;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -14,4 +15,7 @@ public class CommerceConfiguration {
     @Bean
     @ConditionalOnProperty(name = "jdd.reproduction-enabled", havingValue = "false", matchIfMissing = true)
     InventoryReadObserver inventoryReadObserver() { return (productId, checkoutKey, quantity) -> {}; }
+    @Bean
+    @ConditionalOnProperty(name = "jdd.reproduction-enabled", havingValue = "false", matchIfMissing = true)
+    RefundFault refundFault() { return (orderId, requestKey) -> false; }
 }

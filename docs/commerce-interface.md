@@ -1,6 +1,6 @@
 # 커머스 API·DB·로그·소스 인터페이스 v1
 
-제공자는 **이상효**, 사용자는 커머스 API·재현 실행의 **김아름**과 근거 조회의 **한재홍**이다. 상품·주문·재고·쿠폰 API와 아래 DDL, JSONL 근거를 구현했다. 결제·취소·환불은 다음 구현 단위이며 전체 업무 완료를 뜻하지 않는다. 실제 검증 상태는 [commerce 상태](status/commerce.md), 실행은 [Commerce 안내](../commerce-app/README.md)를 따른다. 결함의 기대 관측값은 [VOC 시나리오](voc-scenarios.md), 정상 동작은 [업무 정책](business-policy.md)을 따른다.
+제공자는 **이상효**, 사용자는 커머스 API·재현 실행의 **김아름**과 근거 조회의 **한재홍**이다. 아래 업무 API·DDL·JSONL을 구현했으며 실제 검증 상태는 [commerce 상태](status/commerce.md), 실행은 [Commerce 안내](../commerce-app/README.md)를 따른다. 결함의 기대 관측값은 [VOC 시나리오](voc-scenarios.md), 정상 동작은 [업무 정책](business-policy.md)을 따른다. 모의 결제·환불은 실제 금융 거래를 발생시키지 않는다.
 
 ## 1. 공통 규칙
 
@@ -30,6 +30,9 @@
 취소 API의 성공은 주문 취소 처리 결과다. 환불 완료 여부는 `refund.status`로 별도 확인한다. 결제 전 취소 또는 환불 기록을 남기지 못한 결함 사례에서는 `refund`가 `null`일 수 있다. 티켓 조사에서 이를 결제·로그와 대조한다.
 
 결제·취소 요청의 requestKey·method·reason은 문자열이다. 같은 주문·동작·requestKey로 같은 입력을 재전송하면 기존 처리 결과를 반환하고, 입력이 다르면 `409 REQUEST_KEY_CONFLICT`를 반환한다. 이미 승인된 결제를 중복 승인하거나 취소된 주문의 재고를 다시 반환하지 않는다. VOC-04의 의도적인 중복 처리는 주문 생성 경로에만 둔다.
+
+취소 reason은 공백만으로 구성되지 않은 1~2,000자다. 취소된 주문의 새 결제 요청이나 이미 승인된 수단을 다른 수단으로 바꾸는 요청은 `409 ORDER_STATE_CONFLICT`다.
+지원하지 않는 HTTP 방식·Content-Type은 각각 405·415, 오류 code는 INVALID_INPUT이다. 저장된 재전송 응답은 최초 처리 당시의 주문 상태를 포함하며 최신 상태는 주문 GET에서 확인한다.
 
 ### 요청·응답 DTO
 

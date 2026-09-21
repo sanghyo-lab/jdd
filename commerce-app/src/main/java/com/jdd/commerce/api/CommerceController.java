@@ -6,6 +6,9 @@ import com.jdd.commerce.coupon.domain.CustomerCoupon;
 import com.jdd.commerce.order.application.OrderService;
 import com.jdd.commerce.order.domain.CreateOrder;
 import com.jdd.commerce.order.domain.Order;
+import com.jdd.commerce.payment.application.PaymentService;
+import com.jdd.commerce.payment.domain.PaymentResult;
+import com.jdd.commerce.payment.domain.CancelResult;
 import com.jdd.commerce.product.domain.Product;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
@@ -20,7 +23,10 @@ import tools.jackson.databind.JsonNode;
 public class CommerceController {
     private final OrderService orders;
     private final CouponService coupons;
-    public CommerceController(OrderService orders, CouponService coupons) { this.orders = orders; this.coupons = coupons; }
+    private final PaymentService payments;
+    public CommerceController(OrderService orders, CouponService coupons, PaymentService payments) {
+        this.orders = orders; this.coupons = coupons; this.payments = payments;
+    }
     @GetMapping("/customers/{customerId}/coupons") public Map<String, List<CustomerCoupon>> coupons(
             @PathVariable String customerId, @RequestParam(defaultValue = "20") int limit,
             @RequestParam(defaultValue = "0") int offset) {
@@ -37,6 +43,16 @@ public class CommerceController {
         return Map.of("items", orders.orders(customerId, checkoutKey, limit, offset));
     }
     @GetMapping("/orders/{id}") public Order order(@PathVariable String id) { return orders.order(id); }
+    @PostMapping("/orders/{id}/payments") public PaymentResult pay(@PathVariable String id,
+            @RequestBody JsonNode body, HttpServletRequest request) {
+        return payments.pay(id, string(body, "requestKey", false), string(body, "method", false),
+                (String) request.getAttribute(RequestTraceFilter.ATTRIBUTE));
+    }
+    @PostMapping("/orders/{id}/cancel") public CancelResult cancel(@PathVariable String id,
+            @RequestBody JsonNode body, HttpServletRequest request) {
+        return payments.cancel(id, string(body, "requestKey", false), string(body, "reason", false),
+                (String) request.getAttribute(RequestTraceFilter.ATTRIBUTE));
+    }
     @PostMapping("/orders") @ResponseStatus(HttpStatus.CREATED)
     public Order create(@RequestBody JsonNode body, HttpServletRequest request) {
         if (!body.isObject() || !body.path("items").isArray()) throw CommerceException.invalid("Order items must be an array");

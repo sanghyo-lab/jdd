@@ -1,8 +1,7 @@
 # Commerce 실행과 현재 제공 기능
 
-상품 목록·상세, 주문 생성·목록·상세, 쿠폰 조회·적용·사용 이력, 재고 예약과 이력을 실제 DB에 저장한다.
-결제·취소·환불은 다음 구현 단위이며 `businessReady=false`를 유지한다.
-의도한 VOC-02·03의 쿠폰 비교/계산, VOC-04의 주문 생성 재전송 중복과 VOC-07의 재고 경쟁 조건을 재현 대상으로 유지한다.
+상품·주문·쿠폰·재고, 모의 결제·전체 취소·모의 환불과 처리 이력을 실제 DB에 저장한다.
+일곱 시연용 결함을 재현 대상으로 유지한다. 현재 단위의 실제 PostgreSQL 검증이 끝날 때까지 `businessReady=false`다.
 
 ```bash
 ./scripts/dev up
@@ -18,9 +17,27 @@
 기본 설정의 재현 API 비노출을 포함한다. H2 검사는 실제 PostgreSQL 동시성 검증을 대체하지 않는다.
 
 [VOC-02 경계값](../fixtures/commerce/VOC-02/README.md)과 [VOC-03 정률 계산](../fixtures/commerce/VOC-03/README.md)은
-`python3 fixtures/commerce/reproduce_commerce.py --runs 3`으로 각각 독립 준비·재현한다. 정액 할인·상한·소유/기간/사용 상태도 함께 확인한다.
+`reproduce_commerce.py --scenario VOC-02 --runs 3`처럼 선택할 수 있다. 정액 할인·상한·소유/기간/사용 상태도 함께 확인한다.
 발급 쿠폰 행을 잠근 상태에서 검증·사용하며 주문·사용 기록·재고를 같은 트랜잭션으로 저장한다.
 기간은 validFrom 이상·validUntil 미만이다. 실패한 주문은 쿠폰을 소비하지 않는다. 동시에 같은 발급 쿠폰을 재사용할 수 없다.
+
+## 결제·취소와 일곱 재현
+
+결제·취소는 주문 행 잠금과 `order_operations`의 처리 결과로 동시 요청·재전송을 직렬화한다.
+같은 주문·동작·requestKey의 같은 입력에는 최초 응답을 반환한다. 입력 충돌은 409이며 이미 승인된 결제·재고 반환을 반복하지 않는다.
+모의 제공자는 네트워크·실결제 없이 응답하며 동일 요청의 providerReference가 재시작 후에도 동일하다.
+취소 reason은 비어 있지 않은 2,000자 이하 문자열이다. 실제 과금·실제 환불로 표시하지 않는다.
+
+```bash
+COMMERCE_REPRODUCTION_ENABLED=true ./scripts/dev up
+python3 fixtures/commerce/reproduce_commerce.py --runs 3
+python3 fixtures/commerce/reproduce_inventory.py --runs 20
+```
+
+첫 명령의 재현은 [VOC-01](../fixtures/commerce/VOC-01/README.md)부터 [VOC-06](../fixtures/commerce/VOC-06/README.md)까지 순차 실행한다.
+[VOC-04](../fixtures/commerce/VOC-04/README.md)는 주문 생성의 중복이며 결제·취소 재전송과 구분한다.
+[VOC-05](../fixtures/commerce/VOC-05/README.md)의 일시 환불 오류 제어는 opt-in 내부 API로 지정 주문·키에 한 번만 적용하고 실행 후 해제한다.
+제어 구현·평가 데이터는 Agent 소스 스냅샷에 없다. 실제 DB·로그·소스 재현은 AI가 원인을 조사한 결과와 별도다.
 
 ## 로그와 조사 경계
 

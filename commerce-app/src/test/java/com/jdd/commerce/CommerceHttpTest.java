@@ -48,10 +48,12 @@ class CommerceHttpTest {
     @Autowired JsonBusinessEvents events;
     @Autowired PlatformTransactionManager transactions;
     @Autowired Clock clock;
+    @Autowired TestRefundFault refundFault;
     final JsonMapper json = JsonMapper.builder().build();
     final HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(3)).build();
 
     @BeforeEach void seed() {
+        refundFault.pending.clear();
         for (String table : List.of("event_outbox", "order_operations", "inventory_movements", "coupon_usages",
                 "refunds", "payments", "order_items", "orders", "customer_coupons", "coupons", "product_stock", "products")) {
             jdbc.update("DELETE FROM commerce." + table);
@@ -153,6 +155,7 @@ class CommerceHttpTest {
     }
     @Test void reproductionControlsAreAbsentByDefault() throws Exception {
         assertThat(request("POST", "/internal/reproduction/inventory-barrier", "{}").statusCode()).isEqualTo(404);
+        assertThat(request("POST", "/internal/reproduction/refund-failure", "{}").statusCode()).isEqualTo(404);
     }
     void coupon(String id, String kind, long minimum, Long fixed, String rate, Long maximum) {
         jdbc.update("INSERT INTO commerce.coupons (id,discount_type,min_order_amount,fixed_discount_amount,discount_rate,max_discount_amount,valid_from,valid_until) VALUES (?,?,?,?,?,?,?,?)",
@@ -233,5 +236,129 @@ class CommerceHttpTest {
             assertThat(count("event_outbox")).isZero();
             assertThat(jdbc.queryForObject("SELECT status FROM commerce.customer_coupons WHERE id='cc-rollback'", String.class)).isEqualTo("AVAILABLE");
         } finally { jdbc.execute("ALTER TABLE commerce.inventory_movements DROP CONSTRAINT reject_coupon_reserve"); }
+    }
+    String createdOrder(String key) throws Exception {
+        var response = request("POST", "/api/orders", order(key, "1"));
+        assertThat(response.statusCode()).isEqualTo(201);
+        return json.readTree(response.body()).path("id").stringValue();
+    }
+    String payBody(String key, String method) { return "{\"requestKey\":\""+key+"\",\"method\":\""+method+"\"}"; }
+    String cancelBody(String key) { return "{\"requestKey\":\""+key+"\",\"reason\":\"고객 전체 취소\"}"; }
+    JsonNode pay(String id, String key, String method) throws Exception {
+        var response = request("POST", "/api/orders/"+id+"/payments", payBody(key, method));
+        assertThat(response.statusCode()).isEqualTo(200);
+        return json.readTree(response.body());
+    }
+    JsonNode cancel(String id, String key) throws Exception {
+        var response = request("POST", "/api/orders/"+id+"/cancel", cancelBody(key));
+        assertThat(response.statusCode()).isEqualTo(200);
+        return json.readTree(response.body());
+    }
+    @Test void cardUpdatesOrderButEasyPayApprovalPreservesStateDefect() throws Exception {
+        String card = createdOrder("card"), easy = createdOrder("easy");
+        JsonNode approved = pay(card,"pay-card","CARD"), pending = pay(easy,"pay-easy","EASY_PAY");
+        assertThat(approved.path("order").path("status").stringValue()).isEqualTo("PAID");
+        assertThat(pending.path("order").path("status").stringValue()).isEqualTo("PAYMENT_PENDING");
+        for (JsonNode result : List.of(approved,pending)) {
+            assertThat(result.path("payment").path("status").stringValue()).isEqualTo("APPROVED");
+            assertThat(result.path("payment").path("amount").longValue()).isEqualTo(50000);
+            assertThat(result.path("payment").path("providerReference").stringValue()).startsWith("mock-payment-");
+        }
+        assertThat(count("payments")).isEqualTo(2);
+    }
+    @Test void concurrentPaymentReplaysStoredResultAndConflictingInputCannotChargeAgain() throws Exception {
+        String id = createdOrder("payment-idempotency");
+        var start = new java.util.concurrent.CyclicBarrier(4);
+        try (var pool = java.util.concurrent.Executors.newFixedThreadPool(4)) {
+            var tasks = new java.util.ArrayList<java.util.concurrent.Future<JsonNode>>();
+            for (int i=0; i<4; i++) tasks.add(pool.submit(() -> { start.await(); return pay(id,"same","CARD"); }));
+            JsonNode first = tasks.getFirst().get();
+            for (var task : tasks) assertThat(task.get()).isEqualTo(first);
+            assertThat(pay(id,"another","CARD").path("payment").path("id")).isEqualTo(first.path("payment").path("id"));
+        }
+        assertThat(request("POST","/api/orders/"+id+"/payments",payBody("same","EASY_PAY")).statusCode()).isEqualTo(409);
+        assertThat(request("POST","/api/orders/"+id+"/payments",payBody("new","EASY_PAY")).statusCode()).isEqualTo(409);
+        assertThat(count("payments")).isEqualTo(1);
+    }
+    @Test void cancellationReturnsInventoryOnceAndReplaysRefundWithoutLosingHistoricalPaymentResult() throws Exception {
+        String id = createdOrder("cancel");
+        JsonNode originalPayment = pay(id,"payment","CARD");
+        var start = new java.util.concurrent.CyclicBarrier(4);
+        JsonNode cancelled;
+        try (var pool = java.util.concurrent.Executors.newFixedThreadPool(4)) {
+            var tasks = new java.util.ArrayList<java.util.concurrent.Future<JsonNode>>();
+            for (int i=0;i<4;i++) tasks.add(pool.submit(() -> { start.await(); return cancel(id,"cancel"); }));
+            cancelled=tasks.getFirst().get();
+            for (var task:tasks) assertThat(task.get()).isEqualTo(cancelled);
+        }
+        assertThat(cancelled.path("order").path("status").stringValue()).isEqualTo("CANCELLED");
+        assertThat(cancelled.path("refund").path("status").stringValue()).isEqualTo("COMPLETED");
+        assertThat(cancelled.path("refund").path("failureCode").isNull()).isTrue();
+        assertThat(cancel(id,"new-key").path("refund").path("id")).isEqualTo(cancelled.path("refund").path("id"));
+        assertThat(pay(id,"payment","CARD")).isEqualTo(originalPayment);
+        assertThat(request("POST","/api/orders/"+id+"/payments",payBody("new-payment","CARD")).statusCode()).isEqualTo(409);
+        assertThat(request("POST","/api/orders/"+id+"/cancel",cancelBody("cancel").replace("고객 전체 취소","다른 사유")).statusCode()).isEqualTo(409);
+        assertThat(count("refunds")).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM commerce.inventory_movements WHERE movement_type='RELEASE'",Long.class)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT quantity FROM commerce.product_stock WHERE product_id='p1'",Integer.class)).isEqualTo(3);
+    }
+    @Test void transientRefundFailureLeavesCancellationWithoutRetryTracking() throws Exception {
+        String id=createdOrder("refund-failure");
+        pay(id,"pay","CARD");
+        refundFault.pending.add(id+"/failed-cancel");
+        JsonNode failed=cancel(id,"failed-cancel");
+        assertThat(failed.path("order").path("status").stringValue()).isEqualTo("CANCELLED");
+        assertThat(failed.path("refund").isNull()).isTrue();
+        assertThat(cancel(id,"failed-cancel")).isEqualTo(failed);
+        assertThat(cancel(id,"new-cancel").path("refund").isNull()).isTrue();
+        assertThat(count("refunds")).isZero();
+        assertThat(refundFault.pending).isEmpty();
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM commerce.event_outbox WHERE payload LIKE '%REFUND_FAILED%'",Long.class)).isEqualTo(1);
+    }
+    @Test void cancelledCouponStaysUsedWhileUnpaidCancelHasNoRefund() throws Exception {
+        coupon("cancelled","FIXED",0,5000L,null,null);
+        var response=request("POST","/api/orders",withCoupon("coupon-cancel","cancelled"));
+        String id=json.readTree(response.body()).path("id").stringValue();
+        pay(id,"paid","CARD");
+        assertThat(cancel(id,"cancel").path("refund").path("status").stringValue()).isEqualTo("COMPLETED");
+        assertThat(jdbc.queryForObject("SELECT status FROM commerce.customer_coupons WHERE id='cc-cancelled'",String.class)).isEqualTo("USED");
+        assertThat(jdbc.queryForObject("SELECT status FROM commerce.coupon_usages WHERE customer_coupon_id='cc-cancelled'",String.class)).isEqualTo("ACTIVE");
+        assertThat(request("POST","/api/orders",withCoupon("coupon-again","cancelled")).statusCode()).isEqualTo(422);
+        String unpaid=createdOrder("unpaid");
+        assertThat(cancel(unpaid,"cancel-unpaid").path("refund").isNull()).isTrue();
+    }
+    @Test void invalidPaymentCancellationInputsAndDatabaseFailuresHaveNoPartialEffects() throws Exception {
+        String id=createdOrder("inputs");
+        for (String body:List.of("{}","null","[]","",payBody(" ","CARD"),payBody("key","CRYPTO"),"{\"requestKey\":1,\"method\":\"CARD\"}")) {
+            assertThat(request("POST","/api/orders/"+id+"/payments",body).statusCode()).as(body).isEqualTo(400);
+        }
+        for (String body:List.of("{}","null","[]","", "{\"requestKey\":\"c\",\"reason\":null}","{\"requestKey\":\"c\",\"reason\":2}","{\"requestKey\":\"c\",\"reason\":\" \"}")) {
+            assertThat(request("POST","/api/orders/"+id+"/cancel",body).statusCode()).as(body).isEqualTo(400);
+        }
+        assertThat(request("POST","/api/orders/missing/payments",payBody("k","CARD")).statusCode()).isEqualTo(404);
+        jdbc.execute("ALTER TABLE commerce.order_operations ADD CONSTRAINT reject_payment_operation CHECK(operation<>'PAYMENT')");
+        try {
+            assertThat(request("POST","/api/orders/"+id+"/payments",payBody("k","CARD")).statusCode()).isEqualTo(500);
+            assertThat(count("payments")).isZero();
+            assertThat(jdbc.queryForObject("SELECT status FROM commerce.orders WHERE id=?",String.class,id)).isEqualTo("PAYMENT_PENDING");
+        } finally { jdbc.execute("ALTER TABLE commerce.order_operations DROP CONSTRAINT reject_payment_operation"); }
+        pay(id,"k","CARD");
+        jdbc.execute("ALTER TABLE commerce.inventory_movements ADD CONSTRAINT reject_return CHECK(movement_type<>'RELEASE')");
+        try {
+            assertThat(request("POST","/api/orders/"+id+"/cancel",cancelBody("c")).statusCode()).isEqualTo(500);
+            assertThat(count("refunds")).isZero();
+            assertThat(jdbc.queryForObject("SELECT status FROM commerce.orders WHERE id=?",String.class,id)).isEqualTo("PAID");
+            assertThat(jdbc.queryForObject("SELECT quantity FROM commerce.product_stock WHERE product_id='p1'",Integer.class)).isEqualTo(2);
+        } finally { jdbc.execute("ALTER TABLE commerce.inventory_movements DROP CONSTRAINT reject_return"); }
+        assertThat(cancel(id,"c").path("refund").path("status").stringValue()).isEqualTo("COMPLETED");
+    }
+    static class TestRefundFault implements com.jdd.commerce.payment.port.RefundFault {
+        final java.util.Set<String> pending=java.util.concurrent.ConcurrentHashMap.newKeySet();
+        @Override public boolean failOnce(String id,String key) { return pending.remove(id+"/"+key); }
+    }
+    @org.springframework.boot.test.context.TestConfiguration
+    static class RefundTestConfiguration {
+        @org.springframework.context.annotation.Bean @org.springframework.context.annotation.Primary
+        TestRefundFault testRefundFault() { return new TestRefundFault(); }
     }
 }

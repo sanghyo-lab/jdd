@@ -36,6 +36,15 @@ public class JdbcCommerceRepository implements CommerceRepository {
     @Override public Optional<Order> order(String id) {
         return jdbc.query("SELECT * FROM commerce.orders WHERE id = ?", this::mapOrder, id).stream().findFirst();
     }
+    @Override public Optional<Order> lockOrder(String id) {
+        if (jdbc.queryForList("SELECT id FROM commerce.orders WHERE id = ? FOR UPDATE", String.class, id).isEmpty()) {
+            return Optional.empty();
+        }
+        return order(id);
+    }
+    @Override public void updateStatus(String id, String status, Instant at) {
+        jdbc.update("UPDATE commerce.orders SET status=?, updated_at=? WHERE id=?", status, Timestamp.from(at), id);
+    }
     @Override public List<Order> orders(String customerId, String checkoutKey, int limit, int offset) {
         StringBuilder sql = new StringBuilder("SELECT * FROM commerce.orders WHERE 1=1");
         List<Object> params = new ArrayList<>();
@@ -70,6 +79,11 @@ public class JdbcCommerceRepository implements CommerceRepository {
     }
     @Override public int subtractStock(String productId, int quantity, Instant at) {
         jdbc.update("UPDATE commerce.product_stock SET quantity = quantity - ?, updated_at = ? WHERE product_id = ?",
+                quantity, Timestamp.from(at), productId);
+        return jdbc.queryForObject("SELECT quantity FROM commerce.product_stock WHERE product_id = ?", Integer.class, productId);
+    }
+    @Override public int addStock(String productId, int quantity, Instant at) {
+        jdbc.update("UPDATE commerce.product_stock SET quantity = quantity + ?, updated_at = ? WHERE product_id = ?",
                 quantity, Timestamp.from(at), productId);
         return jdbc.queryForObject("SELECT quantity FROM commerce.product_stock WHERE product_id = ?", Integer.class, productId);
     }
