@@ -7,3 +7,7 @@ runtime
 .env.*
 web/node_modules
 web/.next
+
+# Codex credentials always live outside the checkout. Defense against accidental copies.
+**/auth.json
+**/.codex/

@@ -17,6 +17,19 @@
 
 작업 단위가 끝날 때 제공 가능한 기능, 변경한 계약, 실제 검증 명령·결과, 다음 작업을 갱신한다. 실패와 막힌 이유도 함께 기록한다.
 
+
+## 2026-09-21 — 사용자 지시: local OAuth / deployed API / test mock 구현
+
+- 최신 사용자 지시를 적용해 기존 로컬 API 데모 설정을 교체했다. APP_RUNTIME/LLM_PROVIDER를 명시하고 local/codex_oauth, deployed/openai_api, test/mock 외에는 시작 오류다. OAuth 실패·만료·429·권한·timeout에 API fallback하지 않으며 배포는 OAuth 설정/파일을 읽지 않는다.
+- 기존 InvestigationModel·비동기 실행·8개 읽기 전용 도구·근거/보고서 계약을 유지한다. 두 직접 HTTP Responses 어댑터, strict schema/function call/history/encrypted reasoning 보존, SSE UTF-8/chunk/완료·실패·EOF·취소 처리를 구현했다. Spring AI ChatCompletions와 기존 demo 활성화는 제거했다.
+- 로컬 auth는 저장소 밖 전용 디렉터리와 공식 CLI 최초 로그인만 사용한다. 매 요청 새 파일을 읽으며 앱이 refresh하지 않는다. ./scripts/llm login/diagnose/run-local/demo/smoke-local/smoke-deployed, 두 Compose override, 배포 profile·환경 예제와 docs/llm-runtime.md를 제공한다. 일반 up/check/publish는 explicit test/mock이다.
+- $50 API 크레딧은 배포에만 사용한다. 기존 $30 한도·가격 확인·영속 API 예약/정산은 유지하고 OAuth nullable usage는 V7 별도 관측 표에 저장한다. OAuth를 API USD로 환산하거나 API 장부를 초기화하지 않는다.
+- 근거: 공식 Codex 공개 소스 ebc05da3bdb76f25861e7cb418bd06d28cadc609와 CLI 0.155.1 login help를 확인했다. 헤더·auth.json·Responses body/SSE 근거와 실제 호환성 한계는 실행 설명에 연결했다. 모델 지원·워크스페이스 무제한 혜택은 주장하지 않는다.
+- 실행 검증: Agent app/core 전체 회귀·bootJar 성공(runtime/llm-agent-regression.log). Spring AI 제거 직후 slf4j 직접 의존 누락으로 컴파일 실패했으며 명시 의존 추가 후 재검증 성공(runtime/llm-agent-final-check-after-dependency.log). 최종 추가 36개 검사(전송 23·환경 격리 7·배포 설정 5·OAuth 장부 1) 통과(runtime/llm-final-coverage.log), SSE 경계 4개 별도 통과. Python 44개 성공(runtime/llm-python-check.log). Compose 세 경로 자격증명 분리 통과(runtime/llm-compose-isolation.json). 모두 합성/loopback이며 실제 모델 호출 0회다.
+- 실제 프로젝트 전용 auth.json과 CODEX_MODEL은 미준비다. 개발자 로그인/모델명 요청을 보냈으며 토큰을 요구하지 않았다. 실제 OAuth·배포 API·VOC 품질·ngrok/화면은 미검증이다. 코드 연결 완료를 실제 AI 품질 또는 role DONE으로 기록하지 않는다.
+- 원격 6b9ca6f까지 전체 변경을 확인했다. 김아름의 정책 snapshot/공백 입력/PG 재검증·직접 합의는 보존해 통합한다. 새 사용자 인증 정책에 따라 DISC-agent-004의 로컬 API 예산 계획은 재정리가 필요하다. VOC는 기존 오류 DTO/재조사 흐름을 유지하면 되며 일반 제품 화면에 provider 설정을 추가하지 않는다. 수용량/429·Windows 장부 exporter 요청은 이 인증 분리와 별개로 추적한다.
+- 이 단위는 최신 main 통합 후 전체 publish/세 앱 연결을 실행해 결과를 후속 기록한다. 세 역할/리더 완료를 대신 작성하지 않는다.
+
 ## 2026-09-21T20:06:04+09:00 — 외부 입력과 소비자 구현 대기 재확인
 
 - 원격 `0ad4bfd`와 깨끗한 로컬 main이 일치하며 새 변경/논의 답변은 없었다. `team-check` 종료 1, commerce·agent·voc·lead는 모두 IN_PROGRESS다. 실제 실행 원문은 `runtime/submission/agent-20260921/blocking-audit-team-check.*`다.

@@ -1,7 +1,8 @@
 package com.jdd.agent;
 
 import com.jdd.agent.domain.*;
-import com.jdd.agent.infra.OpenAiDemoModelFactory;
+import com.jdd.agent.infra.LlmRuntimeConfiguration;
+import com.jdd.agent.infra.JdbcOAuthCallJournal;
 import com.jdd.agent.infra.InvestigationPromptLoader;
 import com.jdd.agent.infra.CommerceEvidenceDatabase;
 import com.jdd.agent.infra.CommerceDataTools;
@@ -19,8 +20,9 @@ import tools.jackson.databind.json.JsonMapper;
 
 @Configuration
 public class InvestigationExecutionConfiguration {
-    @Bean @ConditionalOnMissingBean InvestigationModel investigationModel(Environment environment, ModelCallLedger ledger, JsonMapper json) {
-        return OpenAiDemoModelFactory.create(environment::getProperty, ledger, json, Clock.systemUTC());
+    @Bean @ConditionalOnMissingBean InvestigationModel investigationModel(Environment environment, ModelCallLedger ledger, JsonMapper json,
+            org.springframework.jdbc.core.JdbcTemplate jdbc) {
+        return LlmRuntimeConfiguration.create(environment::getProperty, ledger, json, Clock.systemUTC(), new JdbcOAuthCallJournal(jdbc, json));
     }
 
     @Bean @ConditionalOnMissingBean InvestigationTools investigationTools(JsonMapper json,

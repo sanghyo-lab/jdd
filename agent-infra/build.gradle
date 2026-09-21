@@ -4,5 +4,7 @@ dependencies {
     implementation 'org.springframework:spring-jdbc'
     implementation 'org.springframework:spring-context'
     implementation 'tools.jackson.core:jackson-databind'
-    implementation "org.springframework.ai:spring-ai-openai:${springAiVersion}"
+    implementation 'org.slf4j:slf4j-api'
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    implementation 'com.knuddels:jtokkit:1.1.0'
 }

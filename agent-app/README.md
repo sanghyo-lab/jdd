@@ -1,11 +1,10 @@
 # Agent 조사 API와 영속 실행 상태
 
-현재 구현 범위는 조사 API·영속 비동기 실행·도구 반복·근거 저장·보고서 검증·비용 제어다.
-커머스 조회 도구를 연결했고 Spring AI OpenAI 전송 계층을 로컬 HTTP 모의 서버로 검증했다.
-명시적인 데모 설정으로 OpenAI를 활성화할 수 있다. 실제 제공자 호출·모델 품질은 미검증이다.
-기본 모델은 DISABLED다. 접수 후 실행기가 `FAILED / LLM_CONFIGURATION_ERROR`를 저장하며 유료 호출은 하지 않는다.
-실행기를 명시적으로 끄면 요청은 QUEUED에 남는다. 모델·도구 반복은 합성 도구/모의 모델로 검증했다.
-`businessReady=false`를 유지한다. 완료된 AI 분석처럼 표시하지 않는다.
+현재 구현은 조사 API·영속 실행·도구 반복·근거 저장·보고서 검증·비용 제어를 포함한다.
+AI 경로는 **local/Codex OAuth · deployed/OpenAI API key · test/mock**으로 명시적으로 분리한다.
+[로그인·실행·데모·배포·재로그인·검증 설명](../docs/llm-runtime.md)을 먼저 읽는다.
+기본 Compose는 네트워크 없는 실패 mock이며, 실제 조사 결과를 만들지 않는다. 설정 누락/오타는 시작 오류다.
+`businessReady=false`를 유지하며 실제 모델 품질·VOC UI·공개 데모 검증은 별도다.
 
 ## 실행과 접수
 
@@ -60,7 +59,7 @@ worker/DB가 중단된 동안에는 상태 갱신이 지연되지만 복구 후 
 
 `InvestigationRunner`가 도구 반복을 소유한다. 모델 요청→서버 인자 검증→실제 도구 호출→근거 커밋→후속 모델 요청→보고서 검사 순서다.
 시스템 프롬프트는 `agent-infra/src/main/resources/prompts/investigation-system-v2.md`를 로딩하고 버전·SHA-256과 함께 모델 port에 전달한다. 기존 v1 리소스는 과거 실행 식별용으로 보존한다.
-기본 모델 호출은 비활성 구현이며 로컬 HTTP 모의 서버에서 실제 요청 프롬프트 전달을 확인했다.
+기본 Compose 모델은 네트워크 없는 실패 mock이며 로컬 HTTP 모의 서버에서 실제 요청 프롬프트 전달을 확인했다.
 
 | 실행 설정 | 기본값 | 용도 |
 | --- | --- | --- |
@@ -75,95 +74,23 @@ worker/DB가 중단된 동안에는 상태 갱신이 지연되지만 복구 후 
 
 위 수치는 초기 실행 상한이며 실제 모델 지연·품질로 조정해야 한다. 처리량 측정 결과가 아니다.
 
-## 모델 호출 허용과 비용 장부
+## 모델 연결과 비용 장부
 
-`PaidModelGate`는 기본 금지이며 데모 모드·명시적 유료 허용·승인 범위·만료 시각·모델 허용 목록을 모두 검사한다.
-OpenAI 클라이언트와 기본 금지 실행 설정을 구현했다. 이 계층이 있다는 이유로 유료 호출을 시작하지 않는다.
-모의 검증은 메모리 함수와 IPv4 loopback HTTP 서버만 사용한다.
+`InvestigationModel`에 `CodexOAuthInvestigationModel`과 `OpenAiInvestigationModel`을 연결한다.
+두 어댑터는 직접 HTTP Responses/SSE를 사용한다. 공통 대화·도구·구조화 보고서 형식과 암호화 reasoning context를 보존한다.
+SDK/CLI가 조사 도구를 실행하지 않으며 `InvestigationRunner`가 기존 허용된 읽기 전용 함수만 호출한다.
+로컬 OAuth 실패·만료·429·시간 초과에 API key로 fallback하지 않는다. 배포는 OAuth 파일을 읽지 않는다.
 
-- `agent.demo_budget`의 단일 누적 예산은 로컬에 배정한 금액($30 이하)·범위·동시 호출·조사당 호출 수를 고정한다. 재시작·새 조사·다른 범위 이름으로 초기화하거나 확대하는 API는 없다.
-- 데모 profile의 총 호출 한도도 같은 예산 행에 고정한다. 동시 예약을 포함해 원자적으로 검사하고 새 조사·재시작·설정 변경으로 초기화하지 않는다. V5 이전 장부는 null로 보존하며 실제 데모 활성화에는 명시한 총 한도가 필요하다.
-- `agent.model_calls`는 실제 HTTP 시도마다 하나의 ID, 요청/실제 모델·가격 버전·prompt 지문·도구 스키마·시각·usage를 저장한다. 재시도·전환도 새 시도로 예약해야 하며 이 계층은 자동 재시도하지 않는다.
-- DB 예산 행을 잠근 상태에서 확정+미확정+진행 중 예약+새 호출 최댓값을 검사한다. 모델 출력의 근거 ID와 비용 장부 ID는 별개다.
-- 전송 전에 예약을 DISPATCHED로 한 번만 전환한다. 미전송 예약만 취소할 수 있다. 응답 유실·중단·필요 usage 누락·미등록 실제 모델은 UNKNOWN이며 새 유료 호출을 차단한다.
-- 늦게 확보한 실제 사용량은 같은 시도의 UNKNOWN을 정산할 수 있다. 동일 정산 이벤트는 중복 합산하지 않고, 실제 비용이 예약을 넘으면 실제 값을 보존하고 추가 호출을 차단한다.
-- input/output/cache read/cache write/reasoning은 nullable 수치다. 미관측을 0으로 채우지 않으며 reasoning을 output에 다시 더하지 않는다. 캐시 쓰기 적용 모델은 입력을 일반·읽기·쓰기 구간으로 나누어 계산한다.
-
-가격은 하드코딩하지 않고 모델·컨텍스트 구간·service tier에 맞는 검증된 버전을 구성해야 한다.
-현재 테스트 가격·모델명은 합성 값이다. [OpenAI 가격](https://developers.openai.com/api/docs/pricing)과
-[캐시 비용 계산](https://developers.openai.com/api/docs/guides/prompt-caching)을 실제 데모 설정 시 재확인한다.
-여러 PC의 예산 배분 또는 공유 장부·계정 전체 잔액 확인은 이 로컬 장부가 대신하지 않는다.
-
-### OpenAI 전송 계층
-
-`OpenAiInvestigationModel`은 Spring AI 2.0.1의 ChatModel을 매 반복 한 번 호출한다.
-모델에는 버전 시스템 프롬프트, v1 입력, 엄격한 여덟 도구 정의, 보고서 JSON 스키마와
-이전 도구 요청/서버 저장 근거만 전달한다. Spring AI가 자체 도구 실행이나 반복을 소유하지 않는다.
-실제 endpoint는 `https://api.openai.com/v1/chat/completions`로 고정하며 ngrok 주소를 받지 않는다.
-`localMock` 팩토리는 명시한 `http://127.0.0.1:<port>/v1`만 허용한다.
-
-- HTTP 전송 경계에서 영속 예약 → DISPATCHED → 단일 전송 → native usage 정산을 수행한다.
-  SDK 재시도와 실제 전송 클라이언트의 연결 재시도·리다이렉트를 모두 끈다.
-  Spring AI client builder의 자동 연결 복구를 우회하도록 terminal interceptor에서 전송을 소유한다.
-- 요청 본문 크기와 tokenizer 추정값을 제한한다. 추정값을 실제 입력 usage로 저장하지 않는다.
-  최대 비용에는 별도로 구성한 공식 모델 입력 상한·출력 한도·장문 요금 전체를 예약한다.
-- service tier는 `default`, store와 parallel tool calls는 false다. 실제 모델·tier·요금과 usage가
-  확인되지 않으면 관측한 값은 보존하면서 UNKNOWN 예약을 유지하고 후속 유료 호출을 차단한다.
-- 캐시 쓰기·reasoning을 포함한 native 응답 usage를 직접 읽는다. total이 있으면 input+output과
-  대조하고 잘못된 수치·구간·합계는 확정하지 않는다. 누락을 0으로 채우지 않는다.
-- 인증·429·시간 초과는 자동 재시도하지 않는다. 잘못된 보고서 응답도 관측된 비용은 보존한다.
-  외부 오류 원문·키·모델 요청 본문을 오류 응답이나 앱 로그로 출력하지 않는다.
-
-검증 명령은 `./gradlew :agent-app:test --tests com.jdd.agent.OpenAiTransportTest`다.
-이 테스트는 H2 장부와 로컬 합성 HTTP만 사용하며 실제 OpenAI 접근·모델 품질을 검증하지 않는다.
-[Spring AI ChatModel](https://docs.spring.io/spring-ai/reference/api/chat/openai-chat.html)과
-[usage 처리](https://docs.spring.io/spring-ai/reference/api/usage-handling.html)를 적용했다.
-
-### 승인된 데모의 명시적 활성화
-
-실제 검증의 용도·모델·호출 수·최악 비용·기간과 팀 전체 예산 배분을 정한 뒤 사용한다.
-예제 파일은 만료된 상태이며 실행 허가나 권장 예산을 뜻하지 않는다. 키·실제 profile은 Git에 넣지 않는다.
-
-1. [profile 예제](config/demo-profile.example.json)를 무시되는 로컬 경로에 복사한다.
-   scope·24시간 이내 validUntil·PC 배정 localBudgetUsd·maximumCalls를 승인된 값으로 설정한다.
-   두 PC에 같은 전체 예산을 각각 배정하지 않는다. OpenAI 잔액·프로모션 연결·요금도 별도 확인한다.
-2. 후보 모델과 catalogVersion을 선택한다. 가격 리소스는 2026-09-21 공식
-   [Luna](https://developers.openai.com/api/docs/models/gpt-5.6-luna)·
-   [Terra](https://developers.openai.com/api/docs/models/gpt-5.6-terra)의 기본 text 요금이다.
-   확인 후 7일이 지난 catalog는 거절한다. tokenizer는 제한용 추정이며 제공자 정확 계수기가 아니다.
-   모델 선택·품질 합격 결과를 뜻하지 않고 자동 전환도 없다.
-3. 키는 별도 로컬 파일에 저장하고 Agent만 읽게 한다. profile에 키를 넣거나 ngrok authtoken을 사용하지 않는다.
-   승인된 profile·키 파일의 절대 경로를 각각 JDD_DEMO_PROFILE_FILE·JDD_OPENAI_KEY_FILE 환경 변수로 지정한다.
-4. 진행 중 조사가 없는지 확인한 후 저장소 루트에서 다음 **별도 명령**으로 Agent만 재생성한다.
-   기존 스택과 같은 Compose 프로젝트·.env·build.env를 사용한다. 이 명령 자체는 모델을 호출하지 않지만
-   활성화 후 접수/대기 조사는 승인 범위 안에서 모델을 호출할 수 있으므로 기존 QUEUED도 확인한다.
-
-```bash
-docker compose --env-file .env --env-file runtime/build.env \
-  -f compose.yaml -f agent-app/compose.openai-demo.yaml \
-  up --detach --no-build --no-deps --wait agent
-```
-
-override는 profile과 키 파일을 Agent에만 읽기 전용으로 마운트한다. 일반 up/check/publish는 이를 읽지 않는다.
-종료 시 진행 중 조사가 끝난 뒤 같은 명령에서 두 번째 `-f` 옵션을 빼고 Agent를 재생성한다.
-기본 DISABLED로 돌아가며 저장 예산·결과는 보존한다. 강제 중단은 미확정 예약을 해제하지 않는다.
-
-호스트 JVM에서 별도 데모를 실행한다면 JDD_AGENT_MODEL_MODE=OPENAI, JDD_AGENT_DEMO_MODE=true,
-JDD_AGENT_PAID_CALLS_ALLOWED=true, JDD_AGENT_DEMO_PROFILE과 JDD_AGENT_OPENAI_API_KEY_FILE을 명시한다.
-키 파일 대신 OPENAI_API_KEY도 지원하지만 둘을 함께 지정하면 거절한다. 인자에 키를 넣지 않는다.
-설정 누락·만료·미등록 모델·$30 초과·단일 호출 예약 불가능은 DISABLED이며 키를 먼저 읽지 않는다.
-키만 존재해도 활성화되지 않는다. Gradle Agent 테스트는 상속된 유료 허용 값을 false로 고정한다.
-
-입력 전체 상한 1,050,000과 출력 4,096으로 보수적으로 예약할 때 한 호출 최대치는
-Luna $0.5323728, Terra $5.323728이다. 실제 짧은 조사 비용의 추정이나 측정값이 아니다.
-성공 조사당 실제 총비용·지연·실패/재시도까지 비교한 뒤 모델을 확정해야 한다.
-필요 usage가 누락되면 새 유료 호출을 차단하고 제공자 근거로 미확정 사용량을 조정할 때까지 유지한다.
-OpenAI의 크레딧/지출/사용 한도 429는 기존 `INVESTIGATION_BUDGET_EXCEEDED`·retryable=false로 반환하고,
-일시 속도 제한은 `LLM_UNAVAILABLE`로 구분한다. 공식 [오류 코드](https://developers.openai.com/api/docs/guides/error-codes)의
-알려진 code/type만 분류하며 제공자의 자유 형식 메시지를 SDK 오류·로그·클라이언트에 전달하지 않는다.
-두 경우 모두 실제 usage가 없으면 예약액을 UNKNOWN으로 보존하고 자동 재시도하지 않는다.
-로컬 입력 추정은 공유 JTokkit 사전을 재사용하며 특수 토큰처럼 보이는 문의/근거 문자열도 일반 텍스트로 센다.
-이 추정값은 제공자 usage나 과금 상한을 대체하지 않는다.
+- 로컬 로그인·run-local·demo·최소 실호출·진단: [실행 설명](../docs/llm-runtime.md).
+- 배포 설정: `APP_RUNTIME=deployed`, `LLM_PROVIDER=openai_api`, `OPENAI_MODEL`, `OPENAI_API_KEY`, `JDD_AGENT_API_PROFILE`.
+- [API profile 예제](config/api-profile.example.json)는 만료된 placeholder이며 운영 범위/예산을 채워 배포한다.
+- `agent.demo_budget`/`agent.model_calls`의 기존 이름과 데이터를 유지한다. 이제 이 장부는 배포 API 유료 호출에만 사용한다.
+  $30 이하 배정·총 호출·동시 호출·조사당 한도를 영속 고정하고 확정+미확정+예약+새 최대 비용을 원자적으로 검사한다.
+  타임아웃·필수 usage 누락·가격 불명은 UNKNOWN이며 새 유료 호출을 차단한다. 재시작/새 조사로 예산을 초기화하지 않는다.
+- API usage의 input/output/cache/reasoning은 nullable이며 미관측은 0으로 채우지 않는다. reasoning을 output에 중복 합산하지 않는다.
+- OAuth 관측은 `agent.oauth_model_calls`에 모델·실제 nullable usage·결과·지연만 저장한다. API USD 비용으로 환산하지 않고
+  API 장부/프로모션 크레딧을 사용하지 않는다. `DISPATCHED`인 채 종료된 기록은 사용량 미확정이며 성공으로 처리하지 않는다.
+- 브라우저·로그·빌드에 key/token/auth.json을 넣지 않는다. 진단에는 runtime/provider/model/authConfigured만 표시한다.
 
 ### 저장한 사용량과 비용 내보내기
 
@@ -207,7 +134,7 @@ URL·비밀번호 자체는 작업 fingerprint에 넣지 않는다. 외부 DB �
 H2 모드로 돌아오면 PostgreSQL 결과를 재사용하지 않는다. 전용 DB·필수 환경변수·초기화 조건은
 아래 각 검사의 안내를 따른다.
 
-`check_intake.py`는 `/internal/runtime`에서 모델 DISABLED를 확인한 경우에만 합성 요청을 보내고 `runtime/agent-intake.json`을 기록한다.
+`check_intake.py`는 `/internal/runtime`에서 모델 MOCK를 확인한 경우에만 합성 요청을 보내고 `runtime/agent-intake.json`을 기록한다.
 Agent를 재시작한 뒤 `python3 agent-app/scripts/check_intake.py --verify-existing`으로
 동일 요청 ID·생성 시각의 보존을 확인한다. 포트를 바꿨으면 `--base-url`로 지정한다.
 

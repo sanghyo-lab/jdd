@@ -1,5 +1,10 @@
 # commerce goal에 따른 Agent 누락·영향 분석
 
+> 2026-09-21 최신 사용자 지시: **로컬 개발·데모=Codex OAuth, 배포=OpenAI API key, 자동 테스트=test/mock**.
+> [구현된 실행 계약](../llm-runtime.md)을 우선 적용한다. 아래 과거 OpenAI 로컬 데모·Spring AI 계획은 인증/전송 선택의 근거로 사용하지 않는다.
+> 로컬의 API key fallback과 배포의 OAuth 파일 조회는 금지한다. $50 API 크레딧은 배포에만 사용한다.
+
+
 검토일: 2026-09-21. 구현·배포·goal 실행이 아닌 설계 검토다.
 사용자가 전달한 이상효의 goal은 commerce의 협업 조건으로 분석한다. 한재홍의 역할을 commerce로 변경하지 않는다.
 초기 검토 기준 커밋은 `be530f4`이며 검토 도중 다른 세션이 반영한 `08b3ba4`의 프롬프트·goal 보완도 확인했다.

@@ -9,10 +9,10 @@ public final class OpenAiUsageParser {
     public static ModelUsage parse(JsonNode response) {
         JsonNode usage = response.path("usage");
         if (!usage.isObject()) return null;
-        var input = usage.path("prompt_tokens_details");
-        var output = usage.path("completion_tokens_details");
+        var input = usage.path("input_tokens_details");
+        var output = usage.path("output_tokens_details");
         try {
-            Long promptTokens = number(usage, "prompt_tokens"), completionTokens = number(usage, "completion_tokens");
+            Long promptTokens = number(usage, "input_tokens"), completionTokens = number(usage, "output_tokens");
             Long total = number(usage, "total_tokens");
             if (total != null && promptTokens != null && completionTokens != null
                     && (promptTokens > total || completionTokens != total - promptTokens))

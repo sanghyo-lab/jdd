@@ -24,7 +24,7 @@ import static org.mockito.Mockito.*;
     "jdd.agent.worker.enabled=false", "spring.datasource.url=jdbc:h2:mem:demo-config;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1",
     "spring.datasource.username=sa", "spring.datasource.password=", "spring.flyway.create-schemas=true"
 })
-class OpenAiDemoConfigurationTest {
+class OpenAiDeploymentConfigurationTest {
     @Autowired JsonMapper json;
     @Autowired InvestigationModel defaultModel;
     @TempDir Path directory;
@@ -33,30 +33,9 @@ class OpenAiDemoConfigurationTest {
     private final AtomicInteger clients = new AtomicInteger();
     private final AtomicReference<OpenAiInvestigationModel.Settings> configured = new AtomicReference<>();
 
-    @Test void ordinaryApplicationIsDisabledAndAKeyAloneDoesNotEnableOrReadCredentials() {
-        assertThat(defaultModel.mode()).isEqualTo(InvestigationModel.Mode.DISABLED);
-        var read = new ArrayList<String>();
-        var model = OpenAiDemoModelFactory.create(name -> {
-            read.add(name);
-            if (name.contains("KEY")) throw new AssertionError("Credentials must not be read while disabled");
-            return null;
-        }, ledger, json, clock, this::client);
-        assertThat(model.mode()).isEqualTo(InvestigationModel.Mode.DISABLED);
-        assertThat(read).containsExactly("JDD_AGENT_MODEL_MODE");
-        assertThat(clients.get()).isZero(); verifyNoInteractions(ledger);
-    }
-
-    @Test void bothExplicitDemoSwitchesAreRequiredBeforeProfileOrKeyAccess() {
-        for (String missing : new String[]{"JDD_AGENT_DEMO_MODE", "JDD_AGENT_PAID_CALLS_ALLOWED"}) {
-            var environment = new HashMap<>(Map.of("JDD_AGENT_MODEL_MODE", "OPENAI", "JDD_AGENT_DEMO_MODE", "true", "JDD_AGENT_PAID_CALLS_ALLOWED", "true"));
-            environment.remove(missing);
-            var model = OpenAiDemoModelFactory.create(name -> {
-                if (name.contains("KEY") || name.endsWith("PROFILE")) throw new AssertionError("Premature sensitive configuration access");
-                return environment.get(name);
-            }, ledger, json, clock, this::client);
-            assertThat(model.mode()).isEqualTo(InvestigationModel.Mode.DISABLED);
-        }
-        assertThat(clients.get()).isZero(); verifyNoInteractions(ledger);
+    @Test void ordinaryTestApplicationIsNetworklessMock() {
+        assertThat(defaultModel.mode()).isEqualTo(InvestigationModel.Mode.MOCK);
+        verifyNoInteractions(ledger);
     }
 
     @Test void explicitProfileSelectsVersionedCandidateWithoutNetworkOrBudgetMutation() throws Exception {
@@ -81,42 +60,43 @@ class OpenAiDemoConfigurationTest {
             var values = profile(); values.put(bad.getKey(), bad.getValue());
             Path file = directory.resolve("invalid.json"); Files.writeString(file, json.writeValueAsString(values));
             var environment = environment(file);
-            var result = OpenAiDemoModelFactory.create(name -> {
+            assertThatThrownBy(() -> OpenAiDeploymentModelFactory.create(name -> {
                 if (name.contains("KEY")) throw new AssertionError("Invalid profile must not read credentials");
                 return environment.get(name);
-            }, ledger, json, clock, this::client);
-            assertThat(result.mode()).as(bad.getKey()).isEqualTo(InvestigationModel.Mode.DISABLED);
+            }, ledger, json, clock, this::client)).isInstanceOf(IllegalStateException.class);
         }
         assertThat(clients.get()).isZero(); verifyNoInteractions(ledger);
     }
 
     @Test void staleCatalogAndOverlongApprovalWindowAreRejected() throws Exception {
         var future = profile(); future.put("validUntil", "2026-09-22T10:00:01Z");
-        assertThat(create(future, clock).mode()).isEqualTo(InvestigationModel.Mode.DISABLED);
+        assertThatThrownBy(() -> create(future, clock)).isInstanceOf(IllegalStateException.class);
         future.put("validUntil", "2026-09-30T11:00:00Z");
-        assertThat(create(future, Clock.fixed(Instant.parse("2026-09-30T10:00:00Z"), ZoneOffset.UTC)).mode()).isEqualTo(InvestigationModel.Mode.DISABLED);
+        assertThatThrownBy(() -> create(future, Clock.fixed(Instant.parse("2026-09-30T10:00:00Z"), ZoneOffset.UTC))).isInstanceOf(IllegalStateException.class);
         assertThat(clients.get()).isZero();
     }
 
-    @Test void keyFileIsSeparateAndAmbiguousOrMissingKeysDoNotCreateAClient() throws Exception {
-        Path file = directory.resolve("profile.json"), key = directory.resolve("synthetic-key.txt");
-        Files.writeString(file, json.writeValueAsString(profile())); Files.writeString(key, "synthetic-private-key\n");
+    @Test void deploymentMissingKeyDoesNotUseLegacyKeyFileOrOauth() throws Exception {
+        Path file = directory.resolve("profile.json"); Files.writeString(file, json.writeValueAsString(profile()));
         var environment = environment(file); environment.remove("OPENAI_API_KEY");
-        assertThat(OpenAiDemoModelFactory.create(environment::get, ledger, json, clock, this::client).mode()).isEqualTo(InvestigationModel.Mode.DISABLED);
-        environment.put("JDD_AGENT_OPENAI_API_KEY_FILE", key.toString());
-        assertThat(OpenAiDemoModelFactory.create(environment::get, ledger, json, clock, this::client).mode()).isEqualTo(InvestigationModel.Mode.MOCK);
-        environment.put("OPENAI_API_KEY", "synthetic-other-key");
-        assertThat(OpenAiDemoModelFactory.create(environment::get, ledger, json, clock, this::client).mode()).isEqualTo(InvestigationModel.Mode.DISABLED);
-        assertThat(clients.get()).isEqualTo(1); verifyNoInteractions(ledger);
+        assertThatThrownBy(() -> OpenAiDeploymentModelFactory.create(name -> {
+            if (name.equals("CODEX_AUTH_FILE") || name.equals("JDD_AGENT_OPENAI_API_KEY_FILE")) throw new AssertionError("Must not inspect other credentials");
+            return environment.get(name);
+        }, ledger, json, clock, this::client)).isInstanceOf(IllegalStateException.class);
+        assertThat(clients.get()).isZero(); verifyNoInteractions(ledger);
     }
 
     private InvestigationModel create(Map<String, Object> values, Clock time) throws Exception {
         Path file = directory.resolve("profile.json"); Files.writeString(file, json.writeValueAsString(values));
-        return OpenAiDemoModelFactory.create(environment(file)::get, ledger, json, time, this::client);
+        var env = environment(file); env.put("OPENAI_MODEL", (String) values.get("model"));
+        return OpenAiDeploymentModelFactory.create(name -> {
+            if (name.startsWith("CODEX")) throw new AssertionError("Deployed mode must not even inspect OAuth configuration");
+            return env.get(name);
+        }, ledger, json, time, this::client);
     }
     private Map<String, String> environment(Path profile) {
-        return new HashMap<>(Map.of("JDD_AGENT_MODEL_MODE", "OPENAI", "JDD_AGENT_DEMO_MODE", "true", "JDD_AGENT_PAID_CALLS_ALLOWED", "true",
-                "JDD_AGENT_DEMO_PROFILE", profile.toString(), "OPENAI_API_KEY", "synthetic-private-key"));
+        return new HashMap<>(Map.of("APP_RUNTIME", "deployed", "LLM_PROVIDER", "openai_api", "OPENAI_MODEL", "gpt-5.6-luna",
+                "JDD_AGENT_API_PROFILE", profile.toString(), "OPENAI_API_KEY", "synthetic-private-key"));
     }
     private Map<String, Object> profile() {
         return new HashMap<>(Map.ofEntries(Map.entry("schemaVersion", "1.0"), Map.entry("scope", "synthetic-demo"),

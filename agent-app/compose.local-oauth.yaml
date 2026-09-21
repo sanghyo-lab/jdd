@@ -1,0 +1,18 @@
+# Explicit local developer/demo override, never loaded by normal up/check/publish.
+services:
+  agent:
+    user: "${JDD_LOCAL_UID:?Use scripts/llm run-local}:${JDD_LOCAL_GID:?Use scripts/llm run-local}"
+    environment:
+      APP_RUNTIME: local
+      LLM_PROVIDER: codex_oauth
+      CODEX_MODEL: ${CODEX_MODEL:?Select an accessible workspace model}
+      CODEX_AUTH_FILE: /run/jdd-codex/auth.json
+      JDD_AGENT_WORKER_CONCURRENCY: "1"
+    volumes:
+      # Directory mount sees the CLI's atomic auth.json replacements without server restart.
+      - type: bind
+        source: ${JDD_CODEX_AUTH_DIR:?Use a dedicated external Codex auth directory}
+        target: /run/jdd-codex
+        read_only: true
+        bind:
+          create_host_path: false

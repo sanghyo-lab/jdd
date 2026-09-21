@@ -1,5 +1,10 @@
 # 한재홍 — Agent 개발 goal 시작 프롬프트
 
+> 2026-09-21 최신 사용자 지시: **로컬 개발·데모=Codex OAuth, 배포=OpenAI API key, 자동 테스트=test/mock**.
+> [구현된 실행 계약](../llm-runtime.md)을 우선 적용한다. 아래 과거 OpenAI 로컬 데모·Spring AI 계획은 인증/전송 선택의 근거로 사용하지 않는다.
+> 로컬의 API key fallback과 배포의 OAuth 파일 조회는 금지한다. $50 API 크레딧은 배포에만 사용한다.
+
+
 아래 블록은 한재홍의 구현 세션에 전달할 시작문이다. 상세 기준은 [구현 프롬프트](implement-voc-investigation-agent.md)를 따른다.
 이 파일을 작성·공유하는 작업 자체는 구현 goal 시작이나 유료 모델 호출을 실행하지 않는다.
 이미 같은 역할의 goal이 진행 중이면 새 goal을 중복 생성하지 말고 기존 세션에 보완 지시로 전달한다.
@@ -10,7 +15,7 @@
   나는 한재홍이며, 서비스 내부에서 실제 근거를 조사하고 원인·해결방안을 반환하는 AI Agent를 맡아.
   agent-app/core/infra의 조사 API·실행기·LLM 연동·조회 도구·근거·보고서를 구현하고,
   ngrok로 공개한 로컬 웹에서 이상효의 커머스와 김아름의 VOC 솔루션을 연결해.
-  조사·도구 실행·저장은 로컬 Agent가 수행하고, 모델 추론은 Agent가 OpenAI API로 직접 요청해.
+  조사·도구 실행·저장은 로컬 Agent가 수행하고, 모델 추론은 로컬에서 Codex OAuth, 배포에서 OpenAI API key 경로로 직접 요청해.
 
   기준 문서:
   AGENTS.md와 docs/prompts/implement-voc-investigation-agent.md 전체를 읽고 적용해.
@@ -33,7 +38,7 @@
 
   로컬 실행과 ngrok 연결:
   외부 브라우저 → ngrok 공개 HTTPS 주소 → 로컬 web을 단일 진입점으로 구성해.
-  조사 요청은 web 서버 → 로컬 VOC → 로컬 Agent → OpenAI API로 연결해.
+  조사 요청은 web 서버 → 로컬 VOC → 로컬 Agent → Codex OAuth backend로 연결해.
   쇼핑몰 요청은 web 서버 → 로컬 커머스로 연결하고,
   Agent는 커머스 DB·로그·실행 소스·정책을 로컬의 읽기 전용 경로로 조회해.
   web은 호스트의 127.0.0.1:3000, VOC·Agent·커머스·PostgreSQL은 기존 Compose를 기본으로 해.
@@ -41,7 +46,7 @@
   web 서버의 VOC_API_BASE_URL·COMMERCE_API_BASE_URL은 실제 호스트에 매핑한 포트에 맞추고,
   VOC의 AGENT_BASE_URL·COMMERCE_BASE_URL은 Compose 내부 서비스 주소를 사용해.
   외부 브라우저에 localhost·내부 서비스 주소를 직접 호출하게 하거나 ngrok URL을 내부 주소·모델 주소로 넣지 마.
-  OpenAI 키는 실제 로컬 Agent 실행 환경에만 주입하고 ngrok authtoken과 분리해.
+  로컬 Agent는 저장소 밖 프로젝트 전용 CODEX_AUTH_FILE을 읽고, OpenAI 키는 배포 Agent secret으로만 주입해. ngrok authtoken과 분리해.
   브라우저·web·ngrok에 OpenAI 키를 전달하지 말고 DB·Agent·VOC·커머스 포트를 별도 공개하지 마.
   김아름과 화면·API 접근 제어를 연결하고 /internal/*·/actuator/*·임의 내부 경로의 공개 중계를 차단해.
   web·내부 연결·접근 제어·ngrok 계정이 준비되면 데모 절차에 따라 공개 URL을 검증해.
@@ -65,8 +70,8 @@
   하나의 조사 에이전트와 공통 도구로 구현하고 중복된 모델 반복기를 만들지 마.
   findOrders, getOrderContext, getCouponContext, getInventoryContext,
   searchLogs, searchCode, readCode, readBusinessPolicy를 계약대로 구현해.
-  서비스용 OpenAI 주소·모델·인증·제한을 개발 도구 로그인과 독립적으로 구성해.
-  LLM 연동 계층은 조사 로직과 분리하고 로컬 Agent에서 OpenAI로 직접 연결해.
+  APP_RUNTIME/LLM_PROVIDER를 명시하고 local/codex_oauth, deployed/openai_api, test/mock만 허용해.
+  LLM 연동 계층은 조사 로직과 분리하고 로컬 Agent에서 Codex backend로 직접 연결해. 인증 오류/만료/429/timeout에 API key로 fallback하지 마.
   조사 상태·입력 스냅샷·도구 실행·근거·보고서·오류를 저장하고 재시작 이후에도 조회되게 해.
   같은 키·같은 입력은 같은 조사, 같은 키·다른 입력은 409, 새 조사는 새 키로 처리해.
   QUEUED 재개와 RUNNING의 FAILED·INTERRUPTED 처리, 늦은 응답·중복 실행 방지를 구현해.
@@ -102,10 +107,10 @@
 
   모델과 비용:
   docs/planning/demo-llm-policy.md를 따라 개발·일반 테스트·CI는 유료 호출 금지를 기본값으로 해.
-  데모용 키를 개발 테스트나 자동 반복 평가에 사용하지 말고 모의 모델로 독립 구현을 계속해.
+  API key와 $50 크레딧은 배포에서만 사용해. 로컬 수동 실행/데모는 OAuth, 자동 테스트는 mock으로 진행해.
   실제 모델 검증은 허용된 모델·호출량·예상 최대 비용·데모 범위를 확인한 뒤 실행해.
   프로모션 크레딧과 API 키를 구분하고 적용 금액을 현재 잔액이나 예산 확대 허가로 해석하지 마.
-  로컬 앱·ngrok 구성이어도 OpenAI 사용량과 비용을 집계하고, ngrok 이용 비용은 별도로 구분해.
+  로컬 OAuth의 실제 nullable usage를 별도 기록하고 API USD로 환산하지 마. 배포 API 비용과 ngrok 비용은 각각 구분해.
   모델은 도구 호출·구조화 출력·한국어 조사 품질을 통과한 성공 조사당 총비용과 지연으로 선택해.
   최신 공식 가격과 실제 usage 필드를 확인하고 모델별 입력·출력·캐시·reasoning을 집계해.
   도구 스키마·이전 대화·근거·재시도·보고서 수정·모델 전환의 사용량을 모두 포함해.

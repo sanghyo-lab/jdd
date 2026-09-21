@@ -23,3 +23,7 @@ runtime/
 .jdd-role
 __pycache__/
 *.pyc
+
+# Codex credentials always live outside the checkout. Defense against accidental copies.
+**/auth.json
+**/.codex/

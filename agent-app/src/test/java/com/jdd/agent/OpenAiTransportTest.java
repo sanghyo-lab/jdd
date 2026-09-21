@@ -62,14 +62,14 @@ class OpenAiTransportTest {
         response = completion("{\"summary\":\"synthetic\"}", false, true, "default");
         server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         executor = java.util.concurrent.Executors.newCachedThreadPool(); server.setExecutor(executor);
-        server.createContext("/v1/chat/completions", exchange -> {
+        server.createContext("/v1/responses", exchange -> {
             try {
                 hits.incrementAndGet(); requests.add(json.readTree(exchange.getRequestBody().readAllBytes()));
                 String state = jdbc.queryForObject("SELECT state FROM agent.model_calls ORDER BY created_at DESC LIMIT 1", String.class);
                 dispatchState.set(ModelCallLedger.State.valueOf(state));
                 if (delay > 0) Thread.sleep(delay);
                 byte[] bytes = response.getBytes(StandardCharsets.UTF_8);
-                exchange.getResponseHeaders().add("Content-Type", "application/json");
+                exchange.getResponseHeaders().add("Content-Type", "text/event-stream");
                 exchange.getResponseHeaders().add("x-request-id", "request-synthetic");
                 if (redirect != null) exchange.getResponseHeaders().add("Location", redirect);
                 exchange.sendResponseHeaders(status, bytes.length); exchange.getResponseBody().write(bytes);
@@ -87,17 +87,17 @@ class OpenAiTransportTest {
         assertThat(hits.get()).isZero(); assertThat(jdbc.queryForObject("SELECT count(*) FROM agent.model_calls", Integer.class)).isZero();
         assertThat(jdbc.queryForObject("SELECT count(*) FROM agent.demo_budget", Integer.class)).isZero();
     }
-    @Test void springAiSendsVersionedPromptStrictToolsAndSchemaAndPreservesNativeUsage() {
+    @Test void responsesSendsVersionedPromptStrictToolsAndSchemaAndPreservesNativeUsage() {
         response = completion(null, true, true, "default");
         var model = model(true, 128 * 1024, Duration.ofSeconds(2));
         var reply = model.next(request(1, List.of()));
         assertThat(reply.toolCalls()).containsExactly(new ToolCall("call-synthetic", "getInventoryContext", "{\"productId\":\"p\"}"));
         assertThat(hits.get()).isEqualTo(1); assertThat(dispatchState.get()).isEqualTo(ModelCallLedger.State.DISPATCHED);
         var sent = requests.getFirst();
-        assertThat(sent.path("messages").get(0).path("content").asText()).isEqualTo(InvestigationPromptLoader.load().text());
-        assertThat(sent.path("tools").get(0).path("function").path("strict").asBoolean()).isTrue();
-        assertThat(sent.path("response_format").path("json_schema").path("strict").asBoolean()).isTrue();
-        assertThat(sent.path("response_format").path("json_schema").path("schema").path("required").size()).isEqualTo(7);
+        assertThat(sent.path("instructions").asText()).isEqualTo(InvestigationPromptLoader.load().text());
+        assertThat(sent.path("tools").get(0).path("strict").asBoolean()).isTrue();
+        assertThat(sent.path("text").path("format").path("strict").asBoolean()).isTrue();
+        assertThat(sent.path("text").path("format").path("schema").path("required").size()).isEqualTo(7);
         assertThat(sent.path("parallel_tool_calls").asBoolean()).isFalse(); assertThat(sent.path("store").asBoolean()).isFalse();
         var row = entry(); assertThat(row.state()).isEqualTo(ModelCallLedger.State.CONFIRMED);
         assertThat(row.receipt().usage()).isEqualTo(new ModelUsage(100L, 40L, 20L, 30L, 10L));
@@ -115,10 +115,10 @@ class OpenAiTransportTest {
                 Map.of("schema", "commerce", "table", "product_stock"), Map.of("quantity", -1), false);
         response = completion("{}", false, true, "default");
         model.next(request(2, List.of(Message.assistant(first), Message.tool(first.toolCalls().getFirst(), List.of(evidence), "서버 저장 근거"))));
-        var messages = requests.get(1).path("messages");
-        assertThat(messages.get(2).path("tool_calls").get(0).path("id").asText()).isEqualTo("call-synthetic");
-        assertThat(messages.get(3).path("tool_call_id").asText()).isEqualTo("call-synthetic");
-        assertThat(messages.get(3).path("content").asText()).contains("saved-evidence", "quantity", "서버 저장 근거");
+        var messages = requests.get(1).path("input");
+        assertThat(messages.get(1).path("call_id").asText()).isEqualTo("call-synthetic");
+        assertThat(messages.get(2).path("call_id").asText()).isEqualTo("call-synthetic");
+        assertThat(messages.get(2).path("output").asText()).contains("saved-evidence", "quantity", "서버 저장 근거");
         assertThat(hits.get()).isEqualTo(2);
         assertThat(ledger.totals().confirmedUsd()).isEqualByComparingTo("0.001318");
         assertThat(jdbc.queryForObject("SELECT count(DISTINCT call_id) FROM agent.model_calls", Integer.class)).isEqualTo(2);
@@ -198,7 +198,7 @@ class OpenAiTransportTest {
         var original = request(1, List.of(Message.feedback("literal evidence: <|endoftext|> <|fim_prefix|> 한국어")));
         model(true, 128 * 1024, Duration.ofSeconds(2)).next(original);
         assertThat(hits.get()).isEqualTo(1);
-        assertThat(requests.getFirst().path("messages").get(2).path("content").asText())
+        assertThat(requests.getFirst().path("input").get(1).path("content").asText())
                 .isEqualTo("literal evidence: <|endoftext|> <|fim_prefix|> 한국어");
         assertThat(entry().state()).isEqualTo(ModelCallLedger.State.CONFIRMED);
     }
@@ -218,6 +218,22 @@ class OpenAiTransportTest {
         assertThat(entry().state()).isEqualTo(ModelCallLedger.State.UNKNOWN);
         assertThat(entry().receipt().usage()).isNull(); assertThat(entry().confirmedUsd()).isNull();
     }
+    @Test void streamDisconnectAfterPartialTextRetainsUnknownCostAndBlocksAnotherPaidAttempt() {
+        response = "data: {\"type\":\"response.output_text.delta\",\"delta\":\"partial report\"}\n\n";
+        var model = model(true, 128 * 1024, Duration.ofSeconds(2));
+        assertThatThrownBy(() -> model.next(request(1, List.of()))).isInstanceOf(PaidModelGate.Rejected.class);
+        assertThat(entry().state()).isEqualTo(ModelCallLedger.State.UNKNOWN);
+        assertThat(entry().receipt().usage()).isNull();
+        assertThatThrownBy(() -> model.next(request(2, List.of()))).isInstanceOf(PaidModelGate.Rejected.class);
+        assertThat(hits.get()).isEqualTo(1);
+    }
+    @Test void terminalStreamFailureIsNotAReportAndPreservesItsObservedUsage() {
+        response = response.replace("response.completed", "response.failed").replace("\"status\":\"completed\"", "\"status\":\"failed\"");
+        assertThatThrownBy(() -> model(true, 128 * 1024, Duration.ofSeconds(2)).next(request(1, List.of())))
+                .isInstanceOf(InvestigationFailure.class);
+        assertThat(entry().state()).isEqualTo(ModelCallLedger.State.CONFIRMED);
+        assertThat(entry().receipt().usage()).isEqualTo(new ModelUsage(100L, 40L, 20L, 30L, 10L));
+    }
     @Test void unexpectedActualModelPreservesUsageAndItsUnresolvedReservation() {
         response = response.replace("\"model\":\"mock-priced-model\"", "\"model\":\"unpriced-model\"");
         model(true, 128 * 1024, Duration.ofSeconds(2)).next(request(1, List.of()));
@@ -226,7 +242,7 @@ class OpenAiTransportTest {
         assertThat(entry().receipt().usage().inputTokens()).isEqualTo(100);
     }
     @Test void malformedCompletionFailsAfterRecordingTheObservedCharge() {
-        response = response.replace("\"choices\":[", "\"ignored_choices\":[");
+        response = response.replace("\"output\":[", "\"ignored_output\":[");
         assertThatThrownBy(() -> model(true, 128 * 1024, Duration.ofSeconds(2)).next(request(1, List.of())))
                 .isInstanceOf(InvestigationFailure.class);
         assertThat(hits.get()).isEqualTo(1); assertThat(entry().state()).isEqualTo(ModelCallLedger.State.CONFIRMED);
@@ -252,11 +268,12 @@ class OpenAiTransportTest {
     }
     private ModelCallLedger.Entry entry() { return ledger.find(jdbc.queryForObject("SELECT call_id FROM agent.model_calls ORDER BY created_at DESC LIMIT 1", String.class)).orElseThrow(); }
     private String completion(String content, boolean tool, boolean writes, String tier) {
-        var message = new java.util.LinkedHashMap<String, Object>(); message.put("role", "assistant"); message.put("content", content);
-        if (tool) message.put("tool_calls", List.of(Map.of("id", "call-synthetic", "type", "function", "function", Map.of("name", "getInventoryContext", "arguments", "{\"productId\":\"p\"}"))));
+        Object item = tool ? Map.of("type", "function_call", "call_id", "call-synthetic", "name", "getInventoryContext", "arguments", "{\"productId\":\"p\"}")
+                : Map.of("type", "message", "role", "assistant", "content", List.of(Map.of("type", "output_text", "text", content)));
         var details = new java.util.LinkedHashMap<String, Object>(); details.put("cached_tokens", 20); if (writes) details.put("cache_write_tokens", 30);
-        return json.writeValueAsString(Map.of("id", "chatcmpl-synthetic", "object", "chat.completion", "created", 1,
-                "model", price.model(), "service_tier", tier, "choices", List.of(Map.of("index", 0, "finish_reason", tool ? "tool_calls" : "stop", "message", message)),
-                "usage", Map.of("prompt_tokens", 100, "completion_tokens", 40, "total_tokens", 140, "prompt_tokens_details", details, "completion_tokens_details", Map.of("reasoning_tokens", 10))));
+        var result = Map.of("id", "resp-synthetic", "status", "completed", "model", price.model(), "service_tier", tier,
+                "output", List.of(item), "usage", Map.of("input_tokens", 100, "output_tokens", 40, "total_tokens", 140,
+                        "input_tokens_details", details, "output_tokens_details", Map.of("reasoning_tokens", 10)));
+        return "event: response.completed\ndata: " + json.writeValueAsString(Map.of("type", "response.completed", "response", result)) + "\n\n";
     }
 }

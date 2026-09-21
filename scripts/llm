@@ -1,0 +1,162 @@
+#!/usr/bin/env python3
+"""Explicit local OAuth login/run and deployed smoke commands. Never invoked by up/check/publish."""
+import argparse
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import time
+from urllib.request import Request, urlopen
+from urllib.parse import urlsplit
+from uuid import uuid4
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def fail(message):
+    raise ValueError(message)
+
+
+def auth_path(env, login=False):
+    value = env.get("CODEX_AUTH_FILE")
+    if not value and login:
+        value = str(Path.home() / ".local/share/jdd/codex-auth/auth.json")
+    if not value:
+        fail("CODEX_AUTH_FILE must be an absolute project-specific auth.json path outside the repository")
+    path = Path(value)
+    if not path.is_absolute() or path.name != "auth.json":
+        fail("CODEX_AUTH_FILE must be an absolute auth.json path")
+    resolved = path.resolve()
+    default_home = Path.home() / ".codex"
+    developer_home = Path(env.get("CODEX_HOME", str(default_home))).resolve()
+    if (resolved.is_relative_to(ROOT) or resolved.is_relative_to(default_home.resolve())
+            or resolved.parent == developer_home or path.is_symlink() or path.parent.is_symlink()):
+        fail("Use a separate project auth directory outside this repository and the existing Codex home; do not copy credentials")
+    return path
+
+
+def configuration(env):
+    runtime, provider = env.get("APP_RUNTIME"), env.get("LLM_PROVIDER")
+    if (runtime, provider) == ("test", "mock"):
+        return dict(runtime=runtime, provider=provider, model="mock", authConfigured=False)
+    if (runtime, provider) == ("local", "codex_oauth"):
+        model = env.get("CODEX_MODEL")
+        configured = auth_path(env).is_file()
+    elif (runtime, provider) == ("deployed", "openai_api"):
+        model = env.get("OPENAI_MODEL")
+        configured = bool(env.get("OPENAI_API_KEY"))
+    else:
+        fail("Required pairs: local/codex_oauth, deployed/openai_api, test/mock")
+    import re
+    if not model or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}", model) or model.startswith("replace-"):
+        fail("Set an explicit accessible CODEX_MODEL or OPENAI_MODEL for the selected runtime")
+    return dict(runtime=runtime, provider=provider, model=model, authConfigured=configured)
+
+
+def local_env(env):
+    # The local child cannot inherit an API key, API auth mode or alternative endpoint.
+    return {key: value for key, value in env.items() if key not in {
+        "OPENAI_API_KEY", "OPENAI_BASE_URL", "OPENAI_MODEL", "CODEX_API_KEY", "CODEX_ACCESS_TOKEN",
+        "JDD_AGENT_OPENAI_API_KEY_FILE", "JDD_AGENT_DEMO_MODE", "JDD_AGENT_PAID_CALLS_ALLOWED"}}
+
+
+def login(args):
+    path = auth_path(os.environ, login=True)
+    path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    path.parent.chmod(0o700)
+    # CODEX_HOME is set only for this official CLI login child, never for this coding session.
+    names = {"PATH", "HOME", "USER", "LOGNAME", "SHELL", "TMPDIR", "LANG", "LC_ALL", "SYSTEMROOT"}
+    child = {k: v for k, v in os.environ.items() if k in names}
+    child["CODEX_HOME"] = str(path.parent)
+    command = ["codex", "-c", 'cli_auth_credentials_store="file"', "-c", 'forced_login_method="chatgpt"']
+    if args.workspace_id:
+        command += ["-c", "forced_chatgpt_workspace_id=" + json.dumps(args.workspace_id)]
+    command += ["login"]
+    if args.device_auth:
+        command += ["--device-auth"]
+    print("브라우저에서 본인 계정과 사용할 해커톤 워크스페이스를 선택하세요. 토큰을 공유하지 마세요.", flush=True)
+    result = subprocess.run(command, cwd=path.parent, env=child)
+    if result.returncode == 0 and path.is_file():
+        path.chmod(0o600)
+    return result.returncode
+
+
+def run_local(args):
+    config = configuration(os.environ)
+    if config["runtime"] != "local":
+        fail("run-local/demo requires APP_RUNTIME=local LLM_PROVIDER=codex_oauth")
+    if not config["authConfigured"]:
+        fail("로컬 로그인 명령 ./scripts/llm login 을 먼저 실행하세요")
+    env = local_env(os.environ)
+    env.update(JDD_CODEX_AUTH_DIR=str(auth_path(env).parent), JDD_LOCAL_UID=str(os.getuid()), JDD_LOCAL_GID=str(os.getgid()))
+    if os.getuid() == 0:
+        fail("Run local OAuth as the developer account, not root")
+    # Ordinary up is explicitly offline; then select the local adapter for Agent only.
+    subprocess.run([str(ROOT / "scripts/dev"), "up"], cwd=ROOT, env=env, check=True)
+    return subprocess.run(["docker", "compose", "--env-file", ".env", "--env-file", "runtime/build.env",
+                           "-f", "compose.yaml", "-f", "agent-app/compose.local-oauth.yaml",
+                           "up", "--detach", "--no-build", "--no-deps", "--wait", "agent"], cwd=ROOT, env=env).returncode
+
+
+def smoke_local(args):
+    if configuration(os.environ)["runtime"] != "local":
+        fail("smoke-local requires local/codex_oauth; no API key is accepted")
+    return subprocess.run([str(ROOT / "gradlew"), ":agent-app:oauthSmoke", "--console=plain"],
+                          cwd=ROOT, env=local_env(os.environ)).returncode
+
+
+def smoke_deployed(args):
+    # Run inside the deployed service network; never expose a generic model proxy for this check.
+    if configuration(os.environ)["runtime"] != "deployed":
+        fail("smoke-deployed requires deployed/openai_api in the deployment environment")
+    url = urlsplit(args.base_url)
+    if (url.scheme != "http" or url.hostname != "127.0.0.1" or not url.port or url.username or url.password
+            or url.path not in ("", "/") or url.query or url.fragment):
+        fail("Run smoke-deployed on the deployed host with the Agent loopback URL")
+    def request(path, payload=None):
+        req = Request(args.base_url.rstrip("/") + path,
+                      data=None if payload is None else json.dumps(payload).encode(),
+                      headers={"Content-Type": "application/json"})
+        with urlopen(req, timeout=15) as response:
+            return json.load(response)
+    if request("/internal/runtime").get("investigationModel") != "OPENAI":
+        fail("Deployed Agent is not configured for the API-key adapter")
+    ticket = "deployment-smoke-" + str(uuid4())
+    accepted = request("/api/investigations", {"schemaVersion": "1.0", "ticketId": ticket, "ticketVersion": 1,
+                       "requestKey": "connectivity", "message": "연결 검증용 합성 문의입니다. 주문 번호와 발생 시각을 아직 제공하지 않았습니다."})
+    deadline = time.monotonic() + 240
+    while time.monotonic() < deadline:
+        view = request("/api/investigations/" + accepted["investigationId"])
+        if view["status"] not in ("QUEUED", "RUNNING"):
+            print(json.dumps({"investigationId": accepted["investigationId"], "status": view["status"],
+                              "code": (view.get("error") or {}).get("code")}, ensure_ascii=False))
+            return 0 if view["status"] == "NEEDS_INPUT" else 1
+        time.sleep(1)
+    fail("Smoke timed out; inspect the saved investigation ID without creating another paid request: " + accepted["investigationId"])
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    commands = parser.add_subparsers(dest="command", required=True)
+    p = commands.add_parser("login"); p.add_argument("--device-auth", action="store_true"); p.add_argument("--workspace-id")
+    for name in ("diagnose", "run-local", "demo", "smoke-local"):
+        commands.add_parser(name)
+    p = commands.add_parser("smoke-deployed"); p.add_argument("--base-url", default="http://127.0.0.1:8081")
+    args = parser.parse_args()
+    try:
+        if args.command == "diagnose":
+            print(json.dumps(configuration(os.environ), ensure_ascii=False)); return 0
+        return {"login": login, "run-local": run_local, "demo": run_local,
+                "smoke-local": smoke_local, "smoke-deployed": smoke_deployed}[args.command](args)
+    except (ValueError, OSError, subprocess.SubprocessError):
+        # Do not print nested subprocess/HTTP errors or secret-bearing environment dictionaries.
+        if sys.exc_info()[0] is ValueError:
+            print("LLM configuration error: " + str(sys.exc_info()[1]), file=sys.stderr)
+        else:
+            print("LLM command failed. Check the selected runtime, local login, process and deployment settings.", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

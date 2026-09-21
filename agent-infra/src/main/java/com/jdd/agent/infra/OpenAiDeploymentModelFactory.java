@@ -13,13 +13,10 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import tools.jackson.databind.json.JsonMapper;
 
-/** Explicit, expiring demo activation. Reading a key or instantiating a client never sends a request. */
-public final class OpenAiDemoModelFactory {
-    private static final Logger log = LoggerFactory.getLogger(OpenAiDemoModelFactory.class);
+/** Explicit, expiring deployed API budget allocation. Reading a key or instantiating a client never sends a request. */
+public final class OpenAiDeploymentModelFactory {
     private static final String CATALOG = "openai-standard-text-2026-09-21";
     public record Profile(String schemaVersion, String scope, Instant validUntil, String catalogVersion,
                           String model, BigDecimal localBudgetUsd, int maximumCalls, int callsPerInvestigation,
@@ -30,18 +27,19 @@ public final class OpenAiDemoModelFactory {
     @FunctionalInterface public interface ClientFactory {
         InvestigationModel create(String key, OpenAiInvestigationModel.Settings settings, PaidModelGate gate, JsonMapper json, Clock clock);
     }
-    private OpenAiDemoModelFactory() {}
+    private OpenAiDeploymentModelFactory() {}
 
     public static InvestigationModel create(Function<String, String> environment, ModelCallLedger ledger, JsonMapper json, Clock clock) {
         return create(environment, ledger, json, clock, OpenAiInvestigationModel::openAi);
     }
     public static InvestigationModel create(Function<String, String> environment, ModelCallLedger ledger, JsonMapper json,
                                            Clock clock, ClientFactory clients) {
-        if (!"OPENAI".equals(environment.apply("JDD_AGENT_MODEL_MODE"))) return disabled();
-        if (!"true".equals(environment.apply("JDD_AGENT_DEMO_MODE"))
-                || !"true".equals(environment.apply("JDD_AGENT_PAID_CALLS_ALLOWED"))) return disabled();
+        if (!"deployed".equals(environment.apply("APP_RUNTIME")) || !"openai_api".equals(environment.apply("LLM_PROVIDER")))
+            throw LlmRuntimeConfiguration.invalid("OpenAI requires deployed/openai_api");
         try {
-            var profile = json.readValue(readRegularFile(environment.apply("JDD_AGENT_DEMO_PROFILE"), 16384), Profile.class);
+            var profile = json.readValue(readRegularFile(environment.apply("JDD_AGENT_API_PROFILE"), 16384), Profile.class);
+            if (!profile.model().equals(environment.apply("OPENAI_MODEL")))
+                throw LlmRuntimeConfiguration.invalid("OPENAI_MODEL must match the API budget profile");
             Instant now = clock.instant();
             if (!"1.0".equals(profile.schemaVersion()) || profile.scope() == null
                     || !profile.scope().matches("[A-Za-z0-9][A-Za-z0-9._:-]{0,127}")
@@ -52,7 +50,7 @@ public final class OpenAiDemoModelFactory {
                     || profile.concurrentCalls() < 1 || profile.concurrentCalls() > 4)
                 throw new IllegalArgumentException("Invalid demo profile");
             Catalog catalog;
-            try (var resource = OpenAiDemoModelFactory.class.getResourceAsStream("/models/" + CATALOG + ".json")) {
+            try (var resource = OpenAiDeploymentModelFactory.class.getResourceAsStream("/models/" + CATALOG + ".json")) {
                 if (resource == null) throw new IllegalArgumentException("Missing model catalog");
                 catalog = json.readValue(resource, Catalog.class);
             }
@@ -68,20 +66,14 @@ public final class OpenAiDemoModelFactory {
             if (candidate.pricing().maximumCost(candidate.inputCeiling(), profile.maxOutputTokens()).compareTo(budget.limitUsd()) > 0)
                 throw new IllegalArgumentException("Allocation cannot reserve one call");
             // Credentials are accessed last and are never included in the profile, model metadata, or error logs.
-            String keyFile = environment.apply("JDD_AGENT_OPENAI_API_KEY_FILE");
             String key = environment.apply("OPENAI_API_KEY");
-            if (keyFile != null && !keyFile.isBlank()) {
-                if (key != null && !key.isBlank()) throw new IllegalArgumentException("Ambiguous credential source");
-                key = readRegularFile(keyFile, 8192).strip();
-            }
             if (key == null || key.isBlank() || key.length() > 8192 || key.chars().anyMatch(Character::isISOControl))
                 throw new IllegalArgumentException("Missing model credential");
             var authorization = new PaidModelGate.Authorization(true, true, profile.scope(), profile.validUntil(), Set.of(profile.model()));
             return clients.create(key, settings, new PaidModelGate(authorization, budget, ledger, clock), json, clock);
         } catch (IOException | RuntimeException invalid) {
-            // Even parse errors may contain local file contents. Do not log the exception or its message.
-            log.warn("OpenAI demo configuration is invalid; paid model remains disabled");
-            return disabled();
+            // Parser exceptions may contain profile contents; expose no nested exception.
+            throw LlmRuntimeConfiguration.invalid("OPENAI_API_KEY / OPENAI_MODEL / JDD_AGENT_API_PROFILE must be valid (profile, allocation, expiry and tariff catalog)");
         }
     }
     private static String readRegularFile(String value, int maximumBytes) throws IOException {
@@ -93,11 +85,5 @@ public final class OpenAiDemoModelFactory {
             if (bytes.length > maximumBytes) throw new IllegalArgumentException("Configuration exceeds size limit");
             return new String(bytes, StandardCharsets.UTF_8);
         }
-    }
-    private static InvestigationModel disabled() {
-        return new InvestigationModel() {
-            @Override public Mode mode() { return Mode.DISABLED; }
-            @Override public Reply next(Request request) { throw InvestigationFailure.modelConfiguration(); }
-        };
     }
 }

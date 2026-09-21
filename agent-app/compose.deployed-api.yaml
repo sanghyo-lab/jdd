@@ -1,0 +1,17 @@
+# Deployment / deployment preview only. No OAuth file mounts or Codex credentials.
+services:
+  agent:
+    environment:
+      APP_RUNTIME: deployed
+      LLM_PROVIDER: openai_api
+      OPENAI_MODEL: ${OPENAI_MODEL:?Select a model matching the API budget profile}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:?Inject the deployment secret}
+      JDD_AGENT_API_PROFILE: /run/jdd-api/profile.json
+      JDD_AGENT_WORKER_CONCURRENCY: "1"
+    volumes:
+      - type: bind
+        source: ${JDD_API_PROFILE_FILE:?Set the approved deployment budget profile path}
+        target: /run/jdd-api/profile.json
+        read_only: true
+        bind:
+          create_host_path: false

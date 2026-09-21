@@ -50,7 +50,7 @@ def main():
     processes, logs = [], []
     safe_names = ("PATH", "HOME", "USER", "LOGNAME", "SHELL", "TMPDIR", "LANG", "LC_ALL", "JAVA_HOME")
     clean = {key: os.environ[key] for key in safe_names if key in os.environ}
-    clean.update(DB_URL="jdbc:postgresql://127.0.0.1:" + config["POSTGRES_PORT"] + "/" + DATABASE + "?currentSchema=agent",
+    clean.update(APP_RUNTIME="test", LLM_PROVIDER="mock", DB_URL="jdbc:postgresql://127.0.0.1:" + config["POSTGRES_PORT"] + "/" + DATABASE + "?currentSchema=agent",
                  DB_USERNAME="jdd_agent", DB_PASSWORD=config["AGENT_DB_PASSWORD"],
                  SPRING_FLYWAY_CREATE_SCHEMAS="true", APP_BUILD_ID="local-worker-synthetic-check")
     java = str(Path(clean["JAVA_HOME"]) / "bin/java") if "JAVA_HOME" in clean else "java"
@@ -87,7 +87,7 @@ def main():
         processes.append(process)
         wait(lambda: http(port, "/actuator/health")[1].get("status") == "UP", label + " health")
         runtime = http(port, "/internal/runtime")[1]
-        require(runtime["investigationModel"] == "DISABLED", "Refusing a configured model")
+        require(runtime["investigationModel"] == "MOCK", "Refusing a configured model")
         return process, port
 
     def stop(process):

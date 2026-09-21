@@ -63,6 +63,8 @@ services:
       args:
         APP_MODULE: agent-app
     environment:
+      APP_RUNTIME: test
+      LLM_PROVIDER: mock
       SERVER_PORT: 8080
       DB_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-jdd}?currentSchema=agent
       DB_USERNAME: jdd_agent

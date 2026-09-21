@@ -4,26 +4,14 @@ import com.jdd.agent.domain.*;
 import com.jdd.agent.domain.Investigation.ApiError;
 import com.knuddels.jtokkit.api.EncodingType;
 import com.knuddels.jtokkit.Encodings;
-import com.knuddels.jtokkit.api.Encoding;
 import com.knuddels.jtokkit.api.EncodingRegistry;
-import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.time.Clock;
-import java.time.Duration;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import okhttp3.Interceptor;
-import okhttp3.Response;
-import okio.Buffer;
-import org.springframework.ai.openai.OpenAiChatModel;
-import org.springframework.ai.openai.OpenAiChatOptions;
-import tools.jackson.databind.JsonNode;
+import java.time.*;
+import java.util.*;
 import tools.jackson.databind.json.JsonMapper;
 
-/** One Spring AI ChatModel call per iteration. The HTTP boundary owns reservation, dispatch and native usage. */
+/** Deployment-only API-key Responses adapter. Every attempt uses the durable paid-call gate. */
 public final class OpenAiInvestigationModel implements InvestigationModel, AutoCloseable {
     public record Settings(ModelPricing pricing, long modelInputCeiling, int maxRequestBytes, int estimatedInputLimit,
                            int maxOutputTokens, String tokenizer, Duration connectTimeout, Duration requestTimeout,
@@ -40,179 +28,82 @@ public final class OpenAiInvestigationModel implements InvestigationModel, AutoC
                 throw new IllegalArgumentException("Invalid OpenAI model settings");
         }
     }
-    private static final int RESPONSE_BYTES = 2 * 1024 * 1024;
-    // JTokkit's registry/encodings are thread-safe; retain each vocabulary once per JVM.
     private static final EncodingRegistry ENCODINGS = Encodings.newLazyEncodingRegistry();
-    private static final String SERVICE_TIER = "default";
     private static final List<String> BILLING_CODES = List.of("credit_balance_exhausted", "organization_spend_limit_exceeded",
             "project_spend_limit_exceeded", "organization_usage_limit_exceeded", "insufficient_quota");
     private final Settings settings;
     private final PaidModelGate gate;
     private final JsonMapper json;
     private final Clock clock;
-    private final OpenAiChatModel chat;
-    private final okhttp3.OkHttpClient network;
-    private final OpenAiChatOptions options;
-    private final OpenAiChatProtocol protocol;
-    private final Encoding estimator;
+    private final ResponsesHttp network;
+    private final ResponsesProtocol protocol;
     private final URI endpoint;
+    private final String apiKey;
     private final Mode mode;
-    private final ThreadLocal<Attempt> current = new ThreadLocal<>();
-    private static final class Attempt {
-        final Request request;
-        int dispatches, status;
-        PaidModelGate.Rejected gateRejection;
-        InvestigationFailure localFailure;
-        boolean malformed;
-        String billingCode;
-        Attempt(Request request) { this.request = request; }
-    }
-
     public static OpenAiInvestigationModel openAi(String apiKey, Settings settings, PaidModelGate gate, JsonMapper json, Clock clock) {
-        return new OpenAiInvestigationModel(URI.create("https://api.openai.com/v1"), apiKey, settings, gate, json, clock, Mode.OPENAI);
+        return new OpenAiInvestigationModel(URI.create("https://api.openai.com/v1/responses"), apiKey, settings, gate, json, clock, Mode.OPENAI);
     }
-    /** The test factory accepts only an explicit loopback server and still requires the persistent cost gate. */
+    /** Explicit synthetic loopback transport; never selected from an environment variable. */
     public static OpenAiInvestigationModel localMock(URI base, Settings settings, PaidModelGate gate, JsonMapper json, Clock clock) {
-        if (!"http".equals(base.getScheme()) || !"127.0.0.1".equals(base.getHost()) || base.getPort() < 1
-                || !"/v1".equals(base.getPath()) || base.getRawQuery() != null || base.getFragment() != null || base.getUserInfo() != null)
-            throw new IllegalArgumentException("Mock transport must use the explicit IPv4 loopback /v1 endpoint");
-        return new OpenAiInvestigationModel(base, "synthetic-key", settings, gate, json, clock, Mode.MOCK);
+        return new OpenAiInvestigationModel(ResponsesHttp.loopback(URI.create(base + "/responses")), "synthetic-key", settings, gate, json, clock, Mode.MOCK);
     }
-    private OpenAiInvestigationModel(URI base, String apiKey, Settings settings, PaidModelGate gate, JsonMapper json, Clock clock, Mode mode) {
-        if (apiKey == null || apiKey.isBlank()) throw new IllegalArgumentException("Model credential is missing");
-        this.settings = settings; this.gate = gate; this.json = json; this.clock = clock; this.mode = mode;
-        endpoint = URI.create(base.toString() + "/chat/completions");
-        protocol = new OpenAiChatProtocol(json);
-        estimator = ENCODINGS.getEncoding(EncodingType.fromName(settings.tokenizer()).orElseThrow());
-        options = OpenAiChatOptions.builder().apiKey(apiKey).baseUrl(base.toString()).model(settings.pricing().model())
-                .maxRetries(0).timeout(settings.requestTimeout()).maxCompletionTokens(settings.maxOutputTokens())
-                .reasoningEffort(settings.reasoningEffort()).serviceTier(SERVICE_TIER).store(false).build();
-        network = new okhttp3.OkHttpClient.Builder().connectTimeout(settings.connectTimeout())
-                .readTimeout(settings.requestTimeout()).callTimeout(settings.requestTimeout())
-                .retryOnConnectionFailure(false).followRedirects(false).followSslRedirects(false).build();
-        // Spring AI's client builder enables connection recovery and does not expose a switch.
-        // Its interceptor is therefore a terminal transport: only this explicitly non-retrying client sends bytes.
-        chat = OpenAiChatModel.builder().options(options).httpClientBuilderCustomizer(builder -> builder
-                .timeout(settings.requestTimeout()).interceptor(this::metered)).build();
+    private OpenAiInvestigationModel(URI endpoint, String apiKey, Settings settings, PaidModelGate gate, JsonMapper json, Clock clock, Mode mode) {
+        this.endpoint = endpoint; this.apiKey = apiKey; this.settings = settings; this.gate = gate;
+        this.json = json; this.clock = clock; this.mode = mode;
+        protocol = new ResponsesProtocol(json); network = new ResponsesHttp(json, settings.connectTimeout(), settings.requestTimeout());
     }
     @Override public Mode mode() { return mode; }
-    @Override public void close() {
-        network.dispatcher().cancelAll();
-        network.connectionPool().evictAll();
-        network.dispatcher().executorService().shutdown();
-    }
+    @Override public void close() { network.close(); }
     @Override public Reply next(Request request) {
-        if (current.get() != null) throw InvestigationFailure.modelConfiguration();
-        var attempt = new Attempt(request);
-        current.set(attempt);
-        try {
-            var response = chat.call(protocol.prompt(request, options));
-            if (response == null || response.getResults().size() != 1) throw InvestigationFailure.unavailable();
-            var generation = response.getResult();
-            if ("length".equalsIgnoreCase(generation.getMetadata().getFinishReason())) throw limitFailure();
-            var message = generation.getOutput();
-            Object refusal = message.getMetadata().get("refusal");
-            if (refusal instanceof String value && !value.isBlank())
-                throw new InvestigationFailure(new ApiError("REPORT_VALIDATION_FAILED", "모델이 조사 보고서를 반환하지 못했습니다.", false));
-            return new Reply(message.getText(), message.getToolCalls().stream()
-                    .map(call -> new ToolCall(call.id(), call.name(), call.arguments())).toList());
-        } catch (RuntimeException error) {
-            if (attempt.gateRejection != null) throw attempt.gateRejection;
-            if (attempt.localFailure != null) throw attempt.localFailure;
-            if (error instanceof InvestigationFailure failure) throw failure;
-            if (attempt.status >= 300 && attempt.status < 500 && attempt.status != 408 && attempt.status != 429)
-                throw InvestigationFailure.modelConfiguration();
-            throw InvestigationFailure.unavailable(); // never expose an SDK error body, key, or user prompt
-        } finally { current.remove(); }
-    }
-
-    private Response metered(Interceptor.Chain chain) throws IOException {
-        try { return dispatch(chain); }
-        catch (InvestigationFailure failure) {
-            var attempt = current.get();
-            if (attempt != null) attempt.localFailure = failure;
-            throw failure;
-        }
-    }
-
-    private Response dispatch(Interceptor.Chain chain) throws IOException {
-        Attempt attempt = current.get();
-        if (attempt == null || attempt.dispatches != 0 || Thread.currentThread().isInterrupted()) throw InvestigationFailure.modelConfiguration();
-        var request = chain.request();
-        if (!request.url().uri().equals(endpoint) || !request.method().equals("POST") || request.body() == null)
-            throw InvestigationFailure.modelConfiguration();
-        long declaredLength = request.body().contentLength();
-        if (declaredLength > settings.maxRequestBytes()) throw limitFailure();
-        var buffer = new Buffer(); request.body().writeTo(buffer);
-        if (buffer.size() > settings.maxRequestBytes()) throw limitFailure();
-        String body = buffer.readUtf8();
-        // Special-token-looking strings in tickets/evidence are ordinary untrusted text.
-        int estimatedTokens = estimator.countTokensOrdinary(body);
-        if (estimatedTokens > settings.estimatedInputLimit()) throw limitFailure();
-        var payload = json.readTree(body);
-        if (!settings.pricing().model().equals(payload.path("model").asText())
-                || payload.path("max_completion_tokens").asLong() != settings.maxOutputTokens()
-                || !SERVICE_TIER.equals(payload.path("service_tier").asText()) || payload.path("stream").asBoolean())
-            throw InvestigationFailure.modelConfiguration();
-        var metadata = Map.of("tokenizer", settings.tokenizer(), "estimatedInputTokens", estimatedTokens,
-                "estimateOnly", true, "requestBytes", body.getBytes(StandardCharsets.UTF_8).length,
-                "reasoningEffort", settings.reasoningEffort(), "maxOutputTokens", settings.maxOutputTokens(),
+        var payload = protocol.payload(request, settings.pricing().model());
+        payload.put("max_output_tokens", settings.maxOutputTokens()); payload.put("service_tier", "default");
+        payload.put("reasoning", Map.of("effort", settings.reasoningEffort()));
+        String body = json.writeValueAsString(payload);
+        int bytes = body.getBytes(StandardCharsets.UTF_8).length;
+        if (bytes > settings.maxRequestBytes()) throw limitFailure();
+        int tokens = ENCODINGS.getEncoding(EncodingType.fromName(settings.tokenizer()).orElseThrow()).countTokensOrdinary(body);
+        if (tokens > settings.estimatedInputLimit()) throw limitFailure();
+        var metadata = Map.of("tokenizer", settings.tokenizer(), "estimatedInputTokens", tokens, "estimateOnly", true,
+                "requestBytes", bytes, "reasoningEffort", settings.reasoningEffort(), "maxOutputTokens", settings.maxOutputTokens(),
                 "maxRetries", 0, "requestSha256", SourceEvidenceTools.sha256(body.getBytes(StandardCharsets.UTF_8)));
-        var call = new ModelCallLedger.Request(UUID.randomUUID().toString(), attempt.request.investigationId(), attempt.request.iteration(),
-                endpoint.toString(), SERVICE_TIER, attempt.request.prompt().version(), attempt.request.prompt().sha256(),
+        var call = new ModelCallLedger.Request(UUID.randomUUID().toString(), request.investigationId(), request.iteration(),
+                endpoint.toString(), "default", request.prompt().version(), request.prompt().sha256(),
                 ReadOnlyInvestigationTools.SCHEMA_VERSION, json.writeValueAsString(metadata), settings.pricing(),
                 settings.modelInputCeiling(), settings.maxOutputTokens());
-        Response[] received = new Response[1];
-        boolean returned = false;
+        ResponsesHttp.Received received;
         try {
-            Response response = gate.call(call, () -> {
-                attempt.dispatches++;
-                try {
-                    received[0] = network.newCall(request).execute();
-                    attempt.status = received[0].code();
-                    try (var peek = received[0].peekBody(RESPONSE_BYTES + 1L)) {
-                        byte[] bytes = peek.bytes();
-                        JsonNode parsed = null;
-                        if (bytes.length <= RESPONSE_BYTES) {
-                            try { parsed = json.readTree(bytes); } catch (RuntimeException malformed) { /* unknown usage retained */ }
-                        }
-                        var usage = parsed == null ? null : OpenAiUsageParser.parse(parsed);
-                        if (attempt.status == 429 && parsed != null) {
-                            String code = parsed.path("error").path("code").asText("");
-                            if (BILLING_CODES.contains(code)) attempt.billingCode = code;
-                            else if ("insufficient_quota".equals(parsed.path("error").path("type").asText("")))
-                                attempt.billingCode = "insufficient_quota";
-                        }
-                        String actualModel = parsed == null || !parsed.path("model").isString() ? null : parsed.path("model").asText();
-                        String tier = parsed == null || !parsed.path("service_tier").isString() ? null : parsed.path("service_tier").asText();
-                        boolean tariffVerified = attempt.status == 200 && SERVICE_TIER.equals(tier) && usage != null
-                                && usage.inputTokens() != null && usage.outputTokens() != null
-                                && usage.inputTokens() <= settings.modelInputCeiling() && usage.outputTokens() <= settings.maxOutputTokens();
-                        attempt.malformed = attempt.status == 200 && (parsed == null || !parsed.path("choices").isArray() || parsed.path("choices").size() != 1);
-                        return new PaidModelGate.Result<>(received[0], new ModelCallLedger.Receipt(received[0].header("x-request-id"),
-                                actualModel, usage, "HTTP_" + attempt.status
-                                        + (attempt.billingCode == null ? "" : "_" + attempt.billingCode)
-                                        + (tariffVerified ? "" : "_TARIFF_UNVERIFIED"),
-                                clock.instant(), tier, tariffVerified));
-                    }
-                } catch (IOException transport) { throw new UncheckedIOException("Model transport failed", transport); }
+            received = gate.call(call, () -> {
+                var result = network.post(endpoint, Map.of("Authorization", "Bearer " + apiKey), body);
+                var response = result.response();
+                var usage = response == null ? null : OpenAiUsageParser.parse(response);
+                String actual = response == null ? null : response.path("model").asText(null);
+                String tier = response == null ? null : response.path("service_tier").asText(null);
+                String billing = billingCode(result);
+                boolean verified = result.status() == 200 && "default".equals(tier) && usage != null
+                        && usage.inputTokens() != null && usage.outputTokens() != null
+                        && usage.inputTokens() <= settings.modelInputCeiling() && usage.outputTokens() <= settings.maxOutputTokens();
+                return new PaidModelGate.Result<>(result, new ModelCallLedger.Receipt(result.requestId(), actual, usage,
+                        "HTTP_" + result.status() + (billing == null ? "" : "_" + billing) + (verified ? "" : "_TARIFF_UNVERIFIED"),
+                        clock.instant(), tier, verified));
             });
-            // Settle the receipt first, then avoid passing provider error text into SDK exceptions/logs.
-            if (attempt.billingCode != null)
-                throw new InvestigationFailure(new ApiError("INVESTIGATION_BUDGET_EXCEEDED",
-                        "모델 제공자의 크레딧·지출 또는 사용 한도 확인이 필요합니다.", false));
-            if (attempt.status >= 300 && attempt.status < 500 && attempt.status != 408 && attempt.status != 429)
-                throw InvestigationFailure.modelConfiguration();
-            if (attempt.status != 200) throw InvestigationFailure.unavailable();
-            if (attempt.malformed) throw InvestigationFailure.unavailable();
-            returned = true;
-            return response;
         } catch (PaidModelGate.Rejected rejected) {
-            attempt.gateRejection = rejected;
+            if (Thread.currentThread().isInterrupted()) throw ResponsesHttp.cancelled();
             throw rejected;
-        } finally {
-            if (!returned && received[0] != null) received[0].close();
         }
+        if (billingCode(received) != null) throw new InvestigationFailure(new ApiError("INVESTIGATION_BUDGET_EXCEEDED",
+                "모델 제공자의 크레딧·지출 또는 사용 한도 확인이 필요합니다.", false));
+        if (received.status() >= 300 && received.status() < 500 && received.status() != 408 && received.status() != 429)
+            throw InvestigationFailure.modelConfiguration();
+        if (received.status() != 200 || received.response() == null) throw InvestigationFailure.unavailable();
+        if ("incomplete".equals(received.response().path("status").asText())) throw limitFailure();
+        return protocol.reply(received.response());
+    }
+    private static String billingCode(ResponsesHttp.Received received) {
+        if (received.response() == null) return null;
+        var error = received.response().path("error");
+        String code = error.path("code").asText("");
+        if (BILLING_CODES.contains(code)) return code;
+        return "insufficient_quota".equals(error.path("type").asText()) ? "insufficient_quota" : null;
     }
     private static InvestigationFailure limitFailure() {
         return new InvestigationFailure(new ApiError("INVESTIGATION_BUDGET_EXCEEDED", "조사 입력·출력 또는 호출 한도를 초과했습니다.", false));

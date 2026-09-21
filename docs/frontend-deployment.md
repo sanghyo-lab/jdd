@@ -1,5 +1,10 @@
 # 문의 화면과 ngrok 로컬 데모 설계
 
+> 2026-09-21 최신 사용자 지시: **로컬 개발·데모=Codex OAuth, 배포=OpenAI API key, 자동 테스트=test/mock**.
+> [구현된 실행 계약](llm-runtime.md)을 우선 적용한다. 아래 과거 OpenAI 로컬 데모·Spring AI 계획은 인증/전송 선택의 근거로 사용하지 않는다.
+> 로컬의 API key fallback과 배포의 OAuth 파일 조회는 금지한다. $50 API 크레딧은 배포에만 사용한다.
+
+
 ## 1. 구성
 
 VOC 티켓 등록·처리 상태, 분석 진행, 답변과 근거를 확인할 프론트 프로젝트 `web`을 추가한다. [김아름](roles/kim-areum-voc.md)이 VOC 서버와 프론트·AI 연동을 담당한다. 이 문서는 설계이며, 프론트 코드나 배포 URL은 아직 생성하지 않았다.
@@ -128,7 +133,7 @@ flowchart LR
     Web -->|로컬 HTTP / 티켓 API| VOC[voc-app]
     VOC -->|내부 HTTP / 조사 API| Agent[agent-app]
     Web -->|로컬 HTTP / 쇼핑몰 API| Commerce[commerce-app]
-    Agent -->|HTTPS / 서버 전용 키| LLM[OpenAI API / 프로모션 크레딧]
+    Agent -->|HTTPS / 서버 전용 키| LLM[Codex OAuth backend / 로컬 워크스페이스]
     Agent --> DB[(PostgreSQL)]
     VOC --> DB
     Commerce --> DB
@@ -139,7 +144,7 @@ flowchart LR
 
 데모 PC에서 web과 Docker Compose의 Spring Boot 세 앱·PostgreSQL을 실행한다. 로그 볼륨은 커머스에서 쓰고 Agent에서 읽으며 실행 소스·정책도 읽기 전용으로 제공한다. 로컬 web 한 곳만 ngrok에 연결하고, web 서버는 로컬 VOC·commerce API에 접근한다. Agent는 기존 Compose 내부 주소를 사용한다.
 
-모델 추론은 로컬 Agent가 OpenAI API로 요청한다. 프로모션 적용 조직·프로젝트의 키와 [데모 비용 정책](planning/demo-llm-policy.md)을 사용한다. ngrok로 실행 위치를 바꿔도 모델 호출 비용·$30 기준은 유지한다.
+모델 추론은 로컬 Agent가 Codex OAuth backend로 요청한다. 프로모션 API 크레딧은 배포에서만 사용하며 [분리된 실행 계약](llm-runtime.md)을 적용한다. OAuth 자격증명을 배포 산출물에 넣지 않는다.
 
 로컬 web 실행 설정안:
 

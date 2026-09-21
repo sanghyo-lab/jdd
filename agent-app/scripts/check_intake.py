@@ -45,7 +45,7 @@ def main():
     args = parser.parse_args()
     with urlopen(args.base_url.rstrip("/") + "/internal/runtime", timeout=10) as response:
         runtime = json.load(response)
-    require(runtime.get("investigationModel") == "DISABLED", "Refusing intake checks unless model mode is DISABLED")
+    require(runtime.get("investigationModel") == "MOCK", "Refusing intake checks unless model mode is MOCK")
     if args.verify_existing:
         data = json.loads(args.report.read_text())
         verify_saved(args.base_url, data)
@@ -89,7 +89,7 @@ def main():
         status, invalid = request(args.base_url, "", {**payload, **malformed})
         require(status == 400 and invalid["code"] == "INVALID_REQUEST", "Invalid JSON scalar type was accepted")
 
-    data = {"checkedAt": datetime.now(timezone.utc).isoformat(), "mode": "model-disabled",
+    data = {"checkedAt": datetime.now(timezone.utc).isoformat(), "mode": "offline-mock",
             "input": payload, "investigationId": investigation_id, "createdAt": view["createdAt"],
             "checks": ["concurrent-intake", "persisted-view", "null-normalization", "input-conflict",
                        "missing-evidence", "schema-validation", "strict-json-scalar-types"]}

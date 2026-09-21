@@ -21,13 +21,13 @@ agent 역할은 docs/prompts/implement-voc-investigation-agent.md도 필수 구�
 개발을 분담하는 에이전트와 서비스에서 VOC를 조사하는 AI를 구분하고, 접수 API만으로 완료하지 않는다.
 공통 실행 기반을 만드는 명시적 작업은 세 영역의 골격·빌드·인프라를 함께 수정할 수 있다.
 
-## 데모용 LLM 키 사용 제한
+## AI 인증과 크레딧 사용 범위
 
-제공된 OpenAI 키는 데모 전용이다. 개발 에이전트·개발 테스트·CI·자동 반복 평가에 사용하지 않는다.
-개발 중 유료 호출이 필요하거나 데모 누적 비용이 $30을 넘길 것으로 예상되면 먼저 별도 사용 범위·예산을 정한다.
-키가 있다는 이유로 verify-mvp·role-done 등에서 유료 호출을 자동 실행하지 않는다.
-독립 구현과 모의 검증은 계속하며 실제 모델 검증이 없으면 DONE을 기록하지 않는다.
-구체적인 구현·비용·로컬 실행 기준은 docs/planning/demo-llm-policy.md를 따른다.
+최신 사용자 지시에 따라 local/codex_oauth, deployed/openai_api, test/mock을 명시적으로 분리한다.
+로컬 개발·반복 실행·영상 데모는 프로젝트 전용 Codex OAuth, $50 프로모션 API 크레딧은 배포에서만 사용한다.
+자동 테스트·CI·일반 up/check/publish는 실제 모델 호출을 하지 않는다. 인증 오류·만료·429·timeout에 provider fallback하지 않는다.
+API 예산 누적 $30 초과가 예상되면 기존 별도 범위·예산 조건을 유지한다. 실제 모델 검증이 없으면 DONE을 쓰지 않는다.
+실행 명령은 docs/llm-runtime.md, 비용/로컬 공개 흐름은 docs/planning/demo-llm-policy.md를 적용한다.
 
 ## 소유 범위
 

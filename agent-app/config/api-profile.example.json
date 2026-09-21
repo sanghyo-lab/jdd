@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0",
-  "scope": "REQUIRES-EXPLICIT-DEMO-ALLOCATION",
+  "scope": "REQUIRES-DEPLOYMENT-ALLOCATION",
   "validUntil": "1970-01-01T00:00:00Z",
   "catalogVersion": "openai-standard-text-2026-09-21",
   "model": "gpt-5.6-luna",
