@@ -47,7 +47,7 @@ public final class ResponsesProtocol {
         body.put("parallel_tool_calls", true);
         body.put("store", false); body.put("stream", true); body.put("include", List.of("reasoning.encrypted_content"));
         body.put("text", Map.of("format", Map.of("type", "json_schema", "name", "investigation_report",
-                "strict", true, "schema", reportSchema())));
+                "strict", true, "schema", reportSchema(request))));
         return body;
     }
     public InvestigationModel.Reply reply(JsonNode response) {
@@ -92,17 +92,27 @@ public final class ResponsesProtocol {
         // An interim-only response gets bounded report feedback, never a completed report.
         return new InvestigationModel.Reply(text.toString(), List.copyOf(calls), List.copyOf(items));
     }
-    private static Map<String, Object> reportSchema() {
+    private static Map<String, Object> reportSchema(InvestigationModel.Request request) {
+        var ids = request.history().stream().filter(message -> message.kind() == InvestigationModel.MessageKind.TOOL)
+                .flatMap(message -> message.observations().stream()).map(Investigation.EvidenceDetail::evidenceId)
+                .distinct().toList();
+        // One shared definition avoids repeating long IDs in every report section. Large histories
+        // retain all observations and the existing server validation rather than truncating choices.
+        boolean constrainIds = !ids.isEmpty() && ids.size() <= 250
+                && ids.stream().mapToInt(String::length).sum() <= 9000;
+        var references = array(constrainIds ? Map.of("$ref", "#/$defs/storedEvidenceId") : text());
         var properties = new LinkedHashMap<String, Object>();
         properties.put("schemaVersion", Map.of("type", "string", "enum", List.of("1.0")));
         properties.put("summary", text());
-        properties.put("facts", array(object(Map.of("id", text(), "description", text(), "evidenceIds", array(text())))));
+        properties.put("facts", array(object(Map.of("id", text(), "description", text(), "evidenceIds", references))));
         properties.put("hypotheses", array(object(Map.of("id", text(), "description", text(), "supportLevel", Map.of("type", "string",
-                "enum", List.of("SUPPORTED", "PARTIAL", "UNVERIFIED")), "evidenceIds", array(text()), "limitations", array(text())))));
-        properties.put("actions", array(object(Map.of("id", text(), "description", text(), "evidenceIds", array(text()), "requiresHumanAction", Map.of("type", "boolean")))));
-        properties.put("prevention", array(object(Map.of("id", text(), "description", text(), "targetPaths", array(text()), "evidenceIds", array(text()), "validationSteps", array(text())))));
+                "enum", List.of("SUPPORTED", "PARTIAL", "UNVERIFIED")), "evidenceIds", references, "limitations", array(text())))));
+        properties.put("actions", array(object(Map.of("id", text(), "description", text(), "evidenceIds", references, "requiresHumanAction", Map.of("type", "boolean")))));
+        properties.put("prevention", array(object(Map.of("id", text(), "description", text(), "targetPaths", array(text()), "evidenceIds", references, "validationSteps", array(text())))));
         properties.put("missingInformation", array(object(Map.of("field", text(), "reason", text()))));
-        return object(properties);
+        var schema = new LinkedHashMap<String, Object>(object(properties));
+        if (constrainIds) schema.put("$defs", Map.of("storedEvidenceId", Map.of("type", "string", "enum", ids)));
+        return schema;
     }
     private static Map<String, Object> object(Map<String, Object> properties) {
         return Map.of("type", "object", "properties", properties, "required", List.copyOf(properties.keySet()), "additionalProperties", false);

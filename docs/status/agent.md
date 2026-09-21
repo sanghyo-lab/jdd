@@ -1,5 +1,14 @@
 # 한재홍 — AI Agent 작업 상태
 
+## 2026-09-22T00:03:00+09:00 — 실제 실패 분류 확인·현재 조사 근거 ID 출력 후보 제한
+
+- `e497d84`의 전체 publish가 종료 0으로 끝났다(`followup-phase-publish.log/json`). 같은 정상 티켓을 새 키로 조사한 `ad5a949e-6b0e-4484-af41-269c81b172a3`는 REPORT_VALIDATION_FAILED로 끝났다. 분석 `05b5015f-21a2-4cd7-986e-5c959806fc2f`, 저장 근거 17개다. 원문 `followup-oauth-normal-04/`, `followup-oauth-normal-run-04.log/json`을 보존한다.
+- 새 진단으로 5·6번째 응답 모두 finalMessages=1/commentaryMessages=0이고 실패 사유는 `facts.evidenceIds contains an unknown observation`임을 확인했다. 이 두 응답에서는 phase 혼합이 아니라 실제 저장되지 않은 근거 참조가 문제다. 원문 텍스트를 로그에 노출하거나 임의의 실제 ID로 치환하지 않았다. 기록 `followup-normal-04-diagnostics.log`.
+- 실제 OAuth 6회에서 입력 50,189·출력 2,660·캐시 입력 2,560·reasoning 596(각 입력/출력의 일부)·cache write 0, 모델 요청 지연 합계 63,860ms를 관측했다. 스택 누적 OAuth 39행/API 0행이며 기존 미관측 usage는 null이다. 실패를 제외한 성공률이나 절감률을 만들지 않는다.
+- 보완: 같은 조사에서 서버 도구가 저장한 evidenceId만 보고서 JSON Schema의 공통 `$defs`/enum에 넣고 네 인용 필드가 참조한다. 중복 ID는 한 번만 넣고 업무 recordIds·사용자/모델 텍스트의 ID를 후보로 삼지 않는다. 250개/총 9,000자 한도를 넘거나 근거가 없으면 기존 문자열 스키마와 서버 검증을 유지하며 관측/후보 일부를 잘라 버리지 않는다. API와 OAuth의 공통 요청 계층만 변경한다.
+- 회귀: 새 스키마 2개는 수정 전 실패를 보존했고 수정 후 기존 SSE 7·실행기 12·격리 9·전송 24와 합계 54개 통과·실패/제외 0이다. 현재 조사 범위·후속 요청 간 후보 격리·중복 제거·네 필드 공유·250/251 및 문자열 상한·빈 enum 방지·원래 전체 이력 보존을 확인했다. 원문 `followup-reference-schema-before.log/xml`, `followup-reference-schema-after.log/json`, `followup-reference-schema-results/`.
+- 후보 제한은 생성 보조이며 의미적으로 올바른 근거 선택을 보장하지 않는다. 서버 검증·예산/호출 상한·모델과 provider는 그대로이고 모의 검사에서 실제 모델 호출은 0이다. 전체 publish 후 실제 OAuth로 효과와 호환성을 확인하며, 김아름의 새 화면/runner 공유를 계속 확인한다.
+
 ## 2026-09-21T23:53:30+09:00 — v5 실제 보고서 실패 보존·응답 phase 처리와 진단 보완
 
 - v5 단위 `10a770a`의 전체 publish가 종료 0으로 끝났다(`followup-citation-publish.log/json`). 같은 정상 티켓의 새 키 조사 `23f36956-0707-46e0-a563-c26376d8e492`, 분석 `d16864f2-9a49-4f8e-bc9b-b2706f53605a`는 7도구·20근거 저장 후 REPORT_VALIDATION_FAILED로 종료했다. 성공한 이전 정상 판단/인용 누락 결과와 분리하며 v5 품질 성공으로 계산하지 않는다.

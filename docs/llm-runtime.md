@@ -130,6 +130,8 @@ Responses의 assistant `phase`를 구분한다. `final_answer`가 있으면 그 
 
 개발 진단 로그에는 응답의 final/unphased/commentary 메시지 수와 도구 수, 보고서 검증 실패의 조사 ID·모델 반복 번호·서버 정의 사유(중복 제외 최대 16개)만 남긴다. 모델 원문·근거 값·인증 정보·예외 원문은 이 로그에 넣지 않는다. 검증 기준과 오류 DTO는 그대로이며 일반 사용자 화면에 구현 정보를 추가하지 않는다.
 
+현재 조사에서 서버가 저장해 도구 결과로 전달한 근거 ID를 보고서 스키마의 공통 `$defs`/enum에 넣는다. facts/hypotheses/actions/prevention이 같은 정의를 참조하므로 긴 ID 목록을 네 번 반복하지 않는다. 업무 레코드 ID나 모델이 쓴 ID는 후보에 넣지 않는다. 목록이 비었거나 250개/총 9,000자를 넘으면 빈 enum이나 일부 후보 목록을 만들지 않고 기존 문자열 스키마와 서버 검증을 유지한다. 관측 이력은 잘라내지 않는다. 이는 [공식 구조화 출력의 정의·enum 제한](https://developers.openai.com/api/docs/guides/structured-outputs)을 고려한 생성 보조 장치이며, 실제 저장 근거·조사 소속·인용 내용의 정확성을 대신하지 않는다. Codex 백엔드의 실제 동작은 별도 실호출로 확인한다.
+
 공통 `InvestigationModel` 인터페이스에 두 HTTP 어댑터를 연결했다. 기존 실행기가 허용한 여덟 읽기 전용 함수만 실행하며 모델/SDK가 도구를 자체 실행하지 않는다. 후속 요청에 도구 call ID·서버 저장 근거·응답 output items와 암호화된 reasoning context를 보존한다. 이러한 내부 context를 보고서 근거로 인용하거나 브라우저에 노출하지 않는다.
 
 SSE는 UTF-8 네트워크 chunk와 이벤트 경계를 분리해서 해석한다. text delta, 완료, failed/incomplete/error, 종료 전 EOF, 취소를 구분한다. 로컬 Codex의 실제 HTTP 200 응답에서 Content-Type 헤더 누락을 관측해 해당 어댑터만 누락 헤더를 허용한다. 본문은 같은 상한·완료 이벤트·형식 검증을 통과해야 하며 HTML·일반 JSON·중간 종료를 성공으로 취급하지 않는다. 명시된 다른 media type과 배포 API의 헤더 누락은 계속 거절한다. 현재 UI는 저장 상태 polling 방식이므로 delta를 새로운 공개 API로 노출하지 않고 최종 응답만 기존 보고서 검증으로 전달한다. 요청 128 KiB, 로컬 HTTP 90초, stream 4 MiB 문자 상한과 기존 조사 제한을 적용한다. 중간 텍스트만으로 성공을 만들지 않는다. 실제 도구 조사 후 최종 응답이 기존 45초 전송 상한에서 중단되어 로컬 호출 상한을 90초로 조정했다. 별도의 worker 전체 조사 3분 만료·호출 취소와 모델/도구 횟수 제한은 그대로다. 모의 timeout/취소 회귀의 짧은 검사 상한은 늘리지 않았다.
