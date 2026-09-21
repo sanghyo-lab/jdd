@@ -190,3 +190,11 @@
 - 검증: 설정 6개·전송 14개·장부 12개를 유료 허용 환경이 상속된 조건에서도 통과했다(`openai-demo-inherited.log`). 장부 12개는 실제 별도 PostgreSQL에서 재통과했다(`openai-demo-postgres-final.log`). Compose config의 기본 비활성·Agent 전용 마운트와 실제 컨테이너 UID의 합성 키 파일 읽기도 확인했다(`demo-configuration/compose-check.json`). 해당 컨테이너 검사는 shell만 실행했고 Java·모델은 호출하지 않았다.
 - 소비자 확인: 실제 VOC가 context.orderId=" "를 201로 저장하지만 같은 context의 Agent 접수는 400 INVALID_REQUEST였다. 티켓 `e71e55a3-6b26-456b-bb91-eddc86ef5a3f`, 원문 `voc-blank-context.json`. 김아름의 전달 구현 전에 입력 경계를 맞추도록 AGENT-VOC-003을 논의에 등록한다. 공백 식별자를 실제 조사 ID로 허용하지 않는다.
 - 실제 OpenAI 호출은 0회이며 DONE을 보류한다. 다음은 정책 archive 소비·일곱 실제 재현 근거·VOC/웹 통합과 승인된 실제 모델 검증 준비다.
+
+## 2026-09-21 — build 정책 사본 소비 구현
+
+- 데모 활성화/호출 상한 단위 `1e179f3` 전체 publish 종료 0: check·3앱 재빌드/재기동·실제 PostgreSQL/HTTP smoke, 원문 `openai-demo-publish.log`. 일반 실행의 모델 비활성을 유지했다. 공백 context 제안은 `2596164` / [DISC-20260921-agent-003](../discussions/DISC-20260921-agent-003-empty-context.md)로 별도 공유했다.
+- [DISC-20260921-agent-002](../discussions/DISC-20260921-agent-002-policy-snapshot.md)의 전원 수락 P1에 따라 Agent 소비자를 구현했다. 새 manifest의 고정 정책 사본·버전·해시를 검사하며 선언된 사본이 없거나 변조되면 현재 파일로 대체하지 않는다. policy 필드가 없는 기존 manifest만 현재 정책임을 명시하는 호환 모드다.
+- searchCode/readCode가 실제 manifest policyVersion을 근거 출처와 검색 요약에 반환하도록 보완했다. 모델은 조회 가능한 메타데이터로 readBusinessPolicy의 버전을 지정할 수 있다. 정책 파일을 코드 검색·수정 대상 경로에 포함하지 않는다.
+- 파일/도구 검증 14개와 기존 모의 실행기 8개 통과. 정책 A/build A와 B/build B, 현재 파일 삭제 후 과거 원문 유지, 잘못된 경로·버전·해시·null·사본 누락·symlink 거절, 저장 후 원문 변경과 다른 조사 소속의 조회 거절을 확인했다. 원문 `policy-archive-final.log`, `policy-archive-stored.log`.
+- 공통 생성기는 김아름의 진행 범위이며 중복 수정하지 않았다. 새 실제 생성기 snapshot의 직접 소비와 제공자 확인은 아직 남아 있어 논의를 해소하지 않는다. 이 단위에서도 모델 호출 0회다.

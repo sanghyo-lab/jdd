@@ -26,7 +26,9 @@ public final class SourceEvidenceTools {
     private final Path sourceRoot, policy;
     private final JsonMapper json;
     private final Clock clock;
-    private record Manifest(Path directory, String buildId, String commit, String policyVersion, Map<String, String> hashes) {}
+    private record PolicySnapshot(String version, String path, String sha256) {}
+    private record Manifest(Path directory, String buildId, String commit, String policyVersion,
+                            Map<String, String> hashes, PolicySnapshot policySnapshot) {}
 
     public SourceEvidenceTools(Path sourceRoot, Path policy, JsonMapper json, Clock clock) {
         this.sourceRoot = sourceRoot.toAbsolutePath().normalize();
@@ -42,7 +44,8 @@ public final class SourceEvidenceTools {
         if (input.startLine() > lines.size()) throw unavailable();
         int end = Math.min(lines.size(), input.endLine());
         return new Outcome(List.of(code(manifest, input.path(), lines, input.startLine(), end, false)),
-                "요청한 실행 소스 구간을 manifest 해시와 대조했습니다. 파일 전체가 아니라 지정한 줄 범위입니다.");
+                "요청한 실행 소스 구간을 manifest 해시와 대조했습니다. policyVersion=" + manifest.policyVersion()
+                        + "; 파일 전체가 아니라 지정한 줄 범위입니다.");
     }
 
     public Outcome searchCode(SearchCode input) {
@@ -65,7 +68,7 @@ public final class SourceEvidenceTools {
             }
         }
         if (truncated) observations.replaceAll(SourceEvidenceTools::partial);
-        return new Outcome(observations, "buildId=" + input.buildId() + " 허용된 실행 소스의 리터럴 검색: "
+        return new Outcome(observations, "buildId=" + input.buildId() + ", policyVersion=" + manifest.policyVersion() + " 허용된 실행 소스의 리터럴 검색: "
                 + observations.size() + "개 구간; " + (truncated ? "검색 한도에 도달해 전체 부재를 판단할 수 없습니다."
                 : "manifest의 허용 파일 검색 완료. 일치가 없다는 사실만으로 장애 유무를 판단하지 마세요."));
     }
@@ -73,7 +76,11 @@ public final class SourceEvidenceTools {
     public Outcome readPolicy(ReadPolicy input) {
         var manifest = manifest(input.buildId());
         if (!manifest.policyVersion().equals(input.version())) throw unavailable();
-        String text = utf8(boundedRead(policy, FILE_BYTES));
+        var snapshot = manifest.policySnapshot();
+        byte[] bytes = boundedRead(snapshot == null ? policy : safePath(manifest.directory(), snapshot.path()), FILE_BYTES);
+        String hash = sha256(bytes);
+        if (snapshot != null && !snapshot.sha256().equals(hash)) throw unavailable();
+        String text = utf8(bytes);
         String marker = "적용 버전은 `" + input.version() + "`";
         if (!text.contains(marker)) throw unavailable();
         List<String> lines = text.lines().toList();
@@ -87,15 +94,17 @@ public final class SourceEvidenceTools {
             }
         }
         var source = new LinkedHashMap<String, Object>();
-        source.put("path", "docs/business-policy.md"); source.put("version", input.version());
+        source.put("path", snapshot == null ? "docs/business-policy.md" : snapshot.path()); source.put("version", input.version());
         source.put("section", input.section() == null ? "전체" : input.section());
         source.put("buildId", input.buildId()); source.put("startLine", start + 1); source.put("endLine", end);
-        source.put("sha256", sha256(text.getBytes(StandardCharsets.UTF_8)));
-        // The current contract pins the version, but does not archive the policy in each manifest.
-        source.put("binding", "manifest-version-and-current-policy-hash");
+        source.put("sha256", hash);
+        source.put("binding", snapshot == null ? "manifest-version-and-current-policy-hash" : "manifest-policy-snapshot-hash");
+        if (snapshot != null) source.put("commitSha", manifest.commit());
         var observation = new Observation(EvidenceType.POLICY, "정상 업무 정책 " + input.version(), clock.instant(), source,
                 String.join("\n", lines.subList(start, end)), false);
-        return new Outcome(List.of(observation), "manifest 정책 버전과 현재 정책 원문을 대조했습니다. 저장된 해시는 조회 시점 정책의 해시이며 과거 정책 파일의 보관을 의미하지 않습니다.");
+        return new Outcome(List.of(observation), snapshot == null
+                ? "기존 manifest의 정책 버전과 현재 정책 원문을 대조했습니다. 저장된 해시는 조회 시점 정책의 해시이며 과거 정책 파일의 보관을 의미하지 않습니다."
+                : "해당 buildId의 정책 사본·manifest 버전·SHA-256을 대조했습니다. 현재 정책 파일과 별도로 보관한 실행 시점의 정상 정책입니다.");
     }
 
     private Manifest manifest(String buildId) {
@@ -113,7 +122,16 @@ public final class SourceEvidenceTools {
             }
         });
         if (hashes.isEmpty()) throw unavailable();
-        return new Manifest(directory, buildId, node.path("commitSha").asText(), node.path("policyVersion").asText(), hashes);
+        PolicySnapshot policySnapshot = null;
+        if (node.has("policy")) {
+            JsonNode archived = node.path("policy");
+            if (!archived.isObject() || !archived.path("version").isString() || !archived.path("path").isString()
+                    || !archived.path("sha256").isString() || !node.path("policyVersion").asText().equals(archived.path("version").asText())
+                    || !"policy/business-policy.md".equals(archived.path("path").asText())
+                    || !archived.path("sha256").asText().matches("[0-9a-f]{64}")) throw unavailable();
+            policySnapshot = new PolicySnapshot(archived.path("version").asText(), archived.path("path").asText(), archived.path("sha256").asText());
+        }
+        return new Manifest(directory, buildId, node.path("commitSha").asText(), node.path("policyVersion").asText(), hashes, policySnapshot);
     }
 
     private String source(Manifest manifest, String path) {
@@ -126,7 +144,7 @@ public final class SourceEvidenceTools {
     private Observation code(Manifest manifest, String path, List<String> lines, int start, int end, boolean truncated) {
         return new Observation(EvidenceType.CODE, "실행 소스 " + path + ":" + start + "-" + end, clock.instant(),
                 Map.of("buildId", manifest.buildId(), "commitSha", manifest.commit(), "path", path,
-                        "startLine", start, "endLine", end, "sha256", manifest.hashes().get(path)),
+                        "startLine", start, "endLine", end, "sha256", manifest.hashes().get(path), "policyVersion", manifest.policyVersion()),
                 String.join("\n", lines.subList(start - 1, end)), truncated);
     }
 

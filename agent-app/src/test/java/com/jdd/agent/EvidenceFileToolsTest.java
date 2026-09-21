@@ -26,6 +26,8 @@ import static org.assertj.core.api.Assertions.*;
 })
 class EvidenceFileToolsTest {
     @Autowired JsonMapper json;
+    @Autowired com.jdd.agent.domain.InvestigationRepository repository;
+    @Autowired com.jdd.agent.domain.InvestigationExecutionRepository executions;
     @TempDir Path temp;
     private static final String BUILD = "test-build", CODE = "commerce-core/src/main/java/Example.java";
     private Path sources, logs, policy;
@@ -66,11 +68,12 @@ class EvidenceFileToolsTest {
         var result = run("searchCode", Map.of("buildId", BUILD, "query", "a.*b"));
         assertThat(result.observations()).hasSize(1);
         var observed = result.observations().getFirst();
-        assertThat(observed.source()).containsEntry("path", CODE).containsEntry("startLine", 1).containsEntry("endLine", 5);
+        assertThat(observed.source()).containsEntry("path", CODE).containsEntry("startLine", 1).containsEntry("endLine", 5).containsEntry("policyVersion", "demo-v1");
         assertThat(observed.content().toString()).contains("// literal a.*b").doesNotContain("expected answer", "reproduction answer");
         var read = run("readCode", Map.of("buildId", BUILD, "path", CODE, "startLine", 3, "endLine", 4));
         assertThat(read.observations().getFirst().content()).isEqualTo(" int stock = 1;\n // literal a.*b");
         assertThat(run("searchCode", Map.of("buildId", BUILD, "query", "absent")).observations()).isEmpty();
+        assertThat(run("searchCode", Map.of("buildId", BUILD, "query", "absent")).summary()).contains("policyVersion=demo-v1");
     }
     @Test void codeSearchLimitIsExplicitOnEveryObservation() throws Exception {
         String text = "needle\nneedle\nneedle\n"; writeSource(CODE, text); manifest(Map.of(CODE, hash(text)));
@@ -101,6 +104,73 @@ class EvidenceFileToolsTest {
         assertThat(observed.source()).containsKey("sha256").containsEntry("binding", "manifest-version-and-current-policy-hash");
         assertThatThrownBy(() -> run("readBusinessPolicy", Map.of("buildId", BUILD, "version", "old"))).isInstanceOf(IllegalStateException.class);
         assertThatThrownBy(() -> run("readBusinessPolicy", Map.of("buildId", BUILD, "version", "demo-v1", "section", "없는 정책"))).isInstanceOf(IllegalStateException.class);
+    }
+    @Test void policySnapshotsKeepTheirOriginalVersionAfterTheCurrentFileChangesOrDisappears() throws Exception {
+        String first = Files.readString(policy);
+        archive(BUILD, "demo-v1", first);
+        String second = first.replace("demo-v1", "demo-v2").replace("재고는 음수가 될 수 없다.", "합성 새 정책 원문");
+        Files.writeString(policy, second);
+        archive("second-build", "demo-v2", second);
+        var old = run("readBusinessPolicy", Map.of("buildId", BUILD, "version", "demo-v1", "section", "재고")).observations().getFirst();
+        assertThat(old.content().toString()).contains("재고는 음수가").doesNotContain("합성 새 정책");
+        assertThat(old.source()).containsEntry("binding", "manifest-policy-snapshot-hash")
+                .containsEntry("path", "policy/business-policy.md").containsEntry("sha256", hash(first)).containsEntry("commitSha", "a".repeat(40));
+        Files.delete(policy);
+        assertThat(run("readBusinessPolicy", Map.of("buildId", "second-build", "version", "demo-v2")).observations().getFirst().content().toString())
+                .contains("합성 새 정책");
+        assertThat(run("readBusinessPolicy", Map.of("buildId", BUILD, "version", "demo-v1")).observations().getFirst().source())
+                .containsEntry("sha256", hash(first));
+    }
+    @Test void malformedPolicyManifestNeverFallsBackToTheCurrentPolicy() throws Exception {
+        archive(BUILD, "demo-v1", Files.readString(policy));
+        Path path = sources.resolve(BUILD).resolve("manifest.json");
+        String original = Files.readString(path);
+        for (String malformed : List.of("null", "{}", "{\"version\":\"demo-v2\",\"path\":\"policy/business-policy.md\",\"sha256\":\"" + "0".repeat(64) + "\"}",
+                "{\"version\":\"demo-v1\",\"path\":\"../policy.md\",\"sha256\":\"" + "0".repeat(64) + "\"}",
+                "{\"version\":\"demo-v1\",\"path\":\"policy/business-policy.md\",\"sha256\":\"invalid\"}")) {
+            var changed = (tools.jackson.databind.node.ObjectNode) json.readTree(original);
+            changed.set("policy", json.readTree(malformed)); Files.writeString(path, json.writeValueAsString(changed));
+            assertThatThrownBy(() -> run("readBusinessPolicy", Map.of("buildId", BUILD, "version", "demo-v1")))
+                    .as(malformed).isInstanceOf(IllegalStateException.class);
+        }
+    }
+    @Test void missingTamperedSymlinkOrWrongVersionArchiveCannotUseAValidCurrentFile() throws Exception {
+        String original = Files.readString(policy);
+        archive(BUILD, "demo-v1", original);
+        Path archived = sources.resolve(BUILD).resolve("policy/business-policy.md");
+        Files.delete(archived);
+        assertThatThrownBy(() -> run("readBusinessPolicy", Map.of("buildId", BUILD, "version", "demo-v1"))).isInstanceOf(IllegalStateException.class);
+        Files.writeString(archived, original + "tampered");
+        assertThatThrownBy(() -> run("readBusinessPolicy", Map.of("buildId", BUILD, "version", "demo-v1"))).isInstanceOf(IllegalStateException.class);
+        Files.delete(archived); Files.createSymbolicLink(archived, policy);
+        assertThatThrownBy(() -> run("readBusinessPolicy", Map.of("buildId", BUILD, "version", "demo-v1"))).isInstanceOf(IllegalStateException.class);
+        Files.delete(archived);
+        archive(BUILD, "demo-v1", original.replace("demo-v1", "demo-v2"));
+        assertThatThrownBy(() -> run("readBusinessPolicy", Map.of("buildId", BUILD, "version", "demo-v1"))).isInstanceOf(IllegalStateException.class);
+    }
+    @Test void policyArchiveDoesNotExpandCodeSearchOrReadPermissions() throws Exception {
+        archive(BUILD, "demo-v1", Files.readString(policy));
+        assertThatThrownBy(() -> read("policy/business-policy.md")).isInstanceOf(IllegalStateException.class);
+        assertThat(run("searchCode", Map.of("buildId", BUILD, "query", "재고는 음수가")).observations()).isEmpty();
+    }
+    @Test void committedPolicyEvidenceRemainsReadableAfterArchiveAndCurrentFileChange() throws Exception {
+        String original = Files.readString(policy); archive(BUILD, "demo-v1", original);
+        var outcome = run("readBusinessPolicy", Map.of("buildId", BUILD, "version", "demo-v1"));
+        Instant now = Instant.now();
+        var service = new com.jdd.agent.domain.InvestigationService(repository, Clock.systemUTC());
+        String id = service.submit(new com.jdd.agent.domain.InvestigationInput("1.0", java.util.UUID.randomUUID().toString(),
+                1, "policy-archive", "합성 정책 근거 보존 검증", null, null)).investigationId();
+        var claim = executions.claimNext(now, java.time.Duration.ofMinutes(3)).orElseThrow();
+        assertThat(claim.investigationId()).isEqualTo(id);
+        String tool = executions.beginTool(claim, "readBusinessPolicy", now).orElseThrow();
+        var saved = executions.completeTool(claim, tool, outcome.summary(), outcome.observations(), now).orElseThrow().getFirst();
+        Files.writeString(sources.resolve(BUILD).resolve("policy/business-policy.md"), "tampered after observation");
+        Files.delete(policy);
+        var loaded = repository.findEvidence(id, saved.evidenceId()).orElseThrow();
+        assertThat(loaded).isEqualTo(saved);
+        assertThat(loaded.content().toString()).contains("재고는 음수가 될 수 없다.");
+        assertThat(loaded.source()).containsEntry("sha256", hash(original)).containsEntry("binding", "manifest-policy-snapshot-hash");
+        assertThat(repository.findEvidence("another-investigation", saved.evidenceId())).isEmpty();
     }
     @Test void logsMatchCorrelationPreserveRawLinesAndRepeatedEventIds() throws Exception {
         String matching = log("same-event", "request-a", "p");
@@ -150,6 +220,18 @@ class EvidenceFileToolsTest {
     private void manifest(Map<String, String> hashes) throws Exception {
         Files.writeString(sources.resolve(BUILD).resolve("manifest.json"), json.writeValueAsString(Map.of("schemaVersion", "1.0", "buildId", BUILD,
                 "commitSha", "a".repeat(40), "policyVersion", "demo-v1", "files", hashes)));
+    }
+    private void archive(String build, String version, String policyText) throws Exception {
+        Path directory = sources.resolve(build);
+        Files.createDirectories(directory.resolve("policy")); Files.writeString(directory.resolve("policy/business-policy.md"), policyText);
+        if (!build.equals(BUILD)) {
+            Files.createDirectories(directory.resolve(CODE).getParent());
+            Files.copy(sources.resolve(BUILD).resolve(CODE), directory.resolve(CODE));
+        }
+        var manifest = (tools.jackson.databind.node.ObjectNode) json.readTree(Files.readString(sources.resolve(BUILD).resolve("manifest.json")));
+        manifest.put("buildId", build); manifest.put("policyVersion", version);
+        manifest.set("policy", json.valueToTree(Map.of("version", version, "path", "policy/business-policy.md", "sha256", hash(policyText))));
+        Files.writeString(directory.resolve("manifest.json"), json.writeValueAsString(manifest));
     }
     private String log(String id, String request, String product) {
         return json.writeValueAsString(Map.of("schemaVersion", "1.0", "timestamp", "2026-09-21T00:00:00Z", "service", "commerce-app",
