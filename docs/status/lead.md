@@ -16,6 +16,16 @@
 
 
 
+## 2026-09-22T07:26:37+09:00 — 사용자 위임에 따른 남은 Agent·VOC·runner 병렬 구현
+
+- 사용자가 “서브에이전트로 나머지 전부 마무리해줘 에이전트 voc도”라고 명시하여 이상효의 리더 수정 권한 아래 세 독립 main clone 작업을 시작했다. 기존 다른 PC 작업자의 이름으로 답변·DONE을 대필하지 않는다. 각 결과는 위임 작업으로 식별하고 리더가 직접 통합 검증한다.
+- LEAD-SUB-AGENT-001: `agent_completion`은 보고서 항목별 직접 인용·실행/복구와 내부 실제 모델 관측을 맡는다. 첫 근거 경로 누락 수정은 독립 clone commit `100f274`, 수정 전 회귀 2실패·수정 후 agent-core 15통과로 접수했으며 리더 재검증은 아직이다. Agent 실제 모델 품질을 모의 검사로 대신하지 않는다.
+- LEAD-SUB-VOC-001: `voc_web_completion`은 티켓 분석 요청·polling·리포트·근거·재조사 화면과 실제 커머스 쇼핑 흐름을 맡는다. LEAD-SUB-RUNNER-001: `scenario_completion`은 일곱 VOC와 NORMAL/NEEDS_INPUT/IDEMPOTENCY/RECOVERY를 실제 HTTP로 검증하는 runner·독립 준비 helper를 맡는다. DB/모델 비밀을 runner에 넘기지 않고 모델 관측·실행 소스·로그·DB 원문을 비교한다.
+- RUNNER-AGENT-OBS-001은 Agent 내부 조사별 영속 모델 관측 제공, RUNNER-PREP-001은 parent 권한의 준비·제한된 실제 VOC 재시작 coordinator 요청이다. 제공자/소비자가 직접 schema와 실행 결과를 맞추고 리더가 `scripts/jdd.py` 연결을 검증한다. root는 공통 실행·인증 경계·최종 문서와 독립 통합 검토를 담당한다.
+- 세 clone의 Compose project와 포트를 분리하고 전체 publish는 순서를 조율한다. 기본 jdd 스택·현재 개발 인증 파일을 다른 clone이 복사하거나 재사용하지 않는다. 모델 인증·명시 모델이 이 PC에 준비되지 않았으므로 실제 호출은 0이며 DONE/APPROVED는 IN_PROGRESS를 유지한다.
+- 새 main `8bd5699..b5df7ea`의 14개 커밋을 확인했고 전체 차이를 검토 중이다. 김아름의 `84c4fe6`/`09ad0c7`에 Windows 8개·전송/PostgreSQL 29개 직접 인수와 티켓 웹 검증이, 한재홍의 `722c39f`에 내부 runtime/정책·VOC 연결 인수가 있다. 최신 한재홍 실제 OAuth 기록은 8조사(3COMPLETED/5FAILED)·44모델 호출 중 1usage미확정이며 이 PC 실행으로 계산하지 않는다. NORMAL 직접 인용 누락과 나머지 실제 전체 검증은 남아 있다.
+- 현재 root 실행 앱은 이전 `e237c3577656-057bb12f48d9`다. 새 web/Agent 변경을 아직 이 빌드에서 검증했다고 표시하지 않는다. 이 기록은 협업 설명만의 즉시 공유이며 앱 검증/최종 완료 근거가 아니다.
+
 ## 2026-09-21T22:32:32+09:00 — LEAD-020 공유·새 빌드의 실제 전달/복구 확인
 
 - e237c35의 전체 publish는 종료 0/174.737초다. Python 65개·Java 183개 중 174통과/9조건부 제외·실패/오류 0, 세 앱 재빌드·재기동·실제 PostgreSQL/HTTP/근거 연결을 통과했다. 독립 검사한 전송 소스/테스트의 바이트가 공유 커밋과 일치한다. 현재 buildId는 `e237c3577656-057bb12f48d9`, Agent는 test/mock/mock이며 실제 VOC 모델 검증은 아니다.
