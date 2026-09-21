@@ -236,10 +236,10 @@
     {
       "id": "LEAD-015",
       "owner": "agent",
-      "status": "OPEN",
+      "status": "VERIFIED",
       "description": "VOC-AGENT-EXPORT-001 reports that the ledger exporter cannot locate Docker Compose on native Windows with its restricted environment. It discarded Windows profile/installation variables and assumed docker compose exists.",
-      "resolution": "Preserve only required OS/profile/Docker environment names, probe the plugin then standalone Compose, and sanitize subprocess discovery/export failures. Keep the read-only SQL and no-model-call behavior. Await native Windows consumer verification and Agent owner acknowledgement. Agent owner acknowledgement and integration verification arrived in 54fe313; native Windows VOC acceptance is still pending.",
-      "verification": "Six regression tests pass for environment filtering, plugin/fallback selection and failure handling; failed attempts including the macOS temporary-path alias assertion remain in exporter-portability-{before,after,final} logs. Real macOS Docker/PostgreSQL export observes READ ONLY / REPEATABLE READ with zero ledger calls in exporter-portability-real-postgresql.json. No actual Windows execution or paid-model quality validation is claimed; finding remains OPEN."
+      "resolution": "0c07ca9 preserves required OS/profile/Docker environment names, probes plugin then standalone Compose and sanitizes failures. Agent acknowledgement 54fe313 and VOC native Windows acceptance 0b777f4 are both shared; original read-only SQL/no-call behavior preserved.",
+      "verification": "Six regression tests pass for environment filtering, plugin/fallback selection and failure handling; failed attempts including the macOS temporary-path alias assertion remain in exporter-portability-{before,after,final} logs. Real macOS Docker/PostgreSQL export observes READ ONLY / REPEATABLE READ with zero ledger calls in exporter-portability-real-postgresql.json. The initial leader check did not run Windows and left the finding OPEN at that time; actual paid-model quality remains unverified. Native Windows consumer independently reran the original exporter command successfully without DOCKER_CONFIG override: actual plugin selection and PostgreSQL READ ONLY on / REPEATABLE READ, budget null and calls zero. VOC artifact SHA-256 8e76e2c14ee65f36a2b0af6bbe15f393e1a9aea1f1f90bae17020befa9d82b77; direct author record in DISC-agent-004 and voc.md, 0b777f4. Leader did not execute on the other PC."
     },
     {
       "id": "LEAD-016",
@@ -262,8 +262,8 @@
       "owner": "voc",
       "status": "OPEN",
       "description": "verify_mvp calls the ordinary verify/up path, which reconfigures an explicitly prepared local OAuth Agent to test/mock. The scenario runner command also uses the POSIX wrapper unconditionally.",
-      "resolution": "DISC-20260921-commerce-002 P1 proposes verification of explicitly prepared, current-build live runtime without automatic provider activation or fallback. Leader will implement the common workflow after provider/runner owner coordination.",
-      "verification": "mvp-runtime-before.json records actual Repository.verify_mvp control flow with only I/O replaced: check, snapshot, base Compose up, smoke. No OAuth runtime was activated or actual model called. Current businessReady=false and unimplemented runner still prevent MVP validation. Keep OPEN pending implementation, consumer acceptance and authorized actual-model verification."
+      "resolution": "Leader implemented opt-in preflight, current source/runtime/readiness/model configuration checks before/after scenarios, no stack/provider mutation, credential-free child environments, platform wrapper selection and unique preserved result artifacts. Agent llm configuration observation and runner acceptance still pending under DISC-commerce-002; keep OPEN.",
+      "verification": "mvp-runtime-before.json records actual Repository.verify_mvp control flow with only I/O replaced: check, snapshot, base Compose up, smoke. No OAuth runtime was activated or actual model called. Current businessReady=false and unimplemented runner still prevent MVP validation. Keep OPEN pending implementation, consumer acceptance and authorized actual-model verification. Current eight offline workflow regressions initially failed (21 subtest failures) through the old stack-rebuilding path; all eight passed after the fix. Before/after logs 20260921T122843.143358Z and 20260921T122948.479637Z. Actual CLI without live opt-in exits 1 immediately without model/app activation in 20260921T123021.329102Z log. Synthetic successes are confined to temporary repositories and never project completion records. Actual-model/provider handoff remains unverified."
     }
   ]
 }

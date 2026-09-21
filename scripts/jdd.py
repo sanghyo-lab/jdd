@@ -40,6 +40,57 @@ def validate_mvp_result(data, build_id):
         raise WorkflowError("MVP verification needs current-build, live-model results for every required case.")
 
 
+def live_mvp_selection(env):
+    if env.get("JDD_MVP_LIVE") != "true":
+        raise WorkflowError("Live MVP is opt-in: prepare the authorized runtime, then set JDD_MVP_LIVE=true. See docs/llm-runtime.md.")
+    runtime, provider = env.get("APP_RUNTIME"), env.get("LLM_PROVIDER")
+    if (runtime, provider) not in (("local", "codex_oauth"), ("deployed", "openai_api")):
+        raise WorkflowError("Live MVP requires explicit local/codex_oauth or deployed/openai_api; no provider is activated automatically.")
+    model = env.get("CODEX_MODEL" if runtime == "local" else "OPENAI_MODEL")
+    if (not isinstance(model, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}", model)
+            or model.startswith("replace-")):
+        raise WorkflowError("Select an explicit authorized model before live MVP verification.")
+    return {"runtime": runtime, "provider": provider, "configuredModel": model}
+
+
+def mvp_child_environment(env, selection=None):
+    # The runner calls local applications, never a model endpoint or login CLI.
+    # An allowlist also excludes unknown credential names and external-test DB secrets.
+    names = {"PATH", "HOME", "USER", "LOGNAME", "SHELL", "TMPDIR", "LANG", "LC_ALL", "TZ",
+             "SYSTEMROOT", "WINDIR", "COMSPEC", "PATHEXT", "USERPROFILE", "APPDATA", "LOCALAPPDATA",
+             "PROGRAMDATA", "PROGRAMFILES", "PROGRAMFILES(X86)", "HOMEDRIVE", "HOMEPATH", "TEMP", "TMP",
+             "JAVA_HOME", "GRADLE_USER_HOME", "COMMERCE_PORT", "AGENT_PORT", "VOC_PORT", "POSTGRES_PORT",
+             "POSTGRES_DB", "COMPOSE_PROJECT_NAME", "COMMERCE_REPRODUCTION_ENABLED"}
+    child = {key.upper(): value for key, value in env.items() if key.upper() in names}
+    if selection is None:
+        child.update(APP_RUNTIME="test", LLM_PROVIDER="mock", JDD_MVP_LIVE="false")
+    else:
+        child.update(APP_RUNTIME=selection["runtime"], LLM_PROVIDER=selection["provider"], JDD_MVP_LIVE="true")
+        child["CODEX_MODEL" if selection["runtime"] == "local" else "OPENAI_MODEL"] = selection["configuredModel"]
+    return child
+
+
+def validate_prepared_mvp(report, identity, selection):
+    commit, content_hash = identity
+    expected = commit[:12] + "-" + content_hash[:12]
+    if not isinstance(report, dict) or report.get("buildId") != expected:
+        raise WorkflowError("Prepare the current build before live MVP verification; the stack has not been replaced.")
+    services = report.get("services")
+    if not isinstance(services, dict) or set(services) != set(TEAM_ROLES):
+        raise WorkflowError("Live MVP requires observations from all three applications.")
+    for role, service in services.items():
+        if (not isinstance(service, dict) or service.get("buildId") != expected
+                or service.get("commitSha") != commit or service.get("businessReady") is not True):
+            raise WorkflowError("Current-build business readiness is missing: " + role)
+    agent = services["agent"]
+    mode = "CODEX_OAUTH" if selection["runtime"] == "local" else "OPENAI"
+    if agent.get("workerEnabled") is not True or agent.get("investigationModel") != mode:
+        raise WorkflowError("Prepared Agent has a different model adapter or a disabled worker.")
+    configuration = agent.get("llm")
+    if not isinstance(configuration, dict) or any(configuration.get(key) != value for key, value in selection.items()):
+        raise WorkflowError("Prepared Agent runtime/provider/configuredModel observation is missing or mismatched.")
+
+
 class Repository:
     def __init__(self, root):
         self.root = Path(root).resolve()
@@ -439,14 +490,14 @@ class Repository:
         print("This verifies the shared runtime, not the business MVP.", flush=True)
         return report
 
-    def check(self):
-        self.run([sys.executable, "-m", "unittest", "discover", "-s", "scripts/tests", "-v"])
-        self.run([sys.executable, "scripts/check_docs.py"])
+    def check(self, env=None):
+        self.run([sys.executable, "-m", "unittest", "discover", "-s", "scripts/tests", "-v"], env=env)
+        self.run([sys.executable, "scripts/check_docs.py"], env=env)
         wrapper = "gradlew.bat" if os.name == "nt" else "./gradlew"
-        self.run([wrapper, "--no-daemon", "check"])
+        self.run([wrapper, "--no-daemon", "check"], env=env)
         if (self.root / "web/package.json").exists():
-            subprocess.run(["npm", "ci"], cwd=self.root / "web", check=True)
-            subprocess.run(["npm", "run", "build"], cwd=self.root / "web", check=True)
+            subprocess.run(["npm", "ci"], cwd=self.root / "web", check=True, env=env)
+            subprocess.run(["npm", "run", "build"], cwd=self.root / "web", check=True, env=env)
 
     def verify(self):
         self.check()
@@ -473,15 +524,35 @@ class Repository:
         raise WorkflowError("main changed during 3 publish attempts. Changes remain committed locally; retry publish.")
 
     def verify_mvp(self):
-        report = self.verify()
-        if any(not service.get("businessReady") for service in report["services"].values()):
-            raise WorkflowError("Business MVP is not implemented in all three apps yet.")
-        path = self.root / "runtime/scenarios.json"
-        path.unlink(missing_ok=True)
-        self.run(["./gradlew", "--no-daemon", ":scenario-runner:run",
-                  "--args=--report runtime/scenarios.json"])
-        data = json.loads(path.read_text())
-        validate_mvp_result(data, report["buildId"])
+        env = self.read_environment()
+        selection = live_mvp_selection(env)
+        identity = self.build_identity()
+        before = self.smoke()
+        validate_prepared_mvp(before, identity, selection)
+        self.check(env=mvp_child_environment(env))
+        if self.build_identity() != identity:
+            raise WorkflowError("Sources changed during checks; prepare and verify the new build.")
+        validate_prepared_mvp(self.smoke(), identity, selection)
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S.%fZ") + "-" + secrets.token_hex(4)
+        directory = self.root / "runtime/mvp" / stamp
+        directory.mkdir(parents=True, exist_ok=False)
+        (directory / "prepared-runtime.json").write_text(json.dumps(before, indent=2) + "\n", encoding="utf-8")
+        latest = self.root / "runtime/scenarios.json"
+        if latest.exists():
+            shutil.copyfile(latest, directory / "previous-scenarios.json")
+        path = directory / "scenarios.json"
+        wrapper = "gradlew.bat" if os.name == "nt" else "./gradlew"
+        self.run([wrapper, "--no-daemon", ":scenario-runner:run",
+                  "--args=--report " + path.relative_to(self.root).as_posix()],
+                 env=mvp_child_environment(env, selection))
+        data = json.loads(path.read_text(encoding="utf-8"))
+        validate_mvp_result(data, before["buildId"])
+        after = self.smoke()
+        (directory / "finished-runtime.json").write_text(json.dumps(after, indent=2) + "\n", encoding="utf-8")
+        if self.build_identity() != identity:
+            raise WorkflowError("Sources changed during scenarios; results cannot complete this build.")
+        validate_prepared_mvp(after, identity, selection)
+        shutil.copyfile(path, latest)
         print("PASS: current-build MVP scenarios (see runtime/scenarios.json).", flush=True)
         return data
 

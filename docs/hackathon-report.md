@@ -182,8 +182,8 @@ VOC에서도 같은 외부 DB 재검사 누락을 실제 티켓 값 변경으로
 
 `f1d6082` 전체 publish는 195.993초/종료 0, Python 57개 통과, Java 158개 중 149개 통과·9개 조건부 제외·실패 0이었다. 세 앱 buildId `f1d60822a48e-c5c367ca49d9`의 실제 DB/HTTP/근거 연결을 확인했다. 조건부 제외를 실제 DB 검사나 실제 모델 성공으로 계산하지 않았다. 별도 실제 PostgreSQL 검증 원문과 전체 검증 XML 집계는 `queue-admission-publication-junit-runtime.json`에 구분했다.
 
-이전 API 데모 구성에서 worker 2와 모델 동시 호출 한도 1의 불일치도 발견해 worker를 1로 맞췄다. 이 구성은 새 인증 분리에서 교체되었고 local OAuth override에도 worker=1이 있다. 설정 확인을 실제 모델 동시성 성공으로 계산하지 않았다. Windows 비용 내보내기 경로는 리더가 보완하고 macOS 실제 DB에서 확인했으며 Windows 담당자의 인수는 대기다.
-[리더 지적](status/lead-review.json) LEAD-001~018과 [커머스 상태](status/commerce.md)가 실패·수정·재검증 원문을 연결한다. LEAD-018의 실제 MVP 실행 환경 보존은 [별도 논의](discussions/DISC-20260921-commerce-002-live-mvp-runtime.md)로 추적하는 미해결 항목이다.
+이전 API 데모 구성에서 worker 2와 모델 동시 호출 한도 1의 불일치도 발견해 worker를 1로 맞췄다. 이 구성은 새 인증 분리에서 교체되었고 local OAuth override에도 worker=1이 있다. 설정 확인을 실제 모델 동시성 성공으로 계산하지 않았다. Windows 비용 내보내기 경로는 리더가 보완하고 macOS 실제 DB에서 확인했다. 이어 김아름이 원래 Windows 명령·실제 PostgreSQL 조회 성공을 직접 공유했고 Agent 담당자의 통합 확인도 받았다.
+[리더 지적](status/lead-review.json) LEAD-001~018과 [커머스 상태](status/commerce.md)가 실패·수정·재검증 원문을 연결한다. LEAD-018의 실제 MVP 실행 환경 보존 코드는 오프라인 경계 검사 중이며 제공자/runner 인수·실제 모델 검증은 [별도 논의](discussions/DISC-20260921-commerce-002-live-mvp-runtime.md)로 추적하는 미해결 항목이다.
 
 각 실행에는 시나리오 ID, 조사 ID, 앱의 `buildId`, 모델명·설정, 실행 시각, 검토자, 판정 이유를 남긴다. 반복 실행은 별도 행으로 기록한다.
 

@@ -60,10 +60,10 @@ VOC-01~07·NORMAL·NEEDS_INPUT·IDEMPOTENCY·RECOVERY의 검증 요약이 필요
 
 1. 담당 기능·데이터·문서·검증을 완료하고 자기 상태 Markdown에 결과와 미해결 요청을 정리한다.
 2. 변경을 명시적으로 커밋하고 `./scripts/dev publish`로 공유한다. 먼저 소스·검증 기준을 원격에 올린다.
-3. 깨끗한 main에서 아래 명령을 실행한다.
+3. 깨끗한 최신 main에서 [실제 모델 실행 환경](llm-runtime.md#실제-mvp-검증과-완료-명령)을 먼저 준비하고 아래 명령을 실행한다.
 
 ```bash
-./scripts/dev role-done commerce
+JDD_MVP_LIVE=true ./scripts/dev role-done commerce
 git add -- docs/status/commerce.json
 git commit -m "chore(commerce): record verified role completion"
 ./scripts/dev publish
@@ -71,6 +71,8 @@ git commit -m "chore(commerce): record verified role completion"
 ```
 
 role-done은 최신 main을 동기화하고 미공유 구현 커밋이 없는지 확인한 뒤 verify-mvp를 실제 실행한다.
+verify-mvp는 명시한 runtime/provider·모델과 현재 실행 빌드를 검사하며 기본 mock으로 앱을 교체하지 않는다.
+준비 후 원격 코드가 바뀌면 현재 빌드를 다시 준비해야 한다. 실제 모델 설정·관측·businessReady가 없으면 완료를 거부한다.
 실패하면 DONE을 작성하지 않는다. 통과하면 자기 JSON만 갱신한다. commit·push 전 로컬 기록은 팀 완료에 포함되지 않는다.
 publish 도중 다른 사람이 소스를 바꾸면 방금 올린 기록도 STALE로 판정될 수 있다. 최신 코드에서 검증 후 다시 기록한다.
 roles-check가 성공하면 리더 최종 검토 단계로 진행한다. 어떤 역할의 goal도 이 시점에 종료하지 않는다.
@@ -110,7 +112,7 @@ roles-status는 세 담당자 상태만 확인한다. 로컬 미공유 파일은
 4. 문제를 LEAD ID로 기록하고 직접 수정하거나 담당자에게 요청한다. 수정 커밋과 회귀 검증을 공유하고
    각 담당자가 최신 코드의 DONE을 갱신하도록 한다. 리더는 수정 결과도 직접 검증한다.
 5. 필수 검사와 모든 지적 검증이 끝나면 lead-review.json과 lead.md를 커밋·publish한다.
-6. `./scripts/dev lead-approve`로 전체 verify-mvp를 새로 실행한다. 통과하면 생성된 lead.json을 커밋·publish한다.
+6. 최신 빌드의 실제 모델 환경을 준비하고 `JDD_MVP_LIVE=true ./scripts/dev lead-approve`로 전체 verify-mvp를 새로 실행한다. 통과하면 생성된 lead.json을 커밋·publish한다.
 7. 최신 main에서 team-check가 성공해야 프로젝트와 각 goal을 완료한다.
 
 lead-approve는 미검토 영역·미해결 지적·반복 검증 부족·오래된 검토 기록·전체 검증 실패를 거부한다.

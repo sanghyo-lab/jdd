@@ -19,6 +19,16 @@
 
 
 
+
+## 2026-09-21T21:33:00+09:00 — LEAD-018 공통 실행기 보완·독립 실패 경계 검사
+
+- VOC의 직접 P1 수락/중복 편집 없음 확인에 따라 scripts/jdd.py의 실제 MVP 경로와 별도 회귀·실행 안내를 보완했다. 일반 verify/up 대신 명시 live 선택·현재 코드/빌드·세 앱 readiness·worker·어댑터/설정 관측을 검사하고, 자동 check 뒤와 runner 뒤에도 동일성을 확인한다. 준비한 앱을 재기동·교체하거나 로그인하지 않는다.
+- check 자식은 test/mock이고 runner 자식에는 포트와 비밀 없는 실행 정보만 전달한다. API/OAuth/DB 자격증명·알 수 없는 비밀 환경은 허용 목록 밖이다. Windows wrapper를 선택하고 실행별 runtime/mvp 디렉터리에 이전/새 결과를 보관한다. 실패·손상 JSON·mock·빌드 변경으로 과거 성공을 재사용하지 않는다. 완료 보고서 필수 필드와 역할/리더 기준은 유지했다.
+- 변경 전 오프라인 회귀 8개는 21개 하위 경우에서 기존 재기동 경로를 호출해 실패했고, 변경 후 8개 모두 통과했다. 원문 `commands/20260921T122843.143358Z-mvp-runtime-before-regression.log`, `commands/20260921T122948.479637Z-mvp-runtime-after-regression.log`다. 합성 보고서는 임시 저장소 안에서만 생성하며 실제 프로젝트 DONE을 만들지 않았다.
+- 실제 `./scripts/dev verify-mvp`는 명시 설정 없이 종료 1/0.181초로 즉시 거절했다. `commands/20260921T123021.329102Z-mvp-no-activation-before-publish.log`. 모델/API 호출이나 앱 활성화는 없었다. 전체 publish는 이어 수행한다.
+- Agent의 llm 설정 관측 요청은 답변/구현을 기다린다. 공통 소비 경로는 관측 누락을 명확히 거절하며 성공을 추정하지 않는다. Agent 인증/어댑터·VOC worker/runner 소스는 수정하지 않았다. LEAD-018은 제공자/소비자 인수·실제 모델 검증까지 OPEN이다.
+- LEAD-015는 Agent 54fe313와 VOC Windows 0b777f4의 직접 인수를 받아 VERIFIED로 갱신했다. Windows 실행자는 김아름이며 원문 SHA/위치는 본인 답변을 인용했다. 보고서·실행 안내는 최신 구현/인수에 맞추고 타인의 DONE·최종 승인은 작성하지 않았다.
+
 ## 2026-09-21T21:26:00+09:00 — 보고서 공유·Windows 소비 인수·MVP 경계 조율
 
 - README/보고서/LEAD-018은 `cfb14bf`로 전체 publish 종료 0/314.112초 후 공유했다. 원격 VOC P2·MVP 답변이 중간에 추가돼 전체 변경을 읽고 통합·재검증했다. Python 57개 통과·전체 Gradle check·세 앱 재기동/DB·HTTP/근거 연결은 통과했고 실제 모델 호출은 0회다. 원문 `commands/20260921T121953.529774Z-report-runtime-handoffs-publish.log`다.

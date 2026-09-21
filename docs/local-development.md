@@ -12,7 +12,8 @@
 
 명령은 macOS·Linux·Windows WSL에서 저장소 루트 기준으로 실행한다.
 Gradle은 저장소의 Wrapper 9.3.1, Spring Boot는 4.1.1을 사용한다.
-Spring AI 2.0.1은 버전 기준만 기록했으며 실제 모델 연결은 agent goal의 구현 범위다.
+모델 연결은 직접 Responses HTTP/SSE 어댑터를 사용한다. [LLM 실행 안내](llm-runtime.md)의 로컬 OAuth·배포 API·테스트 mock 구분을 따른다.
+Windows 네이티브에서는 `python scripts/jdd.py <명령>`과 `python scripts/llm <명령>`을 사용한다.
 
 ## 실행·확인
 
@@ -38,13 +39,13 @@ Wrapper·의존성을 다시 다운로드하지 않는다. 같은 캐시는 빌�
 
 각 앱의 /actuator/health는 기동·DB 연결, /internal/runtime은 실행 빌드·담당 스키마를 보여준다.
 agent와 voc의 /internal/dependencies로 읽기 권한·근거 볼륨·서버 간 HTTP 연결을 확인한다.
-초기 구현은 stage=BOOTSTRAP, businessReady=false다. 주문·티켓·LLM 분석 API는 담당별 goal에서 구현한다.
+businessReady는 실제 업무 준비 여부다. 현재 commerce 업무는 준비됐고 Agent·VOC의 실제 모델/전달·화면 통합은 아직 미완료다.
 포트 충돌 시 .env의 *_PORT를 변경한다. 호스트 포트는 127.0.0.1에만 바인딩한다.
 
 ## ngrok로 로컬 데모 공유
 
 데모 기본 방식은 이 PC의 web·세 앱·DB를 실행하고 ngrok로 web만 외부에 연결하는 것이다.
-OpenAI 모델 호출은 로컬 Agent에서 수행하며 프로모션 크레딧·데모 전용·$30 기준은 그대로 적용한다.
+로컬 모델은 프로젝트 전용 Codex OAuth를 사용한다. 프로모션 API 크레딧은 배포에만 사용하며 $30 상한을 자동 증액하지 않는다.
 [ngrok 로컬 데모 절차](ngrok-local-demo.md)의 주소·실행·검증·종료 기준을 따른다.
 현재 compose에는 web과 ngrok가 없으므로 `scripts/dev up`만으로 공개 데모 URL이 만들어지지는 않는다.
 
@@ -58,6 +59,10 @@ OpenAI 모델 호출은 로컬 Agent에서 수행하며 프로모션 크레딧·
 
 check는 Python 협업 도구 테스트·문서 검증·전체 Gradle check와 구현된 web의 npm ci/build를 실행한다.
 verify는 check 후 세 앱을 재빌드·기동하고 smoke를 수행한다.
+일반 up/verify/publish는 Agent를 test/mock으로 기동한다. 실제 모델 검증은 별도로 준비한 런타임에서
+`JDD_MVP_LIVE=true ./scripts/dev verify-mvp`를 명시 실행한다. [실제 MVP 실행 순서](llm-runtime.md#실제-mvp-검증과-완료-명령)를 따른다.
+verify-mvp는 먼저 현재 Git 빌드·세 앱 준비·모델 설정을 확인하고 check와 실제 runner를 실행한다.
+이 명령은 앱을 재기동하거나 provider를 바꾸지 않으며 설정·관측 누락이나 이전 빌드는 runner 전에 거절한다.
 down은 컨테이너를 내리고 DB 볼륨은 보존한다. 자동 동기화·검증에서는 DB 볼륨을 삭제하지 않는다.
 업무 데이터 초기화는 각 시나리오의 합성 데이터 범위에서만 수행한다.
 
@@ -92,9 +97,10 @@ verify-mvp를 새로 실행한 뒤 리더 승인을 작성한다. 새 문제를 
 ## 근거와 실행 산출물
 
 - runtime/evidence/source/<buildId>: commerce의 허용된 Java·마이그레이션 소스, manifest와 정상 정책 사본 policy/business-policy.md
-- runtime/evidence/logs/commerce/<buildId>: 업무 로그 생성 경로. 초기 골격은 업무 이벤트를 아직 생성하지 않음
+- runtime/evidence/logs/commerce/<buildId>: 실제 커머스 업무 이벤트와 상관 식별자
 - runtime/smoke.json: 실제 로컬 기동·연동 검사 결과
-- runtime/scenarios.json: scenario-runner 구현 후 실제 MVP 검증 결과
+- runtime/scenarios.json: scenario-runner 구현 후 마지막으로 전체 검증을 통과한 실제 MVP 결과
+- runtime/mvp/<실행 ID>/: 개별 runner 결과·전후 runtime 관측·이전 결과 보관. 실패·중단 결과를 성공으로 덮어쓰지 않음
 
 buildId는 커밋과 로컬 빌드 입력 해시를 포함한다. 개발 중 미커밋 변경은 manifest의 workingTreeDirty에 표시된다.
 같은 buildId의 기존 스냅샷은 덮어쓰지 않는다. 공식 시연·평가는 커밋된 코드에서 실행한다.

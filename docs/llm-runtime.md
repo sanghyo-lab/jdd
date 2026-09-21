@@ -52,6 +52,40 @@ web/화면 구현과 ngrok 접근 설정은 김아름 담당 연동이다. [ngro
 
 기본 오프라인 환경으로 돌아갈 때는 진행 중 조사가 끝난 후 `./scripts/dev up`을 실행한다. 일반 up/check/publish는 test/mock이며 OAuth·유료 호출·터널을 자동 활성화하지 않는다.
 
+## 실제 MVP 검증과 완료 명령
+
+실제 모델 범위와 인증을 준비한 뒤 최신 소스의 앱을 먼저 기동한다. 로컬은 위 local/codex_oauth 환경을 유지하며 다음 순서를 쓴다.
+
+```bash
+./scripts/dev sync
+./scripts/llm run-local
+JDD_MVP_LIVE=true ./scripts/dev verify-mvp
+# 모든 필수 기능·검증을 갖춘 뒤 자기 완료 또는 리더 검증:
+JDD_MVP_LIVE=true ./scripts/dev role-done commerce
+# 리더의 전 영역 검토와 세 담당자의 유효한 DONE 이후:
+JDD_MVP_LIVE=true ./scripts/dev lead-approve
+```
+
+`verify-mvp`는 일반 `verify/up`을 호출하지 않는다. 현재 Git 커밋·빌드 입력의 buildId, 세 앱 businessReady,
+Agent worker·실제 어댑터 모드와 선택한 runtime/provider/설정 모델을 먼저 확인한다. 일반 자동 검사 뒤와
+시나리오 실행 뒤에도 같은 코드·실행 환경인지 확인한다. 오래된 실행, mock, 설정 누락/불일치는 실패이며 자동 로그인·fallback·배포·키 활성화를 하지 않는다.
+`JDD_MVP_LIVE=true`는 이미 허용된 범위의 명시 실행 표시이며 새 유료 예산 승인이나 모델 접근을 제공하지 않는다.
+
+Agent 내부 관측은 `llm: {runtime, provider, configuredModel}`로 연결한다([DISC-commerce-002](discussions/DISC-20260921-commerce-002-live-mvp-runtime.md)).
+이 필드는 선택된 설정이며 실제 응답 모델·사용량은 아니다. runner의 기존 `model`은 실제 모델 응답/장부로 확인해야 한다.
+현재 제공자 관측 필드 인수·runner·실제 모델 검증이 남아 있어 이 명령으로 DONE을 기록할 준비가 완료된 것은 아니다.
+
+자동 check 자식은 test/mock, runner 자식은 앱의 로컬 포트·선택한 실행 정보만 받아 동작한다. OAuth 파일·토큰·API 키·DB 암호를 자식 환경에 전달하지 않는다.
+runner는 서비스 HTTP를 호출하며 직접 모델에 연결하거나 CLI 로그인을 실행하지 않는다. Windows 네이티브에서는 위 명령을
+`python scripts/jdd.py ...` 또는 `python scripts/llm ...`으로 실행하며 runner의 Gradle wrapper도 Windows에 맞게 선택한다.
+
+배포 검증은 배포 호스트에서 미리 준비한 deployed/openai_api와 확정한 scope·모델·예산·만료 아래에서만 명시 실행한다.
+로컬에서 프로모션 API를 검증하는 대체 경로가 아니다. 모델 변경/재기동이나 동시 소스 갱신이 필요하면 진행 중 조사가 끝난 뒤 새 빌드를 준비한다.
+일반 publish는 mock으로 되돌리므로 다음 live 검증 전에 다시 준비해야 한다.
+
+매 runner 실행의 `runtime/mvp/<실행 ID>/`에 전후 관측·새 결과·이전 결과를 보존한다. 실패·불완전 JSON·mock·빌드 변경을 통과 결과로 쓰지 않는다.
+`runtime/scenarios.json`은 전체 검증이 통과했을 때만 갱신하며 이전 파일도 실행 디렉터리에 보관한다. 파일이 있다는 사실만으로 이번 실행이 성공한 것은 아니다.
+
 ## 배포 설정과 별도 smoke
 
 배포 서비스의 Agent에 다음 환경변수만 설정한다. 실제 키는 배포 secret으로 주입하며 `CODEX_AUTH_FILE`, OAuth 파일/볼륨은 배포하지 않는다.
