@@ -1,0 +1,20 @@
+# Local IDE and OS files
+.idea/
+*.iml
+.DS_Store
+
+# Generated build and runtime files
+.gradle/
+**/build/
+**/out/
+**/target/
+node_modules/
+.next/
+.vercel/
+runtime/
+
+# Local environment configuration
+.env
+.env.*
+!.env.example
+!.env.*.example
