@@ -3,8 +3,13 @@ package com.jdd.agent;
 import com.jdd.agent.domain.*;
 import com.jdd.agent.domain.InvestigationModel.*;
 import com.jdd.agent.infra.InvestigationPromptLoader;
+import com.jdd.agent.infra.CommerceEvidenceDatabase;
+import com.jdd.agent.infra.CommerceDataTools;
+import com.jdd.agent.infra.LogEvidenceTools;
+import com.jdd.agent.infra.SourceEvidenceTools;
+import com.jdd.agent.infra.ReadOnlyInvestigationTools;
+import java.nio.file.Path;
 import java.time.Clock;
-import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
@@ -21,14 +26,17 @@ public class InvestigationExecutionConfiguration {
         };
     }
 
-    @Bean @ConditionalOnMissingBean InvestigationTools investigationTools() {
-        return new InvestigationTools() {
-            @Override public List<ToolDefinition> definitions() { return List.of(); }
-            @Override public List<String> validate(ToolCall call) { return List.of("Tool provider is not configured"); }
-            @Override public List<InvestigationExecutionRepository.Observation> execute(ToolCall call) {
-                throw new IllegalStateException("Tool provider is not configured");
-            }
-        };
+    @Bean @ConditionalOnMissingBean InvestigationTools investigationTools(JsonMapper json,
+            @Value("${EVIDENCE_DB_URL:jdbc:postgresql://localhost:5432/jdd}") String url,
+            @Value("${EVIDENCE_DB_USERNAME:jdd_evidence}") String username,
+            @Value("${EVIDENCE_DB_PASSWORD:}") String password,
+            @Value("${SOURCE_ROOT:runtime/evidence/source}") String sourceRoot,
+            @Value("${LOG_ROOT:runtime/evidence/logs/commerce}") String logRoot,
+            @Value("${POLICY_PATH:docs/business-policy.md}") String policyPath) {
+        var clock = Clock.systemUTC();
+        return new ReadOnlyInvestigationTools(new CommerceDataTools(new CommerceEvidenceDatabase(url, username, password, clock)),
+                new LogEvidenceTools(Path.of(logRoot), json, clock),
+                new SourceEvidenceTools(Path.of(sourceRoot), Path.of(policyPath), json, clock), json);
     }
 
     @Bean InvestigationRunner investigationRunner(InvestigationRepository repository,

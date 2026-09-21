@@ -80,16 +80,16 @@ public final class InvestigationRunner {
                     if (++executedTools > limits.toolCalls()) throw limitFailure();
                     String toolId = executions.beginTool(claim, call.name(), clock.instant()).orElse(null);
                     if (toolId == null) return;
-                    final List<InvestigationExecutionRepository.Observation> observations;
+                    final InvestigationTools.Outcome outcome;
                     try {
-                        observations = tools.execute(call);
+                        outcome = tools.execute(call);
                     } catch (RuntimeException toolError) {
                         throw toolFailure();
                     }
-                    var saved = executions.completeTool(claim, toolId, "근거 " + observations.size() + "건을 저장했습니다.",
-                            observations, clock.instant());
+                    var saved = executions.completeTool(claim, toolId, outcome.summary(),
+                            outcome.observations(), clock.instant());
                     if (saved.isEmpty()) return;
-                    history.add(Message.tool(call, saved.get(), "서버가 저장한 관측입니다. 잘림과 출처를 확인하세요."));
+                    history.add(Message.tool(call, saved.get(), outcome.summary() + " 서버에 저장된 관측의 잘림과 출처를 확인하세요."));
                 }
                 continue;
             }

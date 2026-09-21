@@ -172,10 +172,10 @@ class InvestigationRunnerTest {
         return new InvestigationTools() {
             @Override public List<ToolDefinition> definitions() { return List.of(new ToolDefinition("getInventoryContext", "합성 조회 도구", "{}")); }
             @Override public List<String> validate(ToolCall call) { return List.of(); }
-            @Override public List<Observation> execute(ToolCall call) {
+            @Override public Outcome execute(ToolCall call) {
                 if (toolCalls.incrementAndGet() == 2 && failSecond) throw new IllegalStateException("Synthetic storage failure");
-                return List.of(new Observation(EvidenceType.DATA, "합성 관측", now, Map.of("schema", "commerce", "table", "product_stock"),
-                        Map.of("columns", List.of("quantity"), "rows", List.of(List.of(1))), false));
+                return new Outcome(List.of(new Observation(EvidenceType.DATA, "합성 관측", now, Map.of("schema", "commerce", "table", "product_stock"),
+                        Map.of("columns", List.of("quantity"), "rows", List.of(List.of(1))), false)), "합성 조회 결과 1건");
             }
         };
     }

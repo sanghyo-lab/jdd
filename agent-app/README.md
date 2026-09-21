@@ -129,3 +129,25 @@ python3 agent-app/scripts/check_worker.py --compose-dir /path/to/verification-cl
 
 DB 설정은 지정한 clone의 `.env`에서 읽는다. 임시 JVM에는 DB·Java·로컬 포트 설정만 전달하며 모델 키를 전달하지 않는다.
 검증한 네트워크 호출은 로컬 HTTP/PostgreSQL이다. 실제 OpenAI·ngrok·VOC 업무 검증은 별도다.
+
+## 읽기 전용 조사 도구
+
+실행기는 `commerce-evidence-v1`의 여덟 도구를 제공한다: `findOrders`, `getOrderContext`,
+`getCouponContext`, `getInventoryContext`, `searchLogs`, `searchCode`, `readCode`, `readBusinessPolicy`.
+도구 인자는 엄격한 JSON 타입·알려진 필드·범위로 검증하며 모델이 SQL·명령·임의 파일을 실행하지 않는다.
+환경은 기존 Compose의 `EVIDENCE_DB_URL/USERNAME/PASSWORD`, `SOURCE_ROOT`, `LOG_ROOT`, `POLICY_PATH`를 사용한다.
+DB 계정은 Agent 저장 계정과 별개이며 계약 10개 테이블의 SELECT와 쓰기/DDL 권한 부재를 조회 때 확인한다.
+한 DB 도구 안의 여러 SELECT는 REPEATABLE READ 스냅샷을 공유한다. 별도 도구끼리의 관측 시각은 다를 수 있다.
+
+- 행 수는 기본 20 또는 50, 최대 100이다. 한 행을 추가로 읽어 잘림을 구분한다. 재고의 전체 종류별 이력·상태별 주문 수량 집계는 제한된 원문 행과 별도로 반환한다.
+- 로그는 상관조건 AND·최대 하루 범위로 조회한다. 최대 32개 build/파일·4MiB·결과 100줄이며 미완성 마지막 줄·검색 한도를 부분 결과로 기록한다. 비어 있고 완전한 검색만 150ms 간격으로 최대 2회 재조회하며 모델을 재호출하지 않는다.
+- 동일 eventId의 동일 원문은 줄 번호를 보존하고 중복임을 표시한다. 같은 eventId의 상충 내용, 손상된 완성 줄, buildId 불일치는 도구 실패다. 빈 결과는 지연된 로그나 장애의 부재를 입증하지 않는다.
+- 소스는 지정 buildId의 manifest와 SHA-256이 일치하는 허용 Java·migration 파일만 읽는다. 검색은 최대 512파일·4MiB·30구간, 직접 읽기는 최대 300줄이다. 심볼릭 링크·경로 이탈·테스트·재현 제어·fixtures를 차단한다.
+- 정책은 manifest의 버전과 현재 정책 파일의 명시된 버전을 대조하고 원문·조회 시점 해시를 보존한다. 현행 manifest에는 정책 원문의 해시/사본이 없으므로 과거 정책 파일까지 불변으로 보관됐다는 뜻은 아니다.
+- 빈 검색의 범위와 한도는 도구 실행 요약에도 저장한다. 존재하지 않는 근거 ID를 만들어 빈 검색을 인용하지 않는다.
+
+`EvidenceFileToolsTest`는 경로·해시·필드 타입·부분/중복 로그를 검사한다.
+`CommerceEvidencePostgresTest`는 별도 `jdd_agent_tools_test` DB에서만 명시적으로 실행하며
+`JDD_TOOLS_TEST_DB_URL`, `JDD_TOOLS_TEST_OWNER_PASSWORD`, `JDD_TOOLS_TEST_READER_PASSWORD`가 필요하다.
+실제 commerce DDL과 역할 `jdd_commerce`/`jdd_evidence`를 준비하고 합성 데이터·SELECT·권한 거절·스냅샷을 검증한다.
+이 검사는 실제 모델 품질이나 VOC 화면 검증을 대신하지 않는다.
