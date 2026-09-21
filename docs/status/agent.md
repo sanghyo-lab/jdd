@@ -1,5 +1,13 @@
 # 한재홍 — AI Agent 작업 상태
 
+## 2026-09-22T08:59:09+09:00 — v8 실제 부분 검수 인수·원문/사용량 대조
+
+- `6e684ca` 전체 publish 종료0으로 공유했다. Java228개 중219통과/9조건부제외·실패0, Python70/부모6/web19·production build·세 앱 실제 PostgreSQL/HTTP/근거 연결이 통과했다. `followup-review-v8-publish.log/json`, `followup-review-v8-publish-tests.json`을 보존했고 일반 검사의 실제 모델 호출0이다.
+- 방금 실패했던 VOC-02의 같은 티켓에서 실제 화면 새 분석 `3170b332-cf9b-4675-ad82-425d803a004d`/조사 `21add8b5-c286-4abb-a517-073125fa3a30`를 한 번 실행했다. 12도구/46근거로 COMPLETED이며 Agent build `6e684ca45d2f-8f9e02b0545c`, 보존 커머스 근거 build9fa3e87이다. 4번째 초안 뒤 5번째 부분 검수가 항목1개만 교체했고 삭제0/요약유지다. 실패 초안이나 과거 보고서를 덮어쓰지 않았다.
+- 직접 원문 대조에서 거절 사실·원인·조치는 실제 COUPON_REJECTED/금액50000/reasonCode와 연결됐고 원인은 쿠폰 DATA·해당 CODE 비교식·정책을 자체 인용한다. 빈 orders/order_items는 각각의 조회 조건·원문을 인용해 중단 단계를 확대 단정하지 않는다. 수정 검토 뒤 고객 재시도 안내와 예방 경계값 검증을 구분한다. 해당 focused 결과의 인용/조치 인수이며 전체 최신 MVP·반복 효율·별도 영상 환경 DEMO-AGENT-001 재검증을 대신하지 않는다.
+- OAuth5회 입력67,523·출력3,630·reasoning1,561(출력 일부), cached/cache write0·모델79,060ms다. 검수1회는 입력11,180·출력844·reasoning699·17,778ms로 기록됐다. 비교 실행의 조회/응답이 달라 절감률을 주장하지 않는다. 이 스택83행/기존usage미관측1/API0/진행0을 DB·내부GET로 대조했다.
+- 원문 `followup-oauth-voc02-05/`, `followup-voc02-05-diagnostics.log`, `followup-voc02-v8-review.json`, `followup-observations-after-voc02-05.log/json`과 실제 브라우저 snapshot을 보존한다. 최신 공유 코드로 새 prefix 전체 runner를 이어가며 김아름의 실제 소비 결과·남은 논의를 확인한다. 역할 DONE은 아직 아니다.
+
 ## 2026-09-22T08:58:00+09:00 — 시연 병렬 제작·보존 실패와 v8 반영
 
 - 사용자 추가 지시대로 VOC05·06·07을 각각 전용 Playwright 세션과 담당자로 분리하고, 결과 검수·촬영·음성·편집을 병렬화했다. 실제 원본은 `output/playwright/jdd-demo/20260922-233019/`, 제작물은 `output/jdd-demo/20260922-233019/`에 보존한다. 01·02·03·04·07의 원본/정상속도 Yuna 음성/1.5배 화면/자막 미리보기5개를 만들었다. 마지막2개가 남아 최종7개 합본 완료는 아니다.
@@ -8,6 +16,7 @@
 - 같은 v7의5/6 두번째조사도 보존한다. 05 `4df023a8-3cc5-48e8-aafd-4c7a9cde7e07`은 3정상응답 뒤90015ms의 TRANSPORT_FAILURE_USAGE_UNKNOWN/LLM_UNAVAILABLE,06 `a55eb914-87a3-4aa5-b0c3-4d0d39ec509b`는 최종검수 과정에서 전체3분 INVESTIGATION_TIMEOUT이다. 미관측 usage를0으로 계산하지 않는다. 두 실패를 성공촬영으로 대체하지 않았다.
 - 구현담당이 접수·공유한6e684ca의 v8을 촬영clone main에 병합/Agent bootJar빌드했다. 7촬영과5/6두번째종료·원문저장을 확인한 뒤 **격리 Agent만** build `45c879c27035-8f9e02b0545c`로 재기동했다. 기존 Commerce/VOC/DB·개발세션 앱과 모든저장결과는 그대로다. 사용자 병렬지시에 따라 Git밖 runtime Compose override로 이격리Agent의 지원범위 내 worker2를 설정하고 실제값을 확인했다. 기존local OAuth 기본worker1의 공유코드는 바꾸지 않았다.
 - 바뀐v8 조건에서5/6을 같은고객문의/실제식별자로 각각 새키1회 병렬접수했다. 평가정답/코드원인을 문의에 추가하지 않았고 조사별3분/호출/입력 제한도 유지한다. 결과는 `investigations-v8/`에 이전두실패와 분리해 검수한다. 배포프로모션API 호출0/TTS API호출0이고 촬영선택결과로 반복안정성·역할DONE·team-check를 대신하지 않는다.
+
 
 ## 2026-09-22T08:51:30+09:00 — DEMO-AGENT-001 접수·최종 검수의 부분 수정
 
