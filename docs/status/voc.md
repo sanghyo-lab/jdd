@@ -1,15 +1,15 @@
 # 김아름 — VOC 티켓·AI 연동 작업 상태
 
-- 상태: 티켓 API와 분석 요청·불변 입력·이력 저장을 main에 공유하고 실제 PostgreSQL·앱 재시작 보존을 검증했다. Agent 전달/조회 worker·화면·runner는 진행 대상이다.
+- 상태: 티켓·분석 저장과 Agent 전달/조회·근거 중계를 main에 공유했다. 실제 Agent 429·재시작 후 전달/조회 복구·설정 오류 분리를 검증했으며 화면·접근 제어·runner는 진행 대상이다.
 - 담당자: 김아름 (역할 C)
 - GitHub 계정: `AhReumKim-ar`
 - 작업 브랜치: `main`
 - 완료 선언: [voc.json](voc.json)의 IN_PROGRESS. 실제 검증 후 자기 DONE을 공유하고 [세 담당자 완료 기준](../team-completion.md)이 충족될 때까지 goal을 유지한다.
 - 시작 지침: [voc goal](../goals/voc.md), [공통 실행](../local-development.md)
-- 공유 커밋: 티켓 `d8246e9`, 검증 안내 `d5d5484`, 주문 시각 정밀도 수정 `1d29d20`, 분석 요청 저장 `4de1a98`
+- 공유 커밋: 티켓 `d8246e9`, 주문 시각 정밀도 `1d29d20`, 분석 저장 `4de1a98`, 영속 전달/조회/근거 `f5064c8`, Windows 인수 요청 `4d412ec`
 - 담당 경로: `voc-app/`, `voc-core/`, `voc-infra/`, `web/`, `scenario-runner/`
 - 준비된 자료: [구현 범위](../roles/kim-areum-voc.md), [VOC·Agent 계약](../integration-contract.md), [커머스 계약](../commerce-interface.md), [프론트 설계](../frontend-deployment.md)
-- 다음 작업: 서버 Agent 전달/조회·근거 중계 단위 전체 publish와 실제 상대 앱 재시작 인수, 이후 한국어 화면·runner 구현
+- 다음 작업: 한국어 web의 티켓·분석·리포트·근거/오류 화면과 접근 제어, 이후 VOC-07 순차 runner 구현
 - 제공받은 입력: Agent 조사 API·실행기·8개 조회 도구, commerce VOC-07/02/03 재현 자료. 실제 모델 검증 허용 범위·배포 환경은 별도다.
 - 검증 결과: 티켓·분석 HTTP/H2와 실제 PostgreSQL 계약, 전체 Gradle check, 세 앱 Docker 기동·smoke와 앱 재생성 후 티켓·분석 입력/이력/동일 키 보존 통과. 프론트·VOC runner·실제 모델은 미검증.
 - 연동 요청: 아래 논의의 P1 수락과 공통 생성기 책임을 기록했다. scenario-runner는 아직 미구현을 알리는 실패 종료 골격이다.
@@ -149,3 +149,13 @@
 
 - [DISC-commerce-002](../discussions/DISC-20260921-commerce-002-live-mvp-runtime.md)에 VOC-LEAD-MVP-001을 기록했다. scripts/tests/test_live_mvp.py의 네이티브 8개 중 7개는 통과했으며 97행의 ./gradlew 고정 기대값이 실제 gradlew.bat와 달라 1개 실패했다. 리더 소유 회귀 파일의 OS별 기대값 수정과 공유 후 재검증을 요청한다. 기본 선택·비밀 제외·결과/실패 보존 기준을 낮추지 않는다.
 - 실제 JDD_MVP_LIVE=false verify-mvp는 모델/runner 실행 전에 명시 선택 오류로 종료 1이다. worker-live-mvp-windows.log와 worker-live-mvp-cli-rejection.log에 보존했다. 이를 실제 MVP 또는 Windows live 모델 성공으로 표시하지 않는다.
+
+## 2026-09-21T22:03:00+09:00 — worker 게시·실제 Agent 429/재시작/설정 오류 인수
+
+- 공유: `f5064c8` 전체 publish 종료 0과 GitHub main 포함을 확인했다. 동시 원격 변경을 두 번 보존해 재검증했다. 최종 Python 65개, Java 170개 중 성공 161·조건부 제외 9·실패/오류 0, 세 앱·실제 PostgreSQL/HTTP/근거 마운트 smoke가 통과했다. runtime/verification/latest-linux-gradle-check.json은 testedCommit=f5064c87a5d3dd0e5f507125bebcdf65393f34da와 새 결과 디렉터리를 가리킨다.
+- 실제 연동: buildId f5064c87a5d3-ecdb314481f9의 동일 이미지·DB에서 합성 티켓 v1/v2 분석 두 건을 작업기 정지 상태로 저장했다. VOC 컨테이너를 새로 만들어 첫 요청이 실제 Agent에 SUBMITTED/QUEUED로 연결됨을 확인했다. 수정 전 입력과 현재 티켓 v2를 구분해 유지했다.
+- 실제 429: Agent 작업기만 잠시 멈추고 큐 수용량을 1로 설정했다. 두 번째 요청은 네 번의 실제 429 후 FAILED/submissionError=INVESTIGATION_QUEUE_FULL/retryable=true다. 관측 간격은 5.960375/11.003679/21.009465초였으며 READ ONLY SQL의 deliveryAttempts=4·queueRejections=4·nextWorkAt=null과 일치한다.
+- 재시작: VOC를 다시 재생성해 첫 조사의 같은 ID/QUEUED 상태 polling과 lastSyncedAt 갱신이 이어짐을 확인했다. 한도를 소진한 두 번째 분석은 재시작 전 전체 응답과 같았으며 자동 재전송하지 않았다.
+- 기본 복원·수동 복구: Agent/VOC를 기본 test/mock 설정으로 복원한 뒤 두 번째 같은 키를 수동 POST했다. 같은 분석 ID·v2 입력으로 접수됐고 두 조사는 서로 다른 ID다. 실제 Agent의 LLM_CONFIGURATION_ERROR는 SUBMITTED 안의 조사 FAILED로 표시되며 전달/조회 오류는 null, 티켓은 v2/OPEN을 유지한다. 두 키 재전송·두 이력·실제 Agent GET과 VOC 캐시 동일성을 확인했다. 이는 모델 비활성 오류 소비 검증이며 실제 모델 보고서 성공은 아니다.
+- 원문: runtime/verification/worker-runtime-handoff.log와 worker-runtime-handoff.json. JSON SHA-256 e543d353e4bf640320904cef289af415b168fe641d23f99cfd4313b57ab9a74d. 마지막 Agent는 workerEnabled=true, investigationModel=MOCK, llm={runtime:test, provider:mock, configuredModel:mock}다. 임시 검증 설정을 복원했고 일반 앱 DB·이전 근거를 삭제하지 않았다.
+- 협업: DISC-agent-005에 실제 backend 소비 결과, DISC-agent-001에 설정 오류 분리를 직접 기록했다. UI/실제 모델/전체 runner가 남아 논의를 해소하지 않는다. VOC-LEAD-MVP-001의 Windows 기대값 수정은 리더 인수 대기다. AGENT-LEAD-019의 최근 로그 후보 선택은 리더가 맡고 있으며 후속 근거/runner 인수에서 추적한다. 타인의 완료·리더 승인 JSON은 수정하지 않는다.
