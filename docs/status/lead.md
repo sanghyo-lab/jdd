@@ -11,6 +11,15 @@
 
 다른 담당자의 DONE을 대신 작성하지 않는다. 전체 코드 수정 권한으로 직접 보완한 내용과 영향을 여기에 공유한다.
 
+## 2026-09-22T08:23:16+09:00 — VOC-LEAD-HANDOFF-001 / 김아름에게 위임 결과 인계
+
+- 사용자 최신 지시: 김아름 출근으로 이후 이상효 작업은 커머스에 집중한다. AI Agent 구현은 한재홍에게 유지하고 VOC/web/runner의 추가 위임 구현을 멈춘다. 이 기록은 김아름의 접수·수락·DONE을 대신하지 않으며 접수 대기다.
+- 제공 범위: 분석 요청·같은키 전달 재시도·새키/v2 재조사·이력·리포트/4종 근거 패널·오류 안내, 커머스 `/shop`, 실제 HTTP scenario-runner/부모 준비·VOC 재시작 helper. 통합 `d642878`·상품 선택 보존 `86a0466`·인수/보고서 `18288a3`를 main에 공유했다. 현재까지 모든 기존 작업자의 변경을 보존했다.
+- 김아름 확인 대상: `web/components/analysis-workspace.tsx`, `investigation-report.tsx`, `evidence-panel.tsx`, `shop.tsx`, `scenario-runner/`와 `scripts/jdd.py`. [web 실행](../../web/README.md), [runner 실행](../../scenario-runner/README.md), [P1 장부/LOG 소비](../discussions/DISC-20260922-commerce-001-model-observations.md), [P2 준비 상태](../discussions/DISC-20260921-commerce-002-live-mvp-runtime.md)를 인수하고 자기 PC의 실제 소비 결과·자기 상태를 직접 갱신해 달라. 계약 필드 삭제·이름 변경은 없다.
+- 리더 직접 결과: PC1440/모바일390 문의7개·주문9개, 실제 주문/결제/환불 DB 각1건·로그7줄·소스 일치, 재기동 후 읽기 화면4개. 리포트/근거16개는 합성 HTTP 검사로 실제 모델 품질과 구분한다. 실제 helper 자료준비/복구와 도구142개 원문 대조도 통과했다. 경로·실패 원문은 이 문서의 앞선 기록에 있다. 다른 PC에 로컬 로그가 자동 전달됐다고 가정하지 않는다.
+- Agent 담당자의 최신 `9393334` 원인 인용 검사를 전부 검토·통합하고 관련145개 통과/9조건부제외·실패0, 세 앱 새 buildId `dda61154abf6-9a0ff1e8869a` 기동/HTTP·DB smoke를 확인했다. 후속 보완의 실제 모델 효과는 미검증이다. 이 PC의 모델 ID 질문은 남아 있으나 새 모델 활성화·호출은 하지 않으며 커머스 인계와 분리한다.
+- 커머스는 source/fixture/업무 계약 변경 없이38회 반복 근거를 유지하고 현재 DB·실행소스35개/정책 SHA 불변을 대조했다. 세 담당자 완료·최종 독립 승인 기준은 유지하며 타인의 DONE이나 전체 완료를 만들지 않는다.
+
 ## 2026-09-22T08:17:53+09:00 — 최종 공유·기동 보존 확인과 미완료 게이트
 
 - 양쪽 논의 답변·Agent v6 보완을 합친 `18288a3` 전체 publish가 종료0/241.987초로 공유됐다. Python70·Java207통과/9조건부제외·web19, 세 앱 실제 연결과 buildId `18288a3bbd36-db1465b3a89f`를 확인했다. `handoff-publication-junit-runtime.json`과 `commands/20260921T231109.686886Z-final-handoff-publication-merged.log`에 보존했다. 기존 checkout/직접 인용 기준을 낮추지 않았다.
