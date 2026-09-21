@@ -52,7 +52,7 @@ class InvestigationRunnerTest {
     @Test void runsToolStoresEvidenceThenReturnsReportAndRepeatedHttpReadsDoNotCallModel() throws Exception {
         var claim = start();
         var runner = runner(request -> {
-            assertThat(request.prompt().version()).isEqualTo("investigation-system-v6");
+            assertThat(request.prompt().version()).isEqualTo("investigation-system-v7");
             assertThat(request.prompt().sha256()).hasSize(64);
             assertThat(request.prompt().text()).contains("같은 조사에 실제 저장한 관측", "requiresHumanAction");
             if (request.iteration() == 1) return toolReply("read-1", "getInventoryContext", "{}");
@@ -95,6 +95,70 @@ class InvestigationRunnerTest {
         assertThat(toolCalls).hasValue(0);
     }
 
+    @Test void complexReportIsReviewedWithTheSameStoredEvidenceBeforeItBecomesVisible() {
+        var claim = start();
+        runner(request -> {
+            if (request.iteration() == 1) return toolReply("read-1", "getInventoryContext", "{}");
+            var saved = request.history().stream().filter(m -> m.kind() == MessageKind.TOOL)
+                    .flatMap(m -> m.observations().stream()).toList();
+            if (request.iteration() == 3) {
+                assertThat(view(claim).status()).isEqualTo(Status.RUNNING);
+                assertThat(view(claim).report()).isNull();
+                assertThat(request.tools()).isEmpty();
+                assertThat(request.history().getLast().kind()).isEqualTo(MessageKind.FEEDBACK);
+                assertThat(request.history().getLast().text()).contains("최종 인용 검수");
+                assertThat(request.history().stream().filter(m -> m.kind() == MessageKind.ASSISTANT).count()).isEqualTo(2);
+                assertThat(repository.findEvidence(claim.investigationId(), saved.getFirst().evidenceId())).contains(saved.getFirst());
+            }
+            return reportReply(complexReport(saved, request.iteration() == 3 ? "Reviewed scope" : "Draft scope"));
+        }, tools(false), 3, 24).run(claim);
+        assertThat(view(claim).status()).isEqualTo(Status.COMPLETED);
+        assertThat(view(claim).report().summary()).isEqualTo("Reviewed scope");
+        assertThat(modelCalls).hasValue(3);
+        assertThat(toolCalls).hasValue(1);
+        assertThat(view(claim).evidence()).hasSize(1);
+    }
+
+    @Test void finalReviewCannotBypassTheModelLimitOrRunAnotherTool() {
+        for (int maximum : List.of(2, 3)) {
+            modelCalls.set(0); toolCalls.set(0);
+            var claim = start();
+            runner(request -> {
+                if (request.iteration() == 1 || request.iteration() == 3)
+                    return toolReply("read-" + request.iteration(), "getInventoryContext", "{}");
+                var saved = request.history().stream().filter(m -> m.kind() == MessageKind.TOOL)
+                        .flatMap(m -> m.observations().stream()).toList();
+                return reportReply(complexReport(saved, "Unreviewed draft"));
+            }, tools(false), maximum, 24).run(claim);
+            assertThat(view(claim).status()).isEqualTo(Status.FAILED);
+            assertThat(view(claim).error().code()).isEqualTo("INVESTIGATION_BUDGET_EXCEEDED");
+            assertThat(view(claim).report()).isNull();
+            assertThat(modelCalls).hasValue(maximum);
+            assertThat(toolCalls).hasValue(1);
+        }
+    }
+
+    @Test void finalReviewIsValidatedAndUsesTheExistingRepairAllowance() {
+        var claim = start();
+        runner(request -> {
+            if (request.iteration() == 1) return toolReply("read-1", "getInventoryContext", "{}");
+            if (request.iteration() >= 3) {
+                assertThat(request.tools()).isEmpty();
+                assertThat(view(claim).status()).isEqualTo(Status.RUNNING);
+                assertThat(view(claim).report()).isNull();
+            }
+            if (request.iteration() == 3) return new Reply("{invalid review", List.of());
+            if (request.iteration() == 4) assertThat(request.history().getLast().text()).contains("보고서 검증 오류");
+            var saved = request.history().stream().filter(m -> m.kind() == MessageKind.TOOL)
+                    .flatMap(m -> m.observations().stream()).toList();
+            return reportReply(complexReport(saved, request.iteration() == 4 ? "Repaired review" : "Draft"));
+        }, tools(false), 4, 24).run(claim);
+        assertThat(view(claim).status()).isEqualTo(Status.COMPLETED);
+        assertThat(view(claim).report().summary()).isEqualTo("Repaired review");
+        assertThat(modelCalls).hasValue(4);
+        assertThat(toolCalls).hasValue(1);
+    }
+
     @Test void missingDirectCauseCoverageUsesExistingRepairBudgetAndNeverPublishesUnrepairedReport() {
         for (boolean repair : List.of(true, false)) {
             modelCalls.set(0); toolCalls.set(0);
@@ -122,14 +186,19 @@ class InvestigationRunnerTest {
                     assertThat(view(claim).report()).isNull();
                     assertThat(request.tools()).isEmpty();
                 }
-                var causeIds = saved.stream().filter(e -> (repair && request.iteration() == 3) || e.type() != EvidenceType.DATA)
+                if (request.iteration() == 4) {
+                    assertThat(request.history().getLast().text()).contains("최종 인용 검수");
+                    assertThat(request.tools()).isEmpty();
+                    assertThat(view(claim).report()).isNull();
+                }
+                var causeIds = saved.stream().filter(e -> (repair && request.iteration() >= 3) || e.type() != EvidenceType.DATA)
                         .map(EvidenceDetail::evidenceId).toList();
                 return reportReply(new AnalysisReport("1.0", "Synthetic coverage check",
                         List.of(new Fact("f", "Stored observations", saved.stream().map(EvidenceDetail::evidenceId).toList())),
                         List.of(new Hypothesis("h", "Implementation explanation", SupportLevel.SUPPORTED, causeIds, List.of())),
                         List.of(), List.of(), List.of()));
-            }, observations, 3, 1).run(claim);
-            assertThat(modelCalls).hasValue(3);
+            }, observations, 4, 1).run(claim);
+            assertThat(modelCalls).hasValue(repair ? 4 : 3);
             assertThat(toolCalls).hasValue(1);
             assertThat(view(claim).evidence()).hasSize(4);
             if (repair) assertThat(view(claim).status()).isEqualTo(Status.COMPLETED);
@@ -300,6 +369,12 @@ class InvestigationRunnerTest {
     private Investigation view(Claim claim) { return repository.find(claim.investigationId()).orElseThrow().investigation(); }
     private Reply toolReply(String id, String name, String arguments) { return new Reply(null, List.of(new ToolCall(id, name, arguments))); }
     private Reply reportReply(AnalysisReport report) { return new Reply(json.writeValueAsString(report), List.of()); }
+    private AnalysisReport complexReport(List<EvidenceDetail> saved, String summary) {
+        var ids = saved.stream().map(EvidenceDetail::evidenceId).toList();
+        return new AnalysisReport("1.0", summary, List.of(new Fact("f", "Observed state", ids)),
+                List.of(new Hypothesis("h", "Bounded explanation", SupportLevel.PARTIAL, ids, List.of("Limited scope"))),
+                List.of(), List.of(), List.of());
+    }
     private AnalysisReport emptyReport() { return new AnalysisReport("1.0", "합성 검증용 보고서", List.of(), List.of(), List.of(), List.of(), List.of()); }
     private String base() { return "http://127.0.0.1:" + port + "/api/investigations"; }
     private HttpResponse<String> get(String path) throws Exception {

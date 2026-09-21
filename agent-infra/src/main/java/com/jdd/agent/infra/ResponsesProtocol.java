@@ -34,7 +34,8 @@ public final class ResponsesProtocol {
         if (request.remaining() != null) {
             input.add(Map.of("role", "user", "content", "서버 실행 한도: 이번 응답을 포함해 모델 응답 "
                     + request.remaining().modelCalls() + "회, 추가 조회 도구 " + request.remaining().toolCalls()
-                    + "회가 남았습니다. 마지막 모델 응답은 저장된 근거로 보고서를 작성하는 데 사용합니다. "
+                    + "회가 남았습니다. 원인·조치·예방이 있는 보고서는 초안 뒤 최종 인용 검수 응답 1회도 "
+                    + "이 한도에 포함되므로 미리 확보하세요. 마지막 모델 응답에는 새 조회를 할 수 없습니다. "
                     + "서로 의존하지 않는 필요한 조회는 한 응답에서 함께 요청하세요. 도구가 제공되지 않으면 "
                     + "추가 조회 없이 보고서를 반환하고 확인하지 못한 범위를 명시하세요. 한도 부족을 사용자 입력 부족으로 바꾸지 마세요."));
         }

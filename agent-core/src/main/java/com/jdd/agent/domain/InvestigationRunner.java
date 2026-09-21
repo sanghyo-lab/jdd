@@ -60,12 +60,14 @@ public final class InvestigationRunner {
         var definitions = List.copyOf(tools.definitions());
         definitions.forEach(tool -> allowedTools.add(tool.name()));
         int executedTools = 0, repairedReports = 0, repairedArguments = 0;
+        boolean finalReviewRequested = false;
         for (int iteration = 1; iteration <= limits.modelCalls(); iteration++) {
             if (!active(claim)) return;
             int remainingModels = limits.modelCalls() - iteration + 1;
             int remainingTools = limits.toolCalls() - executedTools;
             // Reserve the final inference for a report; no new evidence can be consumed afterwards.
-            var available = remainingModels == 1 || remainingTools == 0 ? List.<ToolDefinition>of() : definitions;
+            var available = finalReviewRequested || remainingModels == 1 || remainingTools == 0
+                    ? List.<ToolDefinition>of() : definitions;
             var reply = model.next(new Request(claim.investigationId(), claim.stored().input(), prompt, iteration,
                     available, List.copyOf(history), new Remaining(remainingModels, remainingTools)));
             if (!active(claim)) return;
@@ -111,6 +113,17 @@ public final class InvestigationRunner {
                 errors = validator.validate(report, current.evidence());
             }
             if (errors.isEmpty()) {
+                if (!finalReviewRequested && requiresFinalReview(report)) {
+                    if (remainingModels < 2) throw limitFailure();
+                    finalReviewRequested = true;
+                    LOG.log(System.Logger.Level.INFO, "Report final review requested: investigationId={0}, iteration={1}",
+                            claim.investigationId(), iteration);
+                    history.add(Message.feedback("최종 인용 검수: 직전 보고서의 각 항목과 한계에 담긴 사실 표현을 "
+                            + "그 항목이 인용한 저장 원문과 대조하세요. 관측 사실과 인과 추정을 분리하고, "
+                            + "빈 조회만으로 특정 실패 단계나 처리 불필요를 단정하지 마세요. 인용을 바로잡거나 "
+                            + "미지지 표현을 삭제·축소한 전체 보고서 JSON을 반환하세요. 새 도구나 근거는 사용할 수 없습니다."));
+                    continue;
+                }
                 executions.complete(claim, report, clock.instant());
                 return;
             }
@@ -122,6 +135,10 @@ public final class InvestigationRunner {
             history.add(Message.feedback("보고서 검증 오류만 수정하세요. 새 근거 ID를 만들지 마세요: " + String.join(", ", errors)));
         }
         throw limitFailure();
+    }
+
+    private static boolean requiresFinalReview(AnalysisReport report) {
+        return !report.hypotheses().isEmpty() || !report.actions().isEmpty() || !report.prevention().isEmpty();
     }
 
     private boolean active(Claim claim) {

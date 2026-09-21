@@ -1,11 +1,21 @@
 # 한재홍 — AI Agent 작업 상태
 
+## 2026-09-22T08:28:00+09:00 — 범위를 넘는 사실 판단 보존·한도 내 최종 검수
+
+- `9393334` 실제 화면의 VOC-02 새 분석 `46467684-592a-4fc8-b934-e5ed8aaf9b2a`/조사 `a10bf310-d29e-4ac5-87dd-5c4f8b136ed6`는 COMPLETED/22근거이나 의미적 검수는 실패다. 원인 자체의 DATA/LOG/CODE/POLICY 인용과 조치는 개선됐지만 F6가 빈 주문 조회 두 개만으로 쿠폰 단계 중단까지 단정했다. 원문과 `followup-voc02-03-review.json`을 보존한다. Agent build9393334/보존 커머스 근거754528c인 집중 재조사이며 최신 전체 MVP가 아니다.
+- 이번 OAuth4회는 입력96,054·출력2,643·reasoning681(출력 일부)·모델81,846ms, cached/cache write0이다. 해당 스택 OAuth61행 중 기존 usage미관측1/API0/진행0을 DB·관측 API로 다시 대조했다. 성공한 출력만 골라 인용 품질을 완료로 기록하지 않는다.
+- 실행기에 원인·조치·예방을 포함한 초안의 최종 인용 검수를 한 번 추가한다. 같은 모델·저장 근거로 수행하며 검수 전 report=null/RUNNING, 검수 이후 도구 금지·기존 보정 횟수·8모델/24도구/3분·비용 장부를 유지한다. 한도가 부족하면 미검수 초안을 완료시키지 않는다. 사실만 있는 단순 보고서/입력 부족에는 추가 호출을 강제하지 않는다.
+- v7 지침은 description/limitations의 직접 인용과 관측/인과 구분을 재검토한다. 특정 시나리오 정답·평가 파일은 추가하지 않는다. 같은 모델 검수의 품질/추가 토큰·지연은 실제 검증 전 단정하지 않는다.
+- 새 회귀2개가 수정 전 실패한 XML/로그를 보존했다. 수정 후 실행기16·schema2·격리9·SSE7 총34개 통과·실패0, 실제 PG 조건부 handoff2/disconnection1은 이번 기본 실행에서 제외됐음을 구분한다. 검수 전 비공개·동일 저장 근거·추가 도구 금지·호출 한도·검수 결과의 기존 보정 적용을 확인했다. core17도 통과했다. 자료는 `followup-final-review-before.log/xml`, `followup-final-review-after.log/json`, `followup-final-review-regression.log/json`, `followup-final-review-results/`다. 자동 검사 실제 모델 호출0, 전체 publish와 실제 품질 후속 검증을 이어간다.
+- 원격의 영상 제작 준비와 커머스/VOC 인계 기록을 검토했다. 김아름의 직접 접수·논의 답변을 대신 쓰지 않고 Agent 보완만 진행하며 IN_PROGRESS를 유지한다.
+
 ## 2026-09-22T08:24:17+09:00 — 시연 해설 간략화
 
 - 사용자 추가 지시 “장황하지 않고 간략하게”를 반영해 7개 내레이션을 각각 3문장으로 줄였다. 증상·검수된 원인·조치 제안에 집중하고 같은 접수 과정과 모든 필드 낭독을 반복하지 않는다. 본편 20~30초/case·전체 약3분은 초안 목표이며 실제 정상 속도 발화로 확정한다. 화면1.5배속/음성1.0배속·8장·무음2초·정박 조건은 유지한다.
 - 앞선 제작 지침 `e0d44c2`의 전체 publish는 종료0으로 공유됐다. Python70·Java219 중210통과/9조건부 제외·실패0, web 검사/production build, 세 앱 PostgreSQL/HTTP/근거 smoke 통과다. 모의 검사와 실제 연결 검사이며 서비스 모델·음성 API 호출은0이다. 이 간략화는 후속 문서 변경으로 별도 공유 검증한다.
 - 시나리오별 기대값·입력 분리·촬영 전 진위 검수는 유지했다. 실제 PPT·녹화·음성 샘플을 제작하거나 완성됐다고 표시하지 않았다.
 - 간략화는 동시 원격 `d4ab5b0`·`8b23657`을 보존해 통합·재검증하고 `3add054`로 전체 publish 종료0·main 공유를 확인했다. Python70·문서50/504링크/8JSON·web 검사/production build·Gradle check·세 앱 실제 연결이 통과했다. 변경 없는 Gradle 검사는 이전 통과 결과를 재사용했으며 Java XML 합계219/실패0/제외9다. 검증 Agent는 test/mock이고 모델/TTS 호출0이다. 원문은 분리 검증 clone의 `runtime/demo-prompt-publish-02.log`, `demo-prompt-publish-03.log`, 이 PC의 `runtime/demo-video-prompt-result.json`에 보존했다.
+
 
 ## 2026-09-22T08:20:05+09:00 — 7개 VOC 시연 영상 제작 프롬프트 준비
 
