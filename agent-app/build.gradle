@@ -12,5 +12,19 @@ dependencies {
     testRuntimeOnly 'com.h2database:h2'
 }
 tasks.named('bootJar') { archiveFileName = 'app.jar' }
-// An inherited demo environment must never activate OpenAI during Gradle tests.
-tasks.withType(Test).configureEach { systemProperty 'JDD_AGENT_PAID_CALLS_ALLOWED', 'false' }
+tasks.withType(Test).configureEach {
+    // An inherited demo environment must never activate OpenAI during Gradle tests.
+    systemProperty 'JDD_AGENT_PAID_CALLS_ALLOWED', 'false'
+    def postgresModes = ['JDD_BUDGET_TEST_DB_URL', 'JDD_EXECUTION_TEST_DB_URL',
+                         'JDD_TOOLS_TEST_DB_URL', 'JDD_HANDOFF_AGENT_DB_URL',
+                         'JDD_DISCONNECT_TEST_DB_URL'].collectEntries { name ->
+        [(name): providers.environmentVariable(name).isPresent()]
+    }
+    // Track only mode flags, never credentials or database URLs in task fingerprints.
+    inputs.property('isolatedPostgresModes', postgresModes)
+    def externalDatabase = postgresModes.values().any { it }
+    // Database/evidence contents can change without tracked source changes.
+    // Every explicit external run must execute, including repeated runs in the same mode.
+    outputs.upToDateWhen { !externalDatabase }
+    outputs.doNotCacheIf('External PostgreSQL and evidence require a fresh execution') { externalDatabase }
+}

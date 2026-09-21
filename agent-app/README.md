@@ -193,6 +193,13 @@ python3 agent-app/scripts/check_intake.py
 입력 정규화·중복·충돌·동시 접수·이전 조사 연결·근거 소속·입력 오류를 확인한다.
 근거 테스트의 원문은 테스트가 DB에 넣은 합성 데이터이며 모델 분석 결과가 아니다.
 Docker 스택에서는 실제 PostgreSQL 접수·재조회·재시작 보존을 별도로 확인한다.
+
+별도 PostgreSQL 테스트의 다섯 DB 모드는 Gradle 입력에 반영한다.
+URL·비밀번호 자체는 작업 fingerprint에 넣지 않는다. 외부 DB 모드에서는 DB·근거 파일이
+소스와 독립적으로 바뀔 수 있으므로 UP-TO-DATE/빌드 캐시로 검증을 대체하지 않고 매번 실행한다.
+H2 모드로 돌아오면 PostgreSQL 결과를 재사용하지 않는다. 전용 DB·필수 환경변수·초기화 조건은
+아래 각 검사의 안내를 따른다.
+
 `check_intake.py`는 `/internal/runtime`에서 모델 DISABLED를 확인한 경우에만 합성 요청을 보내고 `runtime/agent-intake.json`을 기록한다.
 Agent를 재시작한 뒤 `python3 agent-app/scripts/check_intake.py --verify-existing`으로
 동일 요청 ID·생성 시각의 보존을 확인한다. 포트를 바꿨으면 `--base-url`로 지정한다.
