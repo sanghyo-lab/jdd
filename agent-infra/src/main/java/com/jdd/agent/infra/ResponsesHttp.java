@@ -27,6 +27,9 @@ final class ResponsesHttp implements AutoCloseable {
                 .retryOnConnectionFailure(false).followRedirects(false).followSslRedirects(false).build();
     }
     Received post(URI endpoint, Map<String, String> headers, String body) {
+        return post(endpoint, headers, body, false);
+    }
+    Received post(URI endpoint, Map<String, String> headers, String body, boolean allowMissingSseContentType) {
         if (Thread.currentThread().isInterrupted()) throw new UncheckedIOException(new InterruptedIOException("Model call cancelled"));
         var request = new okhttp3.Request.Builder().url(endpoint.toString()).header("User-Agent", "jdd-agent/0.1")
                 .header("Accept", "text/event-stream").post(RequestBody.create(body, MediaType.get("application/json; charset=utf-8")));
@@ -36,7 +39,12 @@ final class ResponsesHttp implements AutoCloseable {
         var cancellation = CANCELLATIONS.scheduleAtFixedRate(() -> { if (owner.isInterrupted()) call.cancel(); }, 0, 25, TimeUnit.MILLISECONDS);
         try (var response = call.execute()) {
             JsonNode parsed = null;
-            if (response.code() == 200 && response.header("Content-Type", "").toLowerCase(java.util.Locale.ROOT).startsWith("text/event-stream")) {
+            String contentType = response.header("Content-Type");
+            // A live Codex response omitted this header. Only its adapter opts in;
+            // the bounded SSE parser still requires a valid terminal event.
+            boolean sse = contentType == null ? allowMissingSseContentType
+                    : contentType.toLowerCase(java.util.Locale.ROOT).startsWith("text/event-stream");
+            if (response.code() == 200 && sse) {
                 parsed = ResponsesSse.read(response.body().byteStream(), json, ignored -> {});
             } else if (response.code() != 200) {
                 byte[] bytes = response.body().byteStream().readNBytes(65537);

@@ -18,13 +18,22 @@
 - 담당 경로: `agent-app/`, `agent-core/`, `agent-infra/`
 - 준비된 자료: [구현 범위](../roles/han-jaehong-agent.md), [VOC·Agent 계약](../integration-contract.md), [커머스 조회 계약](../commerce-interface.md)
 - 다음 작업: 새 정책 snapshot과 VOC 분석 전달·web·runner를 인수하고 승인된 실제 모델·ngrok 검증을 연결한다. 일곱 업무의 실제 근거 조회·저장·원문 재조회 검사는 통과했다. 일반 실행의 유료 차단을 유지한다.
-- 필요한 입력: CODEX_MODEL, 김아름의 분석/화면/runner 전달 및 공개 ngrok 설정. 이 PC의 프로젝트 전용 Codex 최초 로그인은 2026-09-21T21:41+09:00에 성공했다. API 크레딧은 배포 전용이며 배포 시 profile 범위를 별도로 설정한다. 실제 OAuth/API 모델 호출은 아직 0회다.
+- 필요한 입력: 김아름의 분석/화면/runner 전달 및 공개 ngrok 설정. 이 PC의 프로젝트 전용 Codex 로그인과 gpt-5.6-luna의 최소 OAuth 구조화 응답 검증은 성공했다. 실제 VOC 조사 품질·전체 연동은 미검증이다. API 크레딧은 배포 전용이며 배포 시 profile 범위를 별도로 설정한다. 배포 API 호출은 아직 0회다.
 - 검증 결과: 전체 Gradle check·세 앱 Docker·PostgreSQL/HTTP smoke, 실제 DB 동시성·권한·복구·비용 예약과 일곱 커머스 조사 300근거·333필드/로그 대조를 확인했다. 모의 모델과 실제 모델을 구분하며 실제 모델 품질·화면은 미검증.
 - 연동 요청: 정책 archive 소비자 구현 제공, DISC-20260921-agent-003의 선택 ID 공백 입력 경계 확인. 기본 Compose는 explicit test/mock이며 OAuth/API로 자동 활성화·fallback하지 않는다.
 
 작업 단위가 끝날 때 제공 가능한 기능, 변경한 계약, 실제 검증 명령·결과, 다음 작업을 갱신한다. 실패와 막힌 이유도 함께 기록한다.
 
 
+
+## 2026-09-21T21:58:47+09:00 — gpt-5.6-luna 로컬 설정·실제 OAuth 최소 응답 성공
+
+- 사용자 요청에 따라 공식 Codex 모델 안내의 경량 모델 gpt-5.6-luna를 CODEX_MODEL로 선택했다. 이 PC의 Git 제외 .env에 local/codex_oauth·프로젝트 인증 경로와 함께 저장했고 다른 설정은 보존했다. 실제 호출 자식은 환경 허용 목록을 사용해 배포 API key를 전달하지 않았다. 모델·provider 자동 전환이나 앱 재기동은 수행하지 않았다.
+- 첫 `./scripts/llm smoke-local`은 LLM_UNAVAILABLE로 실패했다. 모델 추론 없는 두 GET 연결 검사는 HTTP 405로 서버 도달을 확인했다. 후속 OAuth 진단에서 HTTP 200의 Content-Type 누락과 SSE 본문을 관측했다. 기존 전송은 본문을 읽기 전에 거절했다. 로컬 어댑터에만 누락 헤더 허용을 추가하고 기존 엄격한 SSE 완료·형식·크기 검증을 유지했다. 배포 API와 명시된 잘못된 media type의 거절 기준은 유지한다.
+- 같은 합성 실패를 재현한 회귀 1개가 수정 전 실패했고 수정 후 환경 격리 9개·API 전송 24개·SSE 4개, 총 37개가 통과했다. 헤더 없는 정상 SSE, HTML/JSON/중간 종료 거절, API 헤더 누락의 UNKNOWN 비용과 fallback 0건을 검사했다. smoke도 실패 시 관측 usage/outcome을 출력하도록 보완했다.
+- 수정 후 실제 `./scripts/llm smoke-local` 종료 0·PASS_CONNECTIVITY_ONLY. 요청/응답 모델 gpt-5.6-luna, HTTP_200_completed, 입력 1,479·출력 217·캐시 입력 0·cache write 0·reasoning 49토큰, 모델 호출 11,039ms였다. reasoning은 출력에 포함되므로 더하지 않는다. callId는 bd9b08fe-f129-40a2-9f2d-da2f016be97f다. 정보 부족 합성 문의의 구조화 응답·빈 사실·추가 정보 요청을 확인했으며 실제 VOC 도구/근거/보고서 품질 검증은 아니다.
+- 이번 수동 검사에는 최초 실패·호환성 진단 2회·수정 후 성공으로 OAuth POST 총 4회가 있었다. 앞선 3회는 usage를 관측하지 못했으므로 미확정이며 0으로 기록하지 않는다. 관측 가능한 성공 호출 합계는 1,696토큰이다. 배포 API 요청은 0회이며 OAuth를 API USD로 환산하거나 프로모션 크레딧 사용으로 기록하지 않는다.
+- 원문은 runtime/submission/agent-20260921/oauth-luna-smoke-01.log/json, oauth-luna-diagnostic-02.json, oauth-luna-diagnostic-03.json, oauth-luna-smoke-04.log/json과 oauth-missing-content-type-before.log/xml, oauth-missing-content-type-after.log 및 해당 XML 폴더다. 인증 파일·토큰·provider 원문은 공유하지 않는다. 코드 공유는 인증 없는 별도 clone에서 전체 publish로 수행하고 그 결과는 후속 기록한다. DONE/리더 승인/배포 성공을 작성하지 않는다.
 
 ## 2026-09-21T21:41:37+09:00 — 프로젝트 전용 Codex 로그인 실제 검증
 

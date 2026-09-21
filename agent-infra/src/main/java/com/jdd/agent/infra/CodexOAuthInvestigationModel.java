@@ -44,7 +44,7 @@ public final class CodexOAuthInvestigationModel implements InvestigationModel, A
         String callId = java.util.UUID.randomUUID().toString(); long started = System.nanoTime();
         journal.start(callId, request.investigationId(), request.iteration(), model);
         final ResponsesHttp.Received received;
-        try { received = network.post(endpoint, headers, body); }
+        try { received = network.post(endpoint, headers, body, true); }
         catch (RuntimeException failure) {
             journal.finish(callId, null, null, Thread.currentThread().isInterrupted() ? "CANCELLED_USAGE_UNKNOWN" : "TRANSPORT_FAILURE_USAGE_UNKNOWN",
                     Duration.ofNanos(System.nanoTime() - started).toMillis());

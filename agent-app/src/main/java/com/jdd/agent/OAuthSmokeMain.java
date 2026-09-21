@@ -13,8 +13,14 @@ public final class OAuthSmokeMain {
             throw new IllegalStateException("smoke-local requires local/codex_oauth");
         var json = JsonMapper.builder().build();
         var observed = new LinkedHashMap<String, Object>();
+        observed.put("requestedModel", System.getenv("CODEX_MODEL"));
+        observed.put("usage", null);
+        observed.put("outcome", "NOT_DISPATCHED");
+        observed.put("validation", "FAILED");
         var journal = new OAuthCallJournal() {
-            public void start(String id, String investigation, int iteration, String model) { observed.put("callId", id); }
+            public void start(String id, String investigation, int iteration, String model) {
+                observed.put("callId", id); observed.put("outcome", "DISPATCHED_USAGE_UNKNOWN");
+            }
             public void finish(String id, String model, ModelUsage usage, String outcome, long elapsed) {
                 observed.put("actualModel", model); observed.put("usage", usage); observed.put("outcome", outcome); observed.put("elapsedMillis", elapsed);
             }
@@ -31,12 +37,15 @@ public final class OAuthSmokeMain {
                     || report.missingInformation().isEmpty() || report.facts() == null || !report.facts().isEmpty())
                 throw new IllegalStateException("Smoke response did not satisfy the missing-input report contract");
             observed.put("validation", "PASS_CONNECTIVITY_ONLY");
-            System.out.println(json.writeValueAsString(observed));
         } catch (InvestigationFailure failure) {
+            observed.put("errorCode", failure.error().code());
             System.err.println(failure.error().code() + ": " + failure.error().message()); exit = 1;
         } catch (RuntimeException failure) {
             System.err.println("Smoke validation failed; no provider response or credential content is logged."); exit = 1;
-        } finally { if (model instanceof AutoCloseable closeable) closeable.close(); }
+        } finally {
+            System.out.println(json.writeValueAsString(observed));
+            if (model instanceof AutoCloseable closeable) closeable.close();
+        }
         if (exit != 0) System.exit(exit);
     }
 }

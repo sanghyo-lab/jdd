@@ -49,6 +49,7 @@ class OpenAiTransportTest {
     private long delay;
     private String redirect;
     private String response;
+    private String contentType = "text/event-stream";
     private String investigation;
     private final Clock clock = Clock.systemUTC();
     private final ModelPricing price = new ModelPricing("synthetic-transport", "mock-priced-model", new BigDecimal("2"),
@@ -69,7 +70,7 @@ class OpenAiTransportTest {
                 dispatchState.set(ModelCallLedger.State.valueOf(state));
                 if (delay > 0) Thread.sleep(delay);
                 byte[] bytes = response.getBytes(StandardCharsets.UTF_8);
-                exchange.getResponseHeaders().add("Content-Type", "text/event-stream");
+                if (contentType != null) exchange.getResponseHeaders().add("Content-Type", contentType);
                 exchange.getResponseHeaders().add("x-request-id", "request-synthetic");
                 if (redirect != null) exchange.getResponseHeaders().add("Location", redirect);
                 exchange.sendResponseHeaders(status, bytes.length); exchange.getResponseBody().write(bytes);
@@ -226,6 +227,13 @@ class OpenAiTransportTest {
         assertThat(entry().receipt().usage()).isNull();
         assertThatThrownBy(() -> model.next(request(2, List.of()))).isInstanceOf(PaidModelGate.Rejected.class);
         assertThat(hits.get()).isEqualTo(1);
+    }
+    @Test void apiStillRequiresSseMediaTypeAndKeepsUnknownUsageOnMissingHeader() {
+        contentType = null;
+        assertThatThrownBy(() -> model(true, 128 * 1024, Duration.ofSeconds(2)).next(request(1, List.of())))
+                .isInstanceOf(PaidModelGate.Rejected.class);
+        assertThat(hits.get()).isEqualTo(1); assertThat(entry().state()).isEqualTo(ModelCallLedger.State.UNKNOWN);
+        assertThat(entry().receipt().usage()).isNull();
     }
     @Test void terminalStreamFailureIsNotAReportAndPreservesItsObservedUsage() {
         response = response.replace("response.completed", "response.failed").replace("\"status\":\"completed\"", "\"status\":\"failed\"");

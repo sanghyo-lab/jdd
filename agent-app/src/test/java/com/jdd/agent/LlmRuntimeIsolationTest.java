@@ -25,6 +25,7 @@ class LlmRuntimeIsolationTest {
     final AtomicInteger oauth = new AtomicInteger(), api = new AtomicInteger();
     final List<AutoCloseable> resources = new ArrayList<>();
     volatile int status = 200; volatile long delay;
+    volatile String contentType = "text/event-stream";
     volatile String response = "data: {\"type\":\"response.completed\",\"response\":{\"status\":\"completed\",\"output\":[{\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"output_text\",\"text\":\"한국어\"}]}]}}\r\n\r\n";
     final List<String> authHeaders = new CopyOnWriteArrayList<>();
     final List<String> accounts = new CopyOnWriteArrayList<>();
@@ -38,7 +39,7 @@ class LlmRuntimeIsolationTest {
             bodies.add(json.readTree(exchange.getRequestBody().readAllBytes()));
             try {
                 if (delay > 0) Thread.sleep(delay);
-                exchange.getResponseHeaders().set("Content-Type", "text/event-stream");
+                if (contentType != null) exchange.getResponseHeaders().set("Content-Type", contentType);
                 exchange.sendResponseHeaders(status, 0);
                 // Deliberately split every UTF-8 byte and event boundary on the real socket.
                 for (byte value : response.getBytes(StandardCharsets.UTF_8)) { exchange.getResponseBody().write(value); exchange.getResponseBody().flush(); }
@@ -104,6 +105,23 @@ class LlmRuntimeIsolationTest {
         status = 200; delay = 500;
         assertThatThrownBy(() -> local(Duration.ofMillis(100)).next(request())).isInstanceOf(InvestigationFailure.class);
         assertThat(oauth.get()).isEqualTo(6); assertThat(api.get()).isZero(); verifyNoInteractions(ledger);
+    }
+    @Test void codexAcceptsStrictlyValidatedSseWhenContentTypeIsAbsent() {
+        contentType = null;
+        assertThat(local(Duration.ofSeconds(3)).next(request()).text()).isEqualTo("한국어");
+        assertThat(oauth.get()).isEqualTo(1); assertThat(api.get()).isZero(); verifyNoInteractions(ledger);
+    }
+    @Test void missingContentTypeDoesNotTurnHtmlJsonPartialStreamsOrWrongMediaIntoSuccess() {
+        contentType = null;
+        for (String invalid : List.of("<!DOCTYPE html><html>access challenge</html>", "{\"status\":\"completed\"}",
+                "data: {\"type\":\"response.output_text.delta\",\"delta\":\"partial\"}\n\n")) {
+            response = invalid;
+            assertThatThrownBy(() -> local(Duration.ofSeconds(2)).next(request())).isInstanceOf(InvestigationFailure.class);
+        }
+        contentType = "application/json";
+        response = "data: {\"type\":\"response.completed\",\"response\":{\"status\":\"completed\",\"output\":[]}}\n\n";
+        assertThatThrownBy(() -> local(Duration.ofSeconds(2)).next(request())).isInstanceOf(InvestigationFailure.class);
+        assertThat(oauth.get()).isEqualTo(4); assertThat(api.get()).isZero(); verifyNoInteractions(ledger);
     }
     @Test void expiredMissingAndApiKeyAuthFilesFailBeforeNetwork() throws Exception {
         auth("expired", "workspace-one", -1);

@@ -126,7 +126,9 @@ Compose 배포는 `JDD_API_PROFILE_FILE`을 위 JSON의 배포 호스트 경로�
 
 공통 `InvestigationModel` 인터페이스에 두 HTTP 어댑터를 연결했다. 기존 실행기가 허용한 여덟 읽기 전용 함수만 실행하며 모델/SDK가 도구를 자체 실행하지 않는다. 후속 요청에 도구 call ID·서버 저장 근거·응답 output items와 암호화된 reasoning context를 보존한다. 이러한 내부 context를 보고서 근거로 인용하거나 브라우저에 노출하지 않는다.
 
-SSE는 UTF-8 네트워크 chunk와 이벤트 경계를 분리해서 해석한다. text delta, 완료, failed/incomplete/error, 종료 전 EOF, 취소를 구분한다. 현재 UI는 저장 상태 polling 방식이므로 delta를 새로운 공개 API로 노출하지 않고 최종 응답만 기존 보고서 검증으로 전달한다. 요청 128 KiB, 로컬 HTTP 45초, stream 4 MiB 문자 상한과 기존 조사 제한을 적용한다. 중간 텍스트만으로 성공을 만들지 않는다.
+SSE는 UTF-8 네트워크 chunk와 이벤트 경계를 분리해서 해석한다. text delta, 완료, failed/incomplete/error, 종료 전 EOF, 취소를 구분한다. 로컬 Codex의 실제 HTTP 200 응답에서 Content-Type 헤더 누락을 관측해 해당 어댑터만 누락 헤더를 허용한다. 본문은 같은 상한·완료 이벤트·형식 검증을 통과해야 하며 HTML·일반 JSON·중간 종료를 성공으로 취급하지 않는다. 명시된 다른 media type과 배포 API의 헤더 누락은 계속 거절한다. 현재 UI는 저장 상태 polling 방식이므로 delta를 새로운 공개 API로 노출하지 않고 최종 응답만 기존 보고서 검증으로 전달한다. 요청 128 KiB, 로컬 HTTP 45초, stream 4 MiB 문자 상한과 기존 조사 제한을 적용한다. 중간 텍스트만으로 성공을 만들지 않는다.
+
+명시적인 `smoke-local`은 실패한 경우에도 관측된 호출 ID·usage·outcome을 출력한다. 알 수 없는 usage는 null로 남기며 0으로 환산하지 않는다. 로그인 성공과 최소 구조화 응답 성공은 일곱 VOC의 실제 조사 품질·도구 호출·통합 화면 검증을 대신하지 않는다.
 
 OAuth는 **Codex 클라이언트용 백엔드의 직접 연동**이다. 공식 범용 OpenAI API와 같은 지원/호환성을 보장하지 않는다. `User-Agent: jdd-agent/0.1`로 식별하고 공식 클라이언트 originator를 사칭하지 않는다. 고정 endpoint가 허용하지 않는 계정/조직 라우팅은 오류로 남기며 다른 edge나 API key로 우회하지 않는다. 워크스페이스 조건·사용 한도·프로모션 적용·무제한 혜택을 단정하지 않는다.
 
