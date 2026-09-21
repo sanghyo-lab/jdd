@@ -1,6 +1,7 @@
 package com.jdd.voc;
 
 import com.jdd.voc.domain.VocFailure;
+import com.jdd.voc.domain.AgentGateway;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
@@ -14,6 +15,12 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 @RestControllerAdvice
 public class ApiExceptionHandler {
     public record ApiError(String code, String message, boolean retryable) {}
+    @ExceptionHandler(AgentGateway.Failure.class)
+    public ResponseEntity<ApiError> agent(AgentGateway.Failure failure) {
+        var error = failure.error();
+        return ResponseEntity.status(failure.status() == 404 ? 404 : 502)
+                .body(new ApiError(error.code(), error.message(), error.retryable()));
+    }
     @ExceptionHandler(VocFailure.class)
     public ResponseEntity<ApiError> domain(VocFailure error) {
         int status = switch (error.code()) {

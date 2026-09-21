@@ -9,7 +9,7 @@
 - 공유 커밋: 티켓 `d8246e9`, 검증 안내 `d5d5484`, 주문 시각 정밀도 수정 `1d29d20`, 분석 요청 저장 `4de1a98`
 - 담당 경로: `voc-app/`, `voc-core/`, `voc-infra/`, `web/`, `scenario-runner/`
 - 준비된 자료: [구현 범위](../roles/kim-areum-voc.md), [VOC·Agent 계약](../integration-contract.md), [커머스 계약](../commerce-interface.md), [프론트 설계](../frontend-deployment.md)
-- 다음 작업: 저장된 분석의 서버 Agent 전달/조회·재시작 복구, 근거 중계와 한국어 화면 구현
+- 다음 작업: 서버 Agent 전달/조회·근거 중계 단위 전체 publish와 실제 상대 앱 재시작 인수, 이후 한국어 화면·runner 구현
 - 제공받은 입력: Agent 조사 API·실행기·8개 조회 도구, commerce VOC-07/02/03 재현 자료. 실제 모델 검증 허용 범위·배포 환경은 별도다.
 - 검증 결과: 티켓·분석 HTTP/H2와 실제 PostgreSQL 계약, 전체 Gradle check, 세 앱 Docker 기동·smoke와 앱 재생성 후 티켓·분석 입력/이력/동일 키 보존 통과. 프론트·VOC runner·실제 모델은 미검증.
 - 연동 요청: 아래 논의의 P1 수락과 공통 생성기 책임을 기록했다. scenario-runner는 아직 미구현을 알리는 실패 종료 골격이다.
@@ -133,3 +133,14 @@
 - 원격 f1d6082의 수용량/429 제공자 변경과 integration-contract의 동일 키·영속 재전송 횟수·Retry-After·14분 관측 규칙을 읽고 통합했다. 다음 VOC worker에 적용한다. 리더의 PostgreSQL 인수 결과를 이 PC의 소비자 검증으로 계산하지 않는다.
 - [DISC-20260921-commerce-002](../discussions/DISC-20260921-commerce-002-live-mvp-runtime.md) P1을 직접 수락했다. 준비된 실제 모델 런타임을 verify-mvp가 기본 mock으로 교체하는 경로와 Windows wrapper 고정 호출을 소스로 확인했다. 리더가 공통 MVP 실행기·회귀·실행 안내를 보완하고, VOC는 worker/화면/runner를 구현한 뒤 소비자 인수를 수행한다. 동일 파일을 중복 편집하지 않는다.
 - 일반 publish는 모델 호출 없이 유지하고 실제 MVP의 명시 실행·전후 빌드/환경/모델 일치·자격증명 제외·실패 산출물 보존을 수용한다. 한재홍의 관측/실행 답변과 실제 구현·검증이 남아 DISCUSSING이며 완료로 표시하지 않는다.
+
+## 2026-09-21T21:45:00+09:00 — 영속 Agent 전달·조회·근거 소비 구현
+
+- 구현: V4에 전달 횟수·대기열 거절 횟수·다음 작업/관측 종료 시각·점유 토큰/기한·수동 조회 요청을 저장했다. DB 점유를 확정한 뒤 고정 Agent 주소에 HTTP를 호출하며 유효한 같은 토큰만 결과를 저장한다. 만료된 점유를 복구하고 늦은 이전 작업의 저장을 거절한다. 요청 스레드·브라우저 생존 여부에 의존하지 않는다.
+- 전달: 저장된 입력·키로 접수한다. 일반 연결/5xx는 최초 포함 최대 3회(1/2초), 429/INVESTIGATION_QUEUE_FULL은 최초 외 최대 3회(Retry-After 이상 5/10/20초+jitter)다. 재시작·다른 오류가 횟수를 초기화하지 않고 점유 후 중단도 시도에 포함한다. 한도 소진 후 같은 키 수동 POST만 동일 분석을 다시 PENDING으로 바꾼다. 영구 4xx·잘못된 응답은 자동 재전송하지 않는다.
+- 조회: 실제 접수 ID를 저장한 뒤 조사 GET을 수행한다. 기본 14분 관측/5초 polling과 마지막 결과·lastSyncedAt을 저장한다. 조회 실패·관측 종료를 조사 FAILED나 티켓 RESOLVED로 바꾸지 않는다. GET의 선택 refresh=true는 기존 조사의 서버 GET 한 번을 예약하며 새 키/조사 POST/관측 창 연장을 하지 않는다. 종료 조사와 이전 이력은 보존한다.
+- 근거/응답: 티켓·버전·조사 소속, 상태별 보고서/오류와 근거 참조를 검사한다. 다른 티켓/근거는 원격 호출 전 404이며 원문 응답은 관측한 근거의 source와 대조한다. 잘못된 조사/보고서는 AGENT_PROTOCOL_ERROR로 기록하고 캐시를 유지한다. 전달 오류에 원격 진단 원문·비밀 값을 복사하지 않는다.
+- 실제 검사: Windows Java 21에서 VOC HTTP/H2·앱 25개 통과. 격리 PostgreSQL 17.6의 전체 HTTP 24개 중 첫 실행은 6개가 실패했다. 결과 저장 CASE 식의 next_work_at이 text로 추론되는 차이를 확인하고 TIMESTAMP WITH TIME ZONE을 명시했다. 수정 후 동일 외부 DB에서 24개(신규 worker 9·저장 8·티켓 7)가 모두 통과했고 실패/건너뜀 0이다. 전체 publish에서 최종 H2/공통 회귀를 다시 확인한다.
+- 검증 내용: 실제 VOC HTTP/JDBC와 명시적인 합성 Agent HTTP를 연결했다. 접수 후 응답 절단, 수정 전 입력 재전송, 429 간격/한도/동시 수동 복구, 503/영구 400, 조회 오류/모델 실패 분리, 관측 종료/수동 GET, 16개 동시 점유, 만료 후 재점유/이전 토큰 거절, 소속·리포트 근거 오류를 검사했다. 자동 작업기 실행도 브라우저 조회 없이 완료됨을 확인했다. 합성 보고서를 실제 모델 결과로 계산하지 않는다.
+- 증거: runtime/verification/worker-h2.log·worker-h2-results, worker-postgresql.log·worker-postgresql-before-fix, worker-postgresql-fixed.log·worker-postgresql-results. 실패와 수정 후 결과를 별도 보존했다. 일반 앱 DB를 초기화하지 않았다.
+- 남은 범위: 한재홍의 실제 앱과 재시작·429 소비 인수, 한국어 web·접근 제어·runner·실제 모델·ngrok/MVP 검증이다. businessReady=false/IN_PROGRESS를 유지하며 일반 publish에서 실제 모델을 호출하지 않는다. 리더의 공통 live MVP 실행기 경로를 중복 수정하지 않는다.

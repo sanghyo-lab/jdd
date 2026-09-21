@@ -35,7 +35,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
-    "spring.flyway.create-schemas=true", "jdd.build-id=analysis-contract-test", "jdd.commit-sha=test"
+    "spring.flyway.create-schemas=true", "jdd.build-id=analysis-contract-test", "jdd.commit-sha=test", "jdd.voc.worker.enabled=false"
 })
 @Import(AnalysisHttpContractTest.FixedClock.class)
 class AnalysisHttpContractTest {

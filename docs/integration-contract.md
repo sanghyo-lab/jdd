@@ -30,7 +30,7 @@
 | `GET /api/tickets/{ticketId}` | `200`, `{ticket: Ticket, analyses: AnalysisSummary[]}`. 분석은 생성 시각·ID 내림차순 |
 | `PATCH /api/tickets/{ticketId}` | `expectedVersion`과 변경 필드. `200`, 수정된 `Ticket` |
 | `POST /api/tickets/{ticketId}/analyses` | `requestKey`, `ticketVersion`, 선택적 `previousInvestigationId`. `202`와 `AnalysisView` 반환 |
-| `GET /api/tickets/{ticketId}/analyses/{analysisRequestId}` | `200`, `AnalysisView` |
+| `GET /api/tickets/{ticketId}/analyses/{analysisRequestId}` | `200`, 저장된 `AnalysisView`. 선택 `refresh=true`는 미종료 조사의 서버 조회 한 번을 예약 |
 | `GET /api/tickets/{ticketId}/analyses/{analysisRequestId}/evidence/{evidenceId}` | `200`, 해당 티켓·분석의 `EvidenceDetail` |
 
 ### 티켓 DTO
@@ -265,6 +265,11 @@ VOC가 Agent 상태를 조회하지 못하면 마지막 확인 상태·시각과
 초기 연결 설정은 접속 제한 3초·요청 제한 10초다. 일반 연결 장애의 접수 전달은 최대 3회(재시도 간격 1초·2초)다. 대기열 429는 [DISC-agent-005 P1](discussions/DISC-20260921-agent-005-queue-limits.md)에 따라 submissionError로 구분하며, 최초 전달 외 최대 3회 자동 재전송한다. 같은 저장 입력·키와 영속 횟수를 유지하고 Retry-After 이상인 5/10/20초 + jitter를 적용한다. 소진 후에는 수동 동일 키 재전송을 안내하며 새 키를 자동 생성하지 않는다. 영구적인 다른 4xx는 자동 재전송하지 않는다.
 
 조사 상태 polling은 기본 대기 10분+실행 3분을 고려한 관측 창 14분·최대 5초 간격으로 시작한다. 설정은 실제 대기/실행 한도에 맞춘다. 조회 오류나 관측 종료는 마지막 상태·시각과 조회 오류를 표시하며 조사를 FAILED로 바꾸거나 다시 실행하지 않는다. 관측 창이 끝나면 수동 새로고침으로 전환한다. 이 계약은 VOC 소비자의 실제 구현/화면 검증을 대신하지 않는다.
+
+VOC 분석 GET의 `refresh=true`는 티켓 소속을 확인하고 미종료 조사의 GET 한 번을 서버에 예약한다.
+현재 저장된 AnalysisView를 즉시 반환하므로 갱신 결과는 다음 GET으로 확인한다. 자동 관측 창을 연장하거나
+Agent POST/새 키를 만들지 않는다. 관측 종료는 syncError의 `AGENT_OBSERVATION_EXPIRED`, 잘못된 응답/소속은
+`AGENT_PROTOCOL_ERROR`로 표시하며 기존 조사·lastSyncedAt을 보존한다. 종료 상태의 새로고침은 저장 결과를 반환한다.
 
 VOC 서버가 요청 전달과 상태 조회를 실행하므로 브라우저를 닫아도 계속 진행한다. 재시작 시 PENDING 전달과 미종료 조사 연결을 DB에서 복원한다. 초기 Agent는 단일 실행 인스턴스를 전제로 QUEUED 작업을 재개하고, 재시작 시 남은 RUNNING 작업은 FAILED·INTERRUPTED로 기록한다. 중단된 조사의 근거는 보존한다.
 

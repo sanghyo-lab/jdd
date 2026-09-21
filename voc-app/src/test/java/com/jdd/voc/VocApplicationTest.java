@@ -11,7 +11,7 @@ import static org.assertj.core.api.Assertions.assertThat;
     "spring.datasource.username=sa",
     "spring.datasource.password=",
     "spring.flyway.create-schemas=true",
-    "jdd.build-id=test-build",
+    "jdd.build-id=test-build", "jdd.voc.worker.enabled=false",
     "jdd.commit-sha=test-commit"
 })
 class VocApplicationTest {
