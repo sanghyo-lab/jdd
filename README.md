@@ -47,6 +47,7 @@
 ## 설계 문서
 
 - [3인 랄프톤 GitHub 협업 가이드](docs/collaboration.md)
+- [협업 논의 목록·답변·해소 현황과 작성 규칙](docs/discussions/README.md)
 - [VOC·Agent API·리포트·근거 인터페이스 v1](docs/integration-contract.md)
 - [커머스 API·DB·로그·실행 소스 인터페이스 v1](docs/commerce-interface.md)
 - [멀티모듈 구조와 데이터 흐름](docs/architecture.md)

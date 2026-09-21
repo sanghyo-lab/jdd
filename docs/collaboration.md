@@ -59,6 +59,8 @@ flowchart LR
 
 | 수단 | 기록할 내용 |
 | --- | --- |
+| [논의 목록](discussions/README.md) | 건별 상태, 답변 대기자, 다음 행동, 해소 근거와 작성 규칙 |
+| `docs/discussions/`의 건별 Markdown | 제안, 각 작업자의 직접 답변, 합의·실행·검증·해소 기록 |
 | Issue | 목표, 담당, 완료 조건, 선행 작업, 막힌 이유 |
 | `main`의 커밋 | 실제 코드 변경과 변경 이유, 관련 Issue |
 | Issue의 진행 기록 | 변경 동작, 검증 결과, 연동 영향, 공유한 커밋 |
@@ -67,18 +69,18 @@ flowchart LR
 | `docs/status/lead-review.json`, `lead.json` | 리더의 코드 검사·실제 검증·지적 해결 근거와 최종 승인 |
 | 원격 `main` | 담당자들이 검증한 변경을 push해 공유하는 공통 기준 |
 
-GitHub Issues는 작업과 논의를 추적하는 데 사용한다. 코드와 상태 문서는 `main`의 커밋으로 공유하고, 영향을 받는 담당자는 변경 내용과 검증 결과를 확인한다. [GitHub Issues](https://docs.github.com/en/issues/tracking-your-work-with-issues/about-issues)
+논의 원문과 답변은 `docs/discussions/`에 모은다. 각 작업자는 해당 건의 Markdown에 답변하고 같은 커밋에서 README의 상태·대기자·해소 근거를 갱신한다. 필요한 답변과 검증 없이 해소로 표시하지 않는다. GitHub Issues는 작업 추적에 사용하며 논의 문서를 연결한다. 코드·논의·상태 문서는 `main`의 커밋으로 공유하고, 영향을 받는 담당자는 변경과 검증 결과를 확인한다. [GitHub Issues](https://docs.github.com/en/issues/tracking-your-work-with-issues/about-issues)
 
 작업은 다음 순서로 진행한다.
 
 1. 역할별 Issue에서 작은 작업 하나를 고른다. 예: “분석 접수 API와 중복 요청 처리”.
 2. 자신의 clone에서 `main`을 사용하고, 원격 변경과 계약·상태 문서를 먼저 확인한다.
 3. 담당 범위에서 구현하고, 실제 실행한 검증과 결과를 기록한다.
-4. 담당 파일과 상태 문서를 의미 있는 단위로 커밋하고 `origin/main`으로 일반 push한다.
+4. 검증 가능한 단위가 끝날 때마다 담당 파일·논의/상태 문서를 즉시 커밋하고 `scripts/dev publish`로 `origin/main`에 공유한다.
 5. 다른 사람이 먼저 push해 거절되면 원격 변경을 가져와 자신의 미공유 커밋에 반영하고, 필요한 검증 후 다시 push한다. 첫날에는 1~2시간마다 실제 연동을 확인한다.
 6. 다음 작업 전 `main`의 새 변경과 계약·상태 문서를 확인한다.
 
-커밋은 로컬 기록이고 push 이후 원격에서 공유된다. 원격 변경을 반영할 때에는 현재 작업을 먼저 보존한다. 공통 계약·루트 빌드·Compose처럼 여러 역할에 영향을 주는 파일은 작업 담당을 Issue에 먼저 기록하고 변경 순서를 맞춘다.
+커밋은 로컬 기록이고 push 이후 원격에서 공유된다. 원격 변경을 반영할 때에는 현재 작업을 먼저 보존한다. 공통 계약·루트 빌드·Compose처럼 여러 역할에 영향을 주는 파일은 논의 문서에 작업 담당·변경 순서를 기록하고 관련 Issue가 있으면 연결한다.
 
 아래 시작 명령은 미커밋 변경과 미공유 로컬 커밋이 없는 상태에서 실행한다.
 
@@ -112,14 +114,14 @@ GitHub를 공유 기록으로 사용하려면 각 개발 에이전트가 원격 
 이 저장소에서 맡은 역할과 이번 작업의 완료 조건을 확인한다.
 docs/roles/README.md와 자신의 담당 문서, docs/collaboration.md,
 docs/integration-contract.md, docs/commerce-interface.md, docs/architecture.md,
-docs/status의 세 역할 상태 문서를 읽는다.
+docs/status의 세 역할 상태 문서와 docs/discussions/README.md 및 새 논의·답변을 읽는다.
 
 반복 단위:
 1. 원격 main의 변경, 담당 Issue와 관련 커밋을 확인한다.
 2. 현재 작업을 보존하고 필요한 통합 변경을 반영한다.
 3. 담당 경로에서 작은 작업 하나를 구현한다.
 4. 해당 변경에 필요한 검증을 실행하고 실제 결과를 기록한다.
-5. 담당 상태 문서에 완료 사항, 연동 영향, 다음 작업을 갱신한다.
+5. 담당 상태 문서에 완료 사항, 연동 영향, 다음 작업을 갱신한다. 논의 답변은 해당 건의 Markdown에 직접 쓰고 README의 상태·해소 근거도 함께 갱신한다.
 6. main에 커밋하고 일반 push로 공유한다. 동시 push로 거절되면 위 동기화 절차를 따른다.
 
 다른 담당자의 구현이 필요하면 계약과 필요한 변경을 구체적으로 기록하고,
