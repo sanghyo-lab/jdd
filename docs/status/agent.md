@@ -180,3 +180,13 @@
 - 로컬 HTTP 모의 전송 14개와 H2 장부 10개 통과(`openai-transport-final.log`). 인증·429·시간 초과·리다이렉트·본문 상한·불일치 usage·미등록 모델·변경 tier·형식 실패를 확인했다. 비용 장부 10개를 실제 별도 PostgreSQL에서도 다시 통과했다(`openai-ledger-postgres.log`). 모의 가격·응답 검증이며 실제 OpenAI 호출은 0회다.
 - [DISC-20260921-voc-001](../discussions/DISC-20260921-voc-001-runner-metadata.md)의 현재 필수 완료 메타데이터 유지에 수락 답변을 `1b5adc8`로 공유했다. [정책 사본 제안](../discussions/DISC-20260921-agent-002-policy-snapshot.md)은 김아름이 공통 생성기 구현을 맡았고 Agent 소비자를 다음 단위에서 연결한다.
 - 실행 환경 활성화는 다음 단위다. 기본 DISABLED·businessReady=false와 DONE 보류를 유지한다. 실제 모델·웹·ngrok·전체 VOC 품질은 미검증이다.
+
+## 2026-09-21 — 명시적 데모 설정과 누적 호출 한도
+
+- OpenAI 전송 단위 `07aeadd`를 전체 check·3앱 재빌드/재기동·PostgreSQL/HTTP smoke 후 공유했다. 최초 publish는 Docker Hub DNS 조회 실패로 중단됐고 원문 `openai-transport-publish.log`를 남겼다. DNS 복구 뒤 최신 commerce 변경을 통합해 `openai-transport-publish-retry.log`의 종료 0으로 공유했다.
+- 데모 전용 Compose override·별도 profile·키 파일을 연결했다. OPENAI 모드/데모/유료 허용의 명시 설정과 만료·요금 버전·PC 배정 예산·총 호출 수가 필요하다. 기본 실행은 DISABLED이며 profile 예제는 이미 만료된 상태다. 키는 Agent에만 마운트하고 설정 오류에 원문을 출력하지 않는다.
+- 공식 2026-09-21 Luna/Terra 기본 text 요금·장문 배수·모델 입력 상한을 버전 리소스로 보관했다. 후보 등록이며 실제 접근·품질·선택을 검증한 것은 아니다. 보수적 전체 입력 예약과 실제 응답 정산을 구분한다.
+- V5는 설치 전체 총 호출 한도를 영속 예산에 추가한다. 동시 접수·새 조사·재시작·설정 변경으로 한도를 초기화하지 않는다. 이미 저장된 다른 배정은 CONFIGURATION 오류로 거절한다.
+- 검증: 설정 6개·전송 14개·장부 12개를 유료 허용 환경이 상속된 조건에서도 통과했다(`openai-demo-inherited.log`). 장부 12개는 실제 별도 PostgreSQL에서 재통과했다(`openai-demo-postgres-final.log`). Compose config의 기본 비활성·Agent 전용 마운트와 실제 컨테이너 UID의 합성 키 파일 읽기도 확인했다(`demo-configuration/compose-check.json`). 해당 컨테이너 검사는 shell만 실행했고 Java·모델은 호출하지 않았다.
+- 소비자 확인: 실제 VOC가 context.orderId=" "를 201로 저장하지만 같은 context의 Agent 접수는 400 INVALID_REQUEST였다. 티켓 `e71e55a3-6b26-456b-bb91-eddc86ef5a3f`, 원문 `voc-blank-context.json`. 김아름의 전달 구현 전에 입력 경계를 맞추도록 AGENT-VOC-003을 논의에 등록한다. 공백 식별자를 실제 조사 ID로 허용하지 않는다.
+- 실제 OpenAI 호출은 0회이며 DONE을 보류한다. 다음은 정책 archive 소비·일곱 실제 재현 근거·VOC/웹 통합과 승인된 실제 모델 검증 준비다.

@@ -12,3 +12,5 @@ dependencies {
     testRuntimeOnly 'com.h2database:h2'
 }
 tasks.named('bootJar') { archiveFileName = 'app.jar' }
+// An inherited demo environment must never activate OpenAI during Gradle tests.
+tasks.withType(Test).configureEach { systemProperty 'JDD_AGENT_PAID_CALLS_ALLOWED', 'false' }

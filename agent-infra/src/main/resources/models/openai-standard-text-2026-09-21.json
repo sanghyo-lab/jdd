@@ -1,0 +1,40 @@
+{
+  "version": "openai-standard-text-2026-09-21",
+  "checkedAt": "2026-09-21T09:48:00Z",
+  "models": [
+    {
+      "source": "https://developers.openai.com/api/docs/models/gpt-5.6-luna",
+      "inputCeiling": 1050000,
+      "tokenizer": "o200k_base",
+      "pricing": {
+        "version": "openai-standard-text-2026-09-21",
+        "model": "gpt-5.6-luna",
+        "input": 0.20,
+        "cachedInput": 0.02,
+        "cacheWrite": 0.25,
+        "output": 1.20,
+        "chargesCacheWrites": true,
+        "longContextThreshold": 272000,
+        "longInputMultiplier": 2,
+        "longOutputMultiplier": 1.5
+      }
+    },
+    {
+      "source": "https://developers.openai.com/api/docs/models/gpt-5.6-terra",
+      "inputCeiling": 1050000,
+      "tokenizer": "o200k_base",
+      "pricing": {
+        "version": "openai-standard-text-2026-09-21",
+        "model": "gpt-5.6-terra",
+        "input": 2.00,
+        "cachedInput": 0.20,
+        "cacheWrite": 2.50,
+        "output": 12.00,
+        "chargesCacheWrites": true,
+        "longContextThreshold": 272000,
+        "longInputMultiplier": 2,
+        "longOutputMultiplier": 1.5
+      }
+    }
+  ]
+}

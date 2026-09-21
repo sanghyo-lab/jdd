@@ -72,6 +72,29 @@ class ModelCallLedgerTest {
         assertThat(ledger.totals().committedUsd()).isLessThanOrEqualTo(budget.limitUsd());
     }
 
+    @Test void totalCallLimitIsAtomicAndCannotBeResetByNewInvestigationOrConfiguration() throws Exception {
+        var limited = new Budget("synthetic-total-limit", new BigDecimal("30"), 8, 8, 2);
+        ledger.configure(limited);
+        String id = investigation();
+        var barrier = new CyclicBarrier(8);
+        try (var pool = Executors.newFixedThreadPool(8)) {
+            Callable<Boolean> reserve = () -> { barrier.await(); return ledger.reserve(request(id), now).isPresent(); };
+            int accepted = 0;
+            for (var result : pool.invokeAll(java.util.Collections.nCopies(8, reserve))) if (result.get()) accepted++;
+            assertThat(accepted).isEqualTo(2);
+        }
+        for (String callId : jdbc.queryForList("SELECT call_id FROM agent.model_calls", String.class)) {
+            ledger.dispatch(callId, now);
+            ledger.settle(callId, receipt(new ModelUsage(1L, 1L, 0L, 0L, 0L)));
+        }
+        ledger.configure(limited);
+        assertThat(ledger.reserve(request(investigation()), now)).isEmpty();
+        assertThatThrownBy(() -> ledger.configure(new Budget("synthetic-total-limit", new BigDecimal("30"), 8, 8, 3)))
+                .isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> ledger.configure(new Budget("synthetic-total-limit", new BigDecimal("30"), 8, 8)))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
     @Test void restartKeepsUnknownReservationAndReinvestigationCannotResetIt() {
         ledger.configure(budget);
         var request = request(investigation());
@@ -169,6 +192,16 @@ class ModelCallLedgerTest {
         }
         assertThat(calls).hasValue(0);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM agent.model_calls", Integer.class)).isZero();
+    }
+
+    @Test void conflictingStoredAllocationIsAConfigurationErrorWithoutDispatch() {
+        ledger.configure(budget);
+        var changed = new Budget(budget.scope(), new BigDecimal("1"), 20, 10, 2);
+        var gate = new PaidModelGate(new Authorization(true, true, budget.scope(), now.plusSeconds(60), Set.of("mock-only")), changed, ledger, clock);
+        assertThatThrownBy(() -> gate.call(request(investigation()), () -> { throw new AssertionError("No transport is allowed"); }))
+                .isInstanceOf(Rejected.class).satisfies(error -> assertThat(((Rejected) error).reason()).isEqualTo(Rejection.CONFIGURATION));
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM agent.model_calls", Integer.class)).isZero();
+        assertThat(ledger.totals().limitUsd()).isEqualByComparingTo(budget.limitUsd());
     }
 
     @Test void permittedMockTransportChargesOnceAndFailureStaysUnknownWithoutRetry() {

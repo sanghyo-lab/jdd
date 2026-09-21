@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0",
+  "scope": "REQUIRES-EXPLICIT-DEMO-ALLOCATION",
+  "validUntil": "1970-01-01T00:00:00Z",
+  "catalogVersion": "openai-standard-text-2026-09-21",
+  "model": "gpt-5.6-luna",
+  "localBudgetUsd": 1,
+  "maximumCalls": 1,
+  "callsPerInvestigation": 8,
+  "concurrentCalls": 1,
+  "maxRequestBytes": 131072,
+  "estimatedInputLimit": 32000,
+  "maxOutputTokens": 4096,
+  "connectTimeoutMillis": 3000,
+  "requestTimeoutMillis": 45000,
+  "reasoningEffort": "low"
+}

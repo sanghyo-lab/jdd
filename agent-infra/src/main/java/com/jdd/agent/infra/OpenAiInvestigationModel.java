@@ -22,7 +22,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /** One Spring AI ChatModel call per iteration. The HTTP boundary owns reservation, dispatch and native usage. */
-public final class OpenAiInvestigationModel implements InvestigationModel {
+public final class OpenAiInvestigationModel implements InvestigationModel, AutoCloseable {
     public record Settings(ModelPricing pricing, long modelInputCeiling, int maxRequestBytes, int estimatedInputLimit,
                            int maxOutputTokens, String tokenizer, Duration connectTimeout, Duration requestTimeout,
                            String reasoningEffort) {
@@ -89,6 +89,11 @@ public final class OpenAiInvestigationModel implements InvestigationModel {
                 .timeout(settings.requestTimeout()).interceptor(this::metered)).build();
     }
     @Override public Mode mode() { return mode; }
+    @Override public void close() {
+        network.dispatcher().cancelAll();
+        network.connectionPool().evictAll();
+        network.dispatcher().executorService().shutdown();
+    }
     @Override public Reply next(Request request) {
         if (current.get() != null) throw InvestigationFailure.modelConfiguration();
         var attempt = new Attempt(request);

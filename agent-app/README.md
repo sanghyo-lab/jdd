@@ -2,7 +2,7 @@
 
 현재 구현 범위는 조사 API·영속 비동기 실행·도구 반복·근거 저장·보고서 검증·비용 제어다.
 커머스 조회 도구를 연결했고 Spring AI OpenAI 전송 계층을 로컬 HTTP 모의 서버로 검증했다.
-OpenAI 실행 환경 설정은 다음 단위이며 실제 제공자 호출·모델 품질은 미검증이다.
+명시적인 데모 설정으로 OpenAI를 활성화할 수 있다. 실제 제공자 호출·모델 품질은 미검증이다.
 기본 모델은 DISABLED다. 접수 후 실행기가 `FAILED / LLM_CONFIGURATION_ERROR`를 저장하며 유료 호출은 하지 않는다.
 실행기를 명시적으로 끄면 요청은 QUEUED에 남는다. 모델·도구 반복은 합성 도구/모의 모델로 검증했다.
 `businessReady=false`를 유지한다. 완료된 AI 분석처럼 표시하지 않는다.
@@ -69,10 +69,11 @@ PostgreSQL advisory lock을 가진 실행기 하나만 시작 복구·작업 접
 ## 모델 호출 허용과 비용 장부
 
 `PaidModelGate`는 기본 금지이며 데모 모드·명시적 유료 허용·승인 범위·만료 시각·모델 허용 목록을 모두 검사한다.
-OpenAI 클라이언트를 구현했고 실행 환경 설정 연결은 구현 중이다. 이 계층이 있다는 이유로 유료 호출을 시작하지 않는다.
+OpenAI 클라이언트와 기본 금지 실행 설정을 구현했다. 이 계층이 있다는 이유로 유료 호출을 시작하지 않는다.
 모의 검증은 메모리 함수와 IPv4 loopback HTTP 서버만 사용한다.
 
 - `agent.demo_budget`의 단일 누적 예산은 로컬에 배정한 금액($30 이하)·범위·동시 호출·조사당 호출 수를 고정한다. 재시작·새 조사·다른 범위 이름으로 초기화하거나 확대하는 API는 없다.
+- 데모 profile의 총 호출 한도도 같은 예산 행에 고정한다. 동시 예약을 포함해 원자적으로 검사하고 새 조사·재시작·설정 변경으로 초기화하지 않는다. V5 이전 장부는 null로 보존하며 실제 데모 활성화에는 명시한 총 한도가 필요하다.
 - `agent.model_calls`는 실제 HTTP 시도마다 하나의 ID, 요청/실제 모델·가격 버전·prompt 지문·도구 스키마·시각·usage를 저장한다. 재시도·전환도 새 시도로 예약해야 하며 이 계층은 자동 재시도하지 않는다.
 - DB 예산 행을 잠근 상태에서 확정+미확정+진행 중 예약+새 호출 최댓값을 검사한다. 모델 출력의 근거 ID와 비용 장부 ID는 별개다.
 - 전송 전에 예약을 DISPATCHED로 한 번만 전환한다. 미전송 예약만 취소할 수 있다. 응답 유실·중단·필요 usage 누락·미등록 실제 모델은 UNKNOWN이며 새 유료 호출을 차단한다.
@@ -108,6 +109,46 @@ OpenAI 클라이언트를 구현했고 실행 환경 설정 연결은 구현 중
 이 테스트는 H2 장부와 로컬 합성 HTTP만 사용하며 실제 OpenAI 접근·모델 품질을 검증하지 않는다.
 [Spring AI ChatModel](https://docs.spring.io/spring-ai/reference/api/chat/openai-chat.html)과
 [usage 처리](https://docs.spring.io/spring-ai/reference/api/usage-handling.html)를 적용했다.
+
+### 승인된 데모의 명시적 활성화
+
+실제 검증의 용도·모델·호출 수·최악 비용·기간과 팀 전체 예산 배분을 정한 뒤 사용한다.
+예제 파일은 만료된 상태이며 실행 허가나 권장 예산을 뜻하지 않는다. 키·실제 profile은 Git에 넣지 않는다.
+
+1. [profile 예제](config/demo-profile.example.json)를 무시되는 로컬 경로에 복사한다.
+   scope·24시간 이내 validUntil·PC 배정 localBudgetUsd·maximumCalls를 승인된 값으로 설정한다.
+   두 PC에 같은 전체 예산을 각각 배정하지 않는다. OpenAI 잔액·프로모션 연결·요금도 별도 확인한다.
+2. 후보 모델과 catalogVersion을 선택한다. 가격 리소스는 2026-09-21 공식
+   [Luna](https://developers.openai.com/api/docs/models/gpt-5.6-luna)·
+   [Terra](https://developers.openai.com/api/docs/models/gpt-5.6-terra)의 기본 text 요금이다.
+   확인 후 7일이 지난 catalog는 거절한다. tokenizer는 제한용 추정이며 제공자 정확 계수기가 아니다.
+   모델 선택·품질 합격 결과를 뜻하지 않고 자동 전환도 없다.
+3. 키는 별도 로컬 파일에 저장하고 Agent만 읽게 한다. profile에 키를 넣거나 ngrok authtoken을 사용하지 않는다.
+   승인된 profile·키 파일의 절대 경로를 각각 JDD_DEMO_PROFILE_FILE·JDD_OPENAI_KEY_FILE 환경 변수로 지정한다.
+4. 진행 중 조사가 없는지 확인한 후 저장소 루트에서 다음 **별도 명령**으로 Agent만 재생성한다.
+   기존 스택과 같은 Compose 프로젝트·.env·build.env를 사용한다. 이 명령 자체는 모델을 호출하지 않지만
+   활성화 후 접수/대기 조사는 승인 범위 안에서 모델을 호출할 수 있으므로 기존 QUEUED도 확인한다.
+
+```bash
+docker compose --env-file .env --env-file runtime/build.env \
+  -f compose.yaml -f agent-app/compose.openai-demo.yaml \
+  up --detach --no-build --no-deps --wait agent
+```
+
+override는 profile과 키 파일을 Agent에만 읽기 전용으로 마운트한다. 일반 up/check/publish는 이를 읽지 않는다.
+종료 시 진행 중 조사가 끝난 뒤 같은 명령에서 두 번째 `-f` 옵션을 빼고 Agent를 재생성한다.
+기본 DISABLED로 돌아가며 저장 예산·결과는 보존한다. 강제 중단은 미확정 예약을 해제하지 않는다.
+
+호스트 JVM에서 별도 데모를 실행한다면 JDD_AGENT_MODEL_MODE=OPENAI, JDD_AGENT_DEMO_MODE=true,
+JDD_AGENT_PAID_CALLS_ALLOWED=true, JDD_AGENT_DEMO_PROFILE과 JDD_AGENT_OPENAI_API_KEY_FILE을 명시한다.
+키 파일 대신 OPENAI_API_KEY도 지원하지만 둘을 함께 지정하면 거절한다. 인자에 키를 넣지 않는다.
+설정 누락·만료·미등록 모델·$30 초과·단일 호출 예약 불가능은 DISABLED이며 키를 먼저 읽지 않는다.
+키만 존재해도 활성화되지 않는다. Gradle Agent 테스트는 상속된 유료 허용 값을 false로 고정한다.
+
+입력 전체 상한 1,050,000과 출력 4,096으로 보수적으로 예약할 때 한 호출 최대치는
+Luna $0.5323728, Terra $5.323728이다. 실제 짧은 조사 비용의 추정이나 측정값이 아니다.
+성공 조사당 실제 총비용·지연·실패/재시도까지 비교한 뒤 모델을 확정해야 한다.
+필요 usage가 누락되면 새 유료 호출을 차단하고 제공자 근거로 미확정 사용량을 조정할 때까지 유지한다.
 
 ## 검증
 

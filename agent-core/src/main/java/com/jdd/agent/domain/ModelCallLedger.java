@@ -6,10 +6,14 @@ import java.util.Optional;
 
 public interface ModelCallLedger {
     enum State { RESERVED, DISPATCHED, CONFIRMED, UNKNOWN, CANCELLED }
-    record Budget(String scope, BigDecimal limitUsd, int callsPerInvestigation, int concurrentCalls) {
+    record Budget(String scope, BigDecimal limitUsd, int callsPerInvestigation, int concurrentCalls, Integer maximumCalls) {
+        public Budget(String scope, BigDecimal limitUsd, int callsPerInvestigation, int concurrentCalls) {
+            this(scope, limitUsd, callsPerInvestigation, concurrentCalls, null);
+        }
         public Budget {
             if (scope == null || scope.isBlank() || limitUsd == null || limitUsd.signum() <= 0
-                    || limitUsd.compareTo(new BigDecimal("30")) > 0 || callsPerInvestigation < 1 || concurrentCalls < 1)
+                    || limitUsd.compareTo(new BigDecimal("30")) > 0 || callsPerInvestigation < 1 || concurrentCalls < 1
+                    || (maximumCalls != null && maximumCalls < 1))
                 throw new IllegalArgumentException("An explicit demo allocation within USD 30 is required");
             limitUsd = ModelPricing.money(limitUsd);
         }

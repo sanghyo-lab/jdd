@@ -30,8 +30,8 @@ public class JdbcModelCallLedger implements ModelCallLedger {
     @Override public void configure(Budget budget) {
         // A duplicate insert is allowed only when the immutable existing allocation matches.
         try {
-            jdbc.update("INSERT INTO agent.demo_budget (budget_id, scope, limit_usd, calls_per_investigation, concurrent_calls) VALUES (1, ?, ?, ?, ?)",
-                    budget.scope(), budget.limitUsd(), budget.callsPerInvestigation(), budget.concurrentCalls());
+            jdbc.update("INSERT INTO agent.demo_budget (budget_id, scope, limit_usd, calls_per_investigation, concurrent_calls, maximum_calls) VALUES (1, ?, ?, ?, ?, ?)",
+                    budget.scope(), budget.limitUsd(), budget.callsPerInvestigation(), budget.concurrentCalls(), budget.maximumCalls());
         } catch (DuplicateKeyException exists) {
             Budget previous = jdbc.queryForObject("SELECT * FROM agent.demo_budget WHERE budget_id = 1", this::readBudget);
             if (!budget.equals(previous)) throw new IllegalStateException("Existing demo budget cannot be changed or reset");
@@ -45,6 +45,9 @@ public class JdbcModelCallLedger implements ModelCallLedger {
             Totals totals = totals(budget.limitUsd());
             if (totals.committedUsd().add(request.maximumCost()).compareTo(budget.limitUsd()) > 0) return Optional.empty();
             if (jdbc.queryForObject("SELECT count(*) FROM agent.model_calls WHERE state = 'UNKNOWN'", Integer.class) > 0)
+                return Optional.empty();
+            if (budget.maximumCalls() != null && jdbc.queryForObject(
+                    "SELECT count(*) FROM agent.model_calls WHERE state <> 'CANCELLED'", Long.class) >= budget.maximumCalls())
                 return Optional.empty();
             int investigationCalls = jdbc.queryForObject("SELECT count(*) FROM agent.model_calls WHERE investigation_id = ? AND state <> 'CANCELLED'",
                     Integer.class, request.investigationId());
@@ -135,7 +138,7 @@ public class JdbcModelCallLedger implements ModelCallLedger {
 
     private Budget readBudget(ResultSet rs, int row) throws SQLException {
         return new Budget(rs.getString("scope"), rs.getBigDecimal("limit_usd"),
-                rs.getInt("calls_per_investigation"), rs.getInt("concurrent_calls"));
+                rs.getInt("calls_per_investigation"), rs.getInt("concurrent_calls"), rs.getObject("maximum_calls", Integer.class));
     }
 
     private Entry read(ResultSet rs, int row) throws SQLException {

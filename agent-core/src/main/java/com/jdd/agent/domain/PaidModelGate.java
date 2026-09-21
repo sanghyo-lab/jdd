@@ -36,7 +36,8 @@ public final class PaidModelGate {
     public <T> T call(Request request, Supplier<Result<T>> transport) {
         Instant now = clock.instant();
         if (!authorized(request, now)) throw new Rejected(Rejection.CONFIGURATION);
-        ledger.configure(budget);
+        try { ledger.configure(budget); }
+        catch (IllegalStateException conflictingAllocation) { throw new Rejected(Rejection.CONFIGURATION); }
         var reservation = ledger.reserve(request, now);
         if (reservation.isEmpty()) throw new Rejected(Rejection.BUDGET_OR_LIMIT);
         Instant dispatchAt = clock.instant();

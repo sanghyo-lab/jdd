@@ -1,7 +1,7 @@
 package com.jdd.agent;
 
 import com.jdd.agent.domain.*;
-import com.jdd.agent.domain.InvestigationModel.*;
+import com.jdd.agent.infra.OpenAiDemoModelFactory;
 import com.jdd.agent.infra.InvestigationPromptLoader;
 import com.jdd.agent.infra.CommerceEvidenceDatabase;
 import com.jdd.agent.infra.CommerceDataTools;
@@ -14,16 +14,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import tools.jackson.databind.json.JsonMapper;
 
 @Configuration
 public class InvestigationExecutionConfiguration {
-    @Bean @ConditionalOnMissingBean InvestigationModel investigationModel() {
-        // An API key in the environment does not enable a paid client.
-        return new InvestigationModel() {
-            @Override public Mode mode() { return Mode.DISABLED; }
-            @Override public Reply next(Request request) { throw InvestigationFailure.modelConfiguration(); }
-        };
+    @Bean @ConditionalOnMissingBean InvestigationModel investigationModel(Environment environment, ModelCallLedger ledger, JsonMapper json) {
+        return OpenAiDemoModelFactory.create(environment::getProperty, ledger, json, Clock.systemUTC());
     }
 
     @Bean @ConditionalOnMissingBean InvestigationTools investigationTools(JsonMapper json,
