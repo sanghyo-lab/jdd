@@ -1,5 +1,13 @@
 # 한재홍 — AI Agent 작업 상태
 
+## 2026-09-22T08:06:30+09:00 — 실제 runner VOC-01 통과·VOC-02 인용 실패와 v6 보완
+
+- 고정 빌드754528c의 첫 실제 runner는 종료1이다. VOC-01은 실제 모델·19근거/HTTP/DB/로그/소스/정책 및 구조 검사 PASSED, VOC-02는 앱 COMPLETED/15근거였으나 `Cause needs direct data, log, and runtime code citations`로 FAILED였다. 이후 VOC-03~07·NORMAL·NEEDS_INPUT·IDEMPOTENCY·RECOVERY는 PENDING이며 실행했다고 쓰지 않는다. runner의 비교 기준·실패 중단을 완화하지 않았다.
+- VOC-01 조사 `36511ab0-6893-4a54-833a-3b1c53dbed26`를 직접 검수했다. EASY_PAY APPROVED/50,000원과 주문 PAYMENT_PENDING, 승인 로그, 해당 build의 CARD만 PAID로 전이하는 소스·demo-v1 정책이 일치한다. 구체 사실·원인·예방 경로의 직접 인용과 사람 조치를 확인했다. 외부 결제 원장은 조회하지 않았고 제안을 적용하지 않았다.
+- VOC-02 조사 `e523fbeb-0ecb-4152-ba74-59d4e3c25bdb`는 경계값 원인이 실제 소스/정책과 맞지만 H1의 DATA 직접 인용이 없다. F2는 같은 INVENTORY_READ 줄의 두 ID로 COUPON_REJECTED·주문 부재까지 설명하고, A1도 코드/정책만 인용해 주문 없음과 결제/환불 조치 불필요를 주장한다. 해당 관측이 보고서 다른 곳에 있더라도 항목별 근거로 대신하지 않는다. 저장된 원문/실패를 그대로 보존하며 품질 통과가 아니다.
+- 실제 OAuth는 각각4회, VOC-01 입력39,025/출력2,419/reasoning642·모델90,835ms, VOC-02 입력33,818/출력2,537/reasoning564·모델54,894ms다. cached/cache write는 두 조사 모두0이며 reasoning은 출력 일부다. 장부 누적52행·과거 usage 미관측1행/API0·진행조사0을 다시 대조했다. 원문은 실행 clone의 `runtime/mvp/20260921T230139.405234Z-a6416db8/`, 이 PC의 `followup-live-runner-01.log/json`, `followup-live-runner-01-review.json`, `followup-observations-after-runner-01.log/json`이다.
+- v6는 사실을 관측별로 나누고 event/필드/조회 범위·원인 항목의 DATA/LOG/CODE/POLICY·같은 예방 항목의 CODE 경로 인용을 출력 전에 대조하도록 보완한다. 평가 정답·시나리오별 해답·별도 검수 모델 호출은 추가하지 않았다. v1~v5를 보존하고 로더/문서를 새 버전으로 연결했다. 실행기·보고서 스키마·격리·SSE30개 모의 검사 실패/제외0이며 원문 `followup-prompt-v6-tests.log/json`, `followup-prompt-v6-results/`다. 이 지침의 실제 효과와 의미적 정확성은 공유 뒤 별도 검증하며 해결됐다고 단정하지 않는다.
+
 ## 2026-09-22T08:03:00+09:00 — 후속 Agent 공유·실제 장부/화면 직접 인수
 
 - `a9691bc`·`754528c`는 전체 `scripts/dev publish` 종료0으로 main에 공유했다. Python70·runner 부모6·web19/production build, Java216개 중207통과/9조건부 제외·실패0, 세 앱의 실제 PostgreSQL/HTTP/근거 연결을 확인했다. 변경 없는 Gradle 결과 재사용과 별도 새 PostgreSQL 3검사를 구분한다. buildId `754528c0add7-efde6c0e0ab6`, 원문 `followup-runner-agent-publish.log/json`·`followup-runner-agent-publish-tests.json`이다.
