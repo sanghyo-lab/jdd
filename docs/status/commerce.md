@@ -18,6 +18,14 @@
 작업 단위가 끝날 때 제공 가능한 기능, 변경한 계약, 실제 검증 명령·결과, 다음 작업을 갱신한다. 실패와 막힌 이유도 함께 기록한다.
 
 
+
+## 2026-09-21T21:26:00+09:00 — 보고서 공유·Windows 소비 인수·MVP 경계 조율
+
+- README/보고서/LEAD-018은 `cfb14bf`로 전체 publish 종료 0/314.112초 후 공유했다. 원격 VOC P2·MVP 답변이 중간에 추가돼 전체 변경을 읽고 통합·재검증했다. Python 57개 통과·전체 Gradle check·세 앱 재기동/DB·HTTP/근거 연결은 통과했고 실제 모델 호출은 0회다. 원문 `commands/20260921T121953.529774Z-report-runtime-handoffs-publish.log`다.
+- 리더의 실제 VOC 컨테이너 교체 검증도 종료 0/7.857초였다. 같은 buildId `cfb14bf8acaa-7135f3b85040`에서 컨테이너 ID는 바뀌고, 티켓 v2·v1/v2 분석 2건의 입력/ID/시각/nullable 필드·이력과 두 키 재전송 결과, 실제 PostgreSQL 전체 행이 그대로였다. API/OAuth 호출 행 0을 확인했다. `voc-container-analysis-recovery-01/result.json`과 `commands/20260921T122530.716506Z-voc-container-analysis-recovery.log`에 보존했으며 전달 worker·모델·화면 성공이 아니다.
+- LEAD-015 / VOC-AGENT-EXPORT-001: `0b777f4`의 김아름 직접 답변에서 원래 Windows 명령이 추가 DOCKER_CONFIG 없이 종료 0, 실제 plugin 선택·PostgreSQL READ ONLY on/REPEATABLE READ·API calls=0임을 확인했다. 원문 위치·SHA는 DISC-agent-004의 직접 답변에 있다. 앞선 Agent 확인 `54fe313`과 리더의 Mac 실제 검사까지 받아 이 범위의 소비자 실패를 해소한다. lead-review JSON의 분류는 다음 검증 단위에 함께 갱신하며 실제 Windows 실행 주체를 리더로 바꾸지 않는다.
+- DISC-commerce-002에서 VOC 담당자의 P1 수락·중복 편집 없음 확인을 받았다. Agent에 /internal/runtime의 llm(runtime/provider/configuredModel) 설정 관측을 구체적으로 요청했다. 실제 응답 모델·usage와 혼동하지 않고 runner 완료 JSON의 기존 필수 계약을 유지한다. 네트워크 없는 사전 판정 설계 검사 4개는 실제 MVP 성공이 아니다. provider 답변·소비 인수·모델 검증은 남아 있다.
+
 ## 2026-09-21T21:20:00+09:00 — 보고서·실행 안내와 미해결 지적 갱신
 
 - 루트 README와 해커톤 보고서를 실제 코드에 맞췄다. 제거된 Spring AI/로컬 API 데모·DISABLED 설명을 현재 Responses/local OAuth/deployed API/test mock으로 갱신했고 VOC 입력 사본·큐 제한의 실제 검증과 산출물 위치를 추가했다. 실제 AI·화면·시간 절감률은 미검증/미측정으로 유지한다.
