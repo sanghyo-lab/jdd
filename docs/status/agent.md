@@ -1,5 +1,16 @@
 # 한재홍 — AI Agent 작업 상태
 
+## 2026-09-21T22:46:02+09:00 — 김아름 공유 구현의 Agent 직접 인수·후속 대기
+
+- 사용자 요청에 따라 원격 논의/상태를 확인했다. 김아름의 정책 생성기·공백 입력·영속 전달/조회/근거 중계는 공유되어 즉시 직접 인수했고, 진행 중인 web/접근 제어/runner 경로는 중복 수정하지 않는다. 최신 검토 커밋은 `8bd5699`, 검증 스택 buildId는 `8bd5699533be-057bb12f48d9`다.
+- [DISC-agent-002](../discussions/DISC-20260921-agent-002-policy-snapshot.md): 새 실제 정책 archive를 8도구·25근거의 저장/HTTP 재조회로 인수했다. VOC-07 새 고유 합성 재현 1회(독립 트랜잭션 두 건·stock -1), 모의 모델 2회·유료/OAuth 0회다. 검사 1개 통과·선택 입력 없는 1개 제외. 기존 과거 정책/변조 회귀와 세 담당자 직접 확인을 합쳐 이 논의만 RESOLVED로 정리했다.
+- [DISC-agent-005](../discussions/DISC-20260921-agent-005-queue-limits.md): 전용 PostgreSQL QueueAdmissionTest 4개 통과·실패/제외 0. 동시 접수 한도·기존 키/충돌 우선·기한/슬롯 회복·API/OAuth/예약 0을 직접 확인했다. 김아름 실제 429·재시작 기록을 읽었고 화면/runner 검증은 대기한다.
+- [DISC-agent-003](../discussions/DISC-20260921-agent-003-empty-context.md): 실제 VOC/Agent/DB에서 공백 POST/PATCH 40건 거절·저장 불변, 생략/null/유효 문자 보존·v1/v2 서버 전달·동일 키/409·이력·티켓 OPEN을 확인했다. 기본 mock의 LLM_CONFIGURATION_ERROR를 전달/조회 실패와 구분하고 Agent GET과 VOC 저장 결과가 같았다. 실제 성공 보고서/모델 품질 검사는 아니다.
+- [DISC-commerce-002](../discussions/DISC-20260921-commerce-002-live-mvp-runtime.md): P1 수락·제공자 관측 인수. RuntimeObservationTest 3개·공통 live MVP 실행기 8개 통과. Windows 직접 검사·runner/실제 모델은 별도 대기다.
+- AGENT-LEAD-019 최근 로그 선택과 VOC 응답 바이트/본문 시간 제한도 직접 인수했다. LogDiscoveryTest 5개·AgentHttpTransportTest 5개 통과, 기존 정책/로그/소스의 읽기 전용 범위를 유지한다. 소스 수정은 없다.
+- 원문/명령/XML은 `runtime/submission/agent-20260921/followup-*.log/json`, `followup-consumer-results/`, `followup-admission-results/`, `followup-policy-handoff/`에 보존했다. 검사 환경은 인증 없는 별도 main clone/test/mock이며 기존 앱 DB·근거/비용 장부를 초기화하지 않았다. 다른 세션의 배포 API 1회·기존 $1 배정/비용은 별도 보존한다.
+- 다음 행동: 약 60초 간격으로 원격 전체 변경과 김아름의 새 답변/구현을 확인한다. web/runner 공유 시 새 빌드로 연동하고 실제 결과→근거·오류/재조사·로컬 OAuth 품질 검증을 이어간다. 공개 ngrok 설정/접근 계정은 사용자 추가 대기다. IN_PROGRESS를 유지하며 타인 DONE·리더 승인·팀 완료를 대신 작성하지 않는다.
+
 ## 2026-09-21T22:11:56+09:00 — 배포용 API 키로 Luna 실제 연결 검증 성공
 
 - 사용자의 “배포용 프로모션 API키를 사용해서 테스트” 지시에 따라 `OPENAI_MODEL=gpt-5.6-luna`로 실제 OpenAI Responses 호출을 1회 수행했다. OAuth는 사용하지 않았다. Git 제외 `.env`의 키를 실행 자식에만 주입했으며 키·프로모션 원문은 기록하지 않는다.
@@ -28,8 +39,8 @@
 - 작업 Issue·공유 커밋: 접수 `b2b46ef`, 실행 상태/보고서 `e60fa86`, 비용 장부 `943e961`(각 전체 publish 통과). 모델 오류 논의는 세 역할 P1 수락 후 AGREED다.
 - 담당 경로: `agent-app/`, `agent-core/`, `agent-infra/`
 - 준비된 자료: [구현 범위](../roles/han-jaehong-agent.md), [VOC·Agent 계약](../integration-contract.md), [커머스 조회 계약](../commerce-interface.md)
-- 다음 작업: 새 정책 snapshot과 VOC 분석 전달·web·runner를 인수하고 승인된 실제 모델·ngrok 검증을 연결한다. 일곱 업무의 실제 근거 조회·저장·원문 재조회 검사는 통과했다. 일반 실행의 유료 차단을 유지한다.
-- 필요한 입력: 김아름의 분석/화면/runner 전달 및 공개 ngrok 설정. 이 PC의 프로젝트 전용 Codex 로그인과 gpt-5.6-luna의 최소 OAuth 구조화 응답 검증은 성공했다. 배포용 API 키도 분리된 deployed/openai_api 컨테이너에서 최소 호출 1회·NEEDS_INPUT을 검증했다. 실제 VOC 조사 품질·전체 연동·원격 배포는 미검증이다. 전체 배포 profile·팀 누적 배정은 이번 $1/1회 범위와 장부를 포함해 별도로 정리한다.
+- 다음 작업: 정책 snapshot·VOC 분석 전달 직접 인수를 완료했다. 김아름의 web·runner 공유를 확인해 승인된 실제 모델·ngrok 검증을 연결한다. 일곱 업무의 실제 근거 조회·저장·원문 재조회 검사는 통과했다. 일반 실행의 유료 차단을 유지한다.
+- 필요한 입력: 김아름의 화면/runner 공유 및 공개 ngrok 설정. 이 PC의 프로젝트 전용 Codex 로그인과 gpt-5.6-luna의 최소 OAuth 구조화 응답 검증은 성공했다. 배포용 API 키도 분리된 deployed/openai_api 컨테이너에서 최소 호출 1회·NEEDS_INPUT을 검증했다. 실제 VOC 조사 품질·전체 연동·원격 배포는 미검증이다. 전체 배포 profile·팀 누적 배정은 이번 $1/1회 범위와 장부를 포함해 별도로 정리한다.
 - 검증 결과: 전체 Gradle check·세 앱 Docker·PostgreSQL/HTTP smoke, 실제 DB 동시성·권한·복구·비용 예약과 일곱 커머스 조사 300근거·333필드/로그 대조를 확인했다. 모의 모델과 실제 모델을 구분하며 실제 모델 품질·화면은 미검증.
 - 연동 요청: 정책 archive 소비자 구현 제공, DISC-20260921-agent-003의 선택 ID 공백 입력 경계 확인. 기본 Compose는 explicit test/mock이며 OAuth/API로 자동 활성화·fallback하지 않는다.
 

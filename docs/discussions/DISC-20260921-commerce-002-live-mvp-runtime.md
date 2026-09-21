@@ -9,8 +9,8 @@
 | 정리 담당 | 이상효 |
 | 영향받는 역할 | commerce·lead, agent, voc |
 | 필수 합의자 | 이상효(리더), 한재홍(모델 실행), 김아름(공통 실행·runner) |
-| 확인·답변 대기 | 한재홍 제공자 변경 확인·김아름 Windows 재검증/runner 인수 |
-| 생성 시각 / 최종 갱신 | 2026-09-21T21:17:00+09:00 / 2026-09-21T22:10:23+09:00 |
+| 확인·답변 대기 | 김아름 Windows 재검증/runner 인수·전체 실제 모델 검증 |
+| 생성 시각 / 최종 갱신 | 2026-09-21T21:17:00+09:00 / 2026-09-21T22:46:02+09:00 |
 | 다음 행동 / 담당 | 수정 공유 후 김아름 Windows 네이티브 재검증, 제공자 관측·runner 인수 |
 
 ## 결정할 질문
@@ -35,7 +35,7 @@
 
 ## 해소 기준
 
-- [ ] 세 작업자가 P1을 직접 확인·수락했다.
+- [x] 세 작업자가 P1을 직접 확인·수락했다.
 - [ ] mock/환경 누락/이전 빌드/불일치가 runner 전에 실패하고, 준비된 런타임을 교체하지 않음을 자동 검사했다.
 - [ ] 일반 up/check/publish와 role/lead 완료 게이트 회귀가 통과했다.
 - [ ] 제공자와 runner 소비자가 현재 모델·빌드 관측을 인수했다.
@@ -61,7 +61,9 @@
 
 ### 한재홍 — agent
 
-아직 답변 없음.
+2026-09-21T22:46:02+09:00 / 한재홍 / agent / P1
+
+의견: 수락·제공자 직접 인수. 준비된 런타임 보존과 비밀 없는 설정 관측을 수용하며 아래 검증 결과를 제공한다.
 
 ### 김아름 — voc
 
@@ -121,7 +123,7 @@
 
 ## 결정·실행·검증
 
-이상효와 김아름이 P1을 직접 수락했다. 한재홍의 provider/model 관측·실행 순서 확인과 Windows 네이티브 재검증·runner 인수가 남아 DISCUSSING이다. 실제 모델 미검증·runner 미구현 상태와 소스/흐름 검사를 구분하며 구현 인수 전 해소하지 않는다.
+세 작업자가 P1을 직접 수락했고 Agent의 provider/model 관측·실행 순서 인수를 확인했다. Windows 네이티브 재검증·runner 인수·실제 모델 검증이 남아 DISCUSSING이다. 실제 모델 미검증·runner 미구현 상태와 소스/흐름 검사를 구분하며 구현 인수 전 해소하지 않는다.
 
 ## 해소 또는 재개 이력
 
@@ -130,3 +132,10 @@
 2026-09-21T21:21:00+09:00 / 김아름: P1 직접 수락·공통 실행 소유 조율·runner 영향 확인. 한재홍 답변과 구현/실제 인수가 남아 DISCUSSING으로 갱신.
 
 2026-09-21T21:54:00+09:00 / 김아름: Windows 검사 7/8 통과·OS 고정 기대값 실패와 실제 CLI opt-in 거절을 기록. VOC-LEAD-MVP-001 회귀 검사 보완 요청, DISCUSSING 유지.
+
+### 2026-09-21T22:46:02+09:00 — 한재홍 / agent / P1 실행·관측 인수
+
+- `ab89c30`의 RuntimeController는 모델 팩토리와 같은 Spring Environment에서 선택한 runtime/provider/configuredModel만 기동 시 고정한다. 인증 경로/키/토큰은 읽거나 반환하지 않으며 실제 응답 모델·usage·사업 준비 완료와 구분하는 계약을 수락한다.
+- 공유 `8bd5699`에서 RuntimeObservationTest 3개, macOS test_live_mvp.py 8개를 직접 실행해 통과했다. provider 변경/자동 로그인/모델 호출 없이 현재 빌드·명시 선택·모의/이전/불일치 거절, 비밀 없는 자식 환경·전후 일치/실패 보존을 확인했다. 실제 컨테이너도 test/mock/mock, workerEnabled=true, businessReady=false를 응답한다.
+- 원문: `runtime/submission/agent-20260921/followup-consumer-tests.log`, `followup-consumer-results/`, `followup-live-mvp-tests.log`, `followup-voc-handoff.json`. 일반 up/check/publish는 mock을 유지하며 이 검증의 API/OAuth 호출은 0회다.
+- Windows 네이티브와 실제 모델 runner/MVP를 실행했다고 주장하지 않는다. 김아름의 화면/runner가 공유되면 local/codex_oauth로 준비한 실제 흐름을 별도 검증하고, 배포 API는 기존 범위/예산과 보존 장부를 지킨다. 현재 논의는 미해소다.
