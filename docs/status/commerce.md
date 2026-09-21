@@ -17,6 +17,12 @@
 
 작업 단위가 끝날 때 제공 가능한 기능, 변경한 계약, 실제 검증 명령·결과, 다음 작업을 갱신한다. 실패와 막힌 이유도 함께 기록한다.
 
+## 2026-09-21T19:48:00+09:00 — 접수 응답 유실의 독립 인수
+
+- 공유된 `fbb43be`의 실제 TCP/HTTP/worker 검사를 전체 검토하고 이 PC의 새 PostgreSQL `jdd_agent_disconnect_test`에서 실행했다. 접수 응답을 읽지 않고 연결을 닫은 뒤, RUNNING 중 새 클라이언트가 같은 키로 원래 조사 ID를 회복했다. 근거 재조회·완료·새로고침 후에도 조사 1건·근거 1건·모의 모델 2회·유료 호출 0회를 유지했다.
+- `ClientDisconnectionTest` 1개 통과·실패/건너뜀 0, 종료 0/21.648초. 모델과 관측 도구는 명시적 테스트 대역이며 실제 커머스/AI 품질·web/OAuth/ngrok 검증으로 계산하지 않는다. 기본 앱 DB·기존 재현 데이터는 건드리지 않았다.
+- 원문 `runtime/submission/commerce-20260921-resumed/agent-client-disconnection-01/result.json`·JUnit XML, `commands/20260921T104706.100121Z-agent-client-response-loss-postgresql.log`. 마지막 실제 앱 재기동 buildId는 `67ec034fa347-c076e59e00d0`이며 새 원격 단위는 테스트/안내/Agent 상태 변경이다.
+
 ## 2026-09-21T19:44:00+09:00 — 공유 결과와 남은 인수 조건
 
 - PostgreSQL 계약 검증 단위를 `67ec034`로 전체 publish 종료 0/193.825초 후 공유했다. 최신 Agent `4c20c9a`의 제공자 예산 오류 구분·토크나이저 재사용·회귀 전체를 읽고 통합했다. 현재 세 앱의 buildId는 `67ec034fa347-c076e59e00d0`로 일치하며 Agent 모델은 DISABLED다.
