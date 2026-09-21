@@ -8,13 +8,13 @@
 
 | 담당 | 역할 | 주로 수정할 경로 | 완성할 결과 |
 | --- | --- | --- | --- |
-| A | AI Agent | `agent-app/`, `agent-core/`, `agent-infra/`, `docs/status/agent.md` | 조사 접수·진행·근거·보고서 API, DB·로그·소스·정책 조사 |
-| B | 이커머스 애플리케이션 | `commerce-app/`, `commerce-core/`, `commerce-infra/`, `docs/business-policy.md`, `docs/status/commerce.md` | 주문·결제·쿠폰·재고·취소, 7개 장애 조건과 초기 데이터, 추적 로그 |
-| C | VOC 티켓 관리·AI 연동 | `voc-app/`, `voc-core/`, `voc-infra/`, `web/`, `scenario-runner/`, `docs/status/voc.md` | 티켓 CRUD, 분석 요청·결과 연결, 문의·리포트 화면, 전체 흐름 검증 |
+| 한재홍 (A) | AI Agent | `agent-app/`, `agent-core/`, `agent-infra/`, `docs/status/agent.md` | 조사 접수·진행·근거·보고서 API, DB·로그·소스·정책 조사 |
+| 이상효 (B) | 이커머스 애플리케이션 | `commerce-app/`, `commerce-core/`, `commerce-infra/`, `fixtures/commerce/`, `docs/business-policy.md`, `docs/status/commerce.md` | 주문·결제·쿠폰·재고·취소, 7개 장애 조건과 초기 데이터, 추적 로그 |
+| 김아름 (C) | VOC 티켓 관리·AI 연동 | `voc-app/`, `voc-core/`, `voc-infra/`, `web/`, `scenario-runner/`, `docs/status/voc.md` | 티켓 등록·조회·수정, 분석 요청·결과 연결, 문의·리포트 화면, 전체 흐름 검증 |
 
-A·B·C는 역할 표기이며 실제 GitHub 계정은 배정 후 기록한다. API 문서와 루트 Gradle 설정, Compose, CI는 공통 파일이다. 초기 틀은 C가 취합하고 A·B가 각 앱의 실행 조건을 제공한다. 이후 공통 파일을 바꾸는 작업에는 영향을 받는 담당자를 명시한다.
+A·B·C는 위 담당자의 역할 표기다. 이상효의 GitHub 계정은 `sanghyo-lab`이며 다른 두 사람의 계정은 공유받은 뒤 기록한다. [담당별 구현 문서](roles/README.md)에 기능·전달 자료·완료 기준을 정리했다. API 문서와 루트 Gradle 설정, Compose, CI는 공통 파일이다. 초기 틀은 김아름이 취합하고 한재홍·이상효가 각 앱의 실행 조건을 제공한다. 이후 공통 파일을 바꾸는 작업에는 영향을 받는 담당자를 명시한다.
 
-쿠폰을 포함한 커머스 구현은 B가 맡는다. A는 커머스 코드를 읽고 조사 도구를 구현하며, 커머스 수정이 필요하면 근거와 필요한 변경을 B의 작업에 연결한다. C는 티켓을 관리하고 A의 HTTP API를 호출한다.
+쿠폰을 포함한 커머스 구현은 이상효가 맡는다. 한재홍은 커머스 코드를 읽고 조사 도구를 구현하며, 커머스 수정이 필요하면 근거와 필요한 변경을 이상효의 작업에 연결한다. 김아름은 티켓을 관리하고 한재홍의 HTTP API를 호출한다.
 
 ## 2. 실행 단위와 연결
 
@@ -22,33 +22,33 @@ Spring Boot 앱 세 개를 제안한다. 각 앱에 `app`, `core`, `infra` 모�
 
 ```mermaid
 flowchart LR
-    U[개발팀] --> W[web / C]
-    W --> V[VOC 티켓 / C]
-    V -->|HTTP 분석 요청·조회| A[AI Agent / A]
+    U[개발팀] --> W[web / 김아름]
+    W --> V[VOC 티켓 / 김아름]
+    V -->|HTTP 분석 요청·조회| A[AI Agent / 한재홍]
     A -->|읽기| D[커머스 DB·로그·소스]
-    B[이커머스 / B] -->|데이터·로그 생성| D
+    B[이커머스 / 이상효] -->|데이터·로그 생성| D
     W -->|주문 재현| B
 ```
 
-- B의 서버: 업무 데이터와 로그를 생성한다. 실행 버전의 소스 스냅샷도 제공한다.
-- A의 서버: 조사 작업과 근거·보고서의 원본을 보관한다. `investigationId`를 발급한다.
-- C의 서버: 티켓, 담당자, 업무 처리 상태, 분석 요청과 `investigationId` 연결을 보관한다. `ticketId`를 발급한다.
+- 이상효의 서버: 업무 데이터와 로그를 생성한다. 실행 버전의 소스 스냅샷도 제공한다.
+- 한재홍의 서버: 조사 작업과 근거·보고서의 원본을 보관한다. `investigationId`를 발급한다.
+- 김아름의 서버: 티켓, 담당자, 업무 처리 상태, 분석 요청과 `investigationId` 연결을 보관한다. `ticketId`를 발급한다.
 - 티켓 상태는 `OPEN`, `IN_PROGRESS`, `RESOLVED`를 사용한다. AI 조사 상태는 `QUEUED`, `RUNNING`, `COMPLETED`, `NEEDS_INPUT`, `FAILED`를 사용한다.
 - 조사 완료 후 티켓 화면에 결과를 표시한다. 티켓의 `RESOLVED` 전이는 담당자가 실제 조치를 확인했을 때 수행한다.
 
 앱 세 개의 실행·연동 비용을 줄이기 위해 PostgreSQL 한 인스턴스와 Compose 실행 환경을 공유한다. `commerce`, `agent`, `voc` 스키마와 마이그레이션은 각 담당 앱에서 관리한다. 첫 통합은 첫날에 끝내는 것을 목표로 한다.
 
-## 3. 첫 한 시간에 맞출 규약
+## 3. 먼저 구현할 공통 규약
 
 | 규약 | 작성·검토 | 포함할 내용 |
 | --- | --- | --- |
-| VOC → Agent HTTP 계약 | A 작성, C 검토 | 요청·응답, 상태, 오류, 재시도, 근거·보고서 JSON |
-| 커머스 조회 스키마 | B 작성, A 검토 | 주문·결제·쿠폰·재고 테이블, 조회 필드, 데이터 초기화 방법 |
-| 로그·실행 소스 규약 | B 작성, A 검토 | UTC 시각, 이벤트명, `buildId`, 요청·주문·상품 식별자, 로그·소스 위치 |
-| VOC 화면 계약 | C 작성, A 검토 | 티켓과 조사 상태 표시, 추가 정보 입력, 근거 조회 |
-| 실행·검증 규약 | C 취합, 전원 확인 | JDK·Gradle·Node 버전, 앱별 포트·환경 변수, 빌드·테스트 명령 |
+| VOC → Agent HTTP 계약 | 한재홍 구현, 김아름 검토 | 요청·응답, 상태, 오류, 재시도, 근거·보고서 JSON |
+| 커머스 조회 스키마 | 이상효 구현, 한재홍 검토 | 주문·결제·쿠폰·재고 테이블, 조회 필드, 데이터 초기화 방법 |
+| 로그·실행 소스 규약 | 이상효 구현, 한재홍 검토 | UTC 시각, 이벤트명, `buildId`, 요청·주문·상품 식별자, 로그·소스 위치 |
+| VOC 화면 계약 | 김아름 구현, 한재홍 검토 | 티켓과 조사 상태 표시, 추가 정보 입력, 근거 조회 |
+| 실행·검증 규약 | 김아름 취합, 전원 확인 | JDK·Gradle·Node 버전, 앱별 포트·환경 변수, 빌드·테스트 명령 |
 
-HTTP 연결의 시작안은 [연동 계약 초안](integration-contract.md)에 정리했다. 구체적인 테이블 DDL과 OpenAPI·JSON 예제는 초기 계약 작업에서 확정한다. 확정한 규약과 동일한 예제 응답을 사용하면 C는 A의 구현 완료 전에 화면과 연동 코드를 만들 수 있다.
+필드·상태·JSON 예제는 [VOC·Agent 인터페이스 v1](integration-contract.md), 커머스 HTTP·최소 테이블 컬럼·로그·소스 위치는 [커머스 인터페이스 v1](commerce-interface.md)을 기준으로 구현한다. 첫 한 시간에는 이 계약을 함께 확인하고 DTO·DDL·실행 설정을 만든다. OpenAPI를 추가하면 같은 계약과 일치시킨다. 김아름은 예제 JSON을 이용해 한재홍의 실제 분석 구현 전에 화면과 연동 코드를 만들 수 있다.
 
 규약을 변경할 때에는 제공자와 사용자가 함께 변경을 확인한다. 필드 추가처럼 기존 호출이 계속 동작하는 변경을 우선한다. 필드 제거·이름 변경은 한 담당자가 양쪽 구현을 같은 커밋에 반영하거나, 각 단계에서도 연동이 유지되도록 순서를 정해 처리한다.
 
@@ -105,7 +105,8 @@ GitHub를 공유 기록으로 사용하려면 각 개발 에이전트가 원격 
 
 ```text
 이 저장소에서 맡은 역할과 이번 작업의 완료 조건을 확인한다.
-docs/collaboration.md, docs/integration-contract.md, docs/architecture.md와
+docs/roles/README.md와 자신의 담당 문서, docs/collaboration.md,
+docs/integration-contract.md, docs/commerce-interface.md, docs/architecture.md,
 docs/status의 세 역할 상태 문서를 읽는다.
 
 반복 단위:
@@ -125,17 +126,17 @@ docs/status의 세 역할 상태 문서를 읽는다.
 
 상태 기록은 역할별 파일로 나눠 충돌을 줄인다. 공유된 진행 상황은 원격 `main`의 상태 파일과 관련 Issue에서 확인한다. 구현 중인 기능은 완료한 기능과 구분해 기록한다.
 
-- [A — AI Agent 상태](status/agent.md)
-- [B — 이커머스 상태](status/commerce.md)
-- [C — VOC·연동 상태](status/voc.md)
+- [한재홍 — AI Agent 상태](status/agent.md)
+- [이상효 — 이커머스 상태](status/commerce.md)
+- [김아름 — VOC·연동 상태](status/voc.md)
 
 ## 6. 통합과 검증
 
-C를 초기 통합 담당으로 제안한다. A·B는 자신의 앱을 빌드·실행할 수 있는 상태로 전달하고, C는 VOC → Agent → 커머스 근거 조회 → 리포트 표시 흐름을 연결한다. 모듈별 테스트는 각 담당자가 유지한다.
+김아름은 초기 통합 틀을 취합한다. 한재홍·이상효는 자신의 앱을 빌드·실행할 수 있는 상태로 전달하고, 김아름은 VOC → Agent → 커머스 근거 조회 → 리포트 표시 흐름을 연결한다. 모듈별 테스트는 각 담당자가 유지한다.
 
 | 시점 | 함께 확인할 결과 |
 | --- | --- |
-| 첫 한 시간 | 소유 경로, 연동 계약 초안, 최소 테이블·로그 필드, 공통 실행 틀 |
+| 첫 한 시간 | 담당 경로·인터페이스 v1 확인, DTO·DDL, 공통 실행 틀 |
 | 첫날 오전 | 세 앱과 PostgreSQL 실행, 각 API의 예제 요청·응답 |
 | 첫날 오후 | 티켓 1건에서 실제 조사·근거·보고서 표시까지 연결 |
 | 둘째 날 오전 | 7개 VOC, 정상·정보 부족 사례, 중복 분석 요청·통신 실패 검증 |

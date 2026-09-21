@@ -2,7 +2,7 @@
 
 ## 1. 구성
 
-VOC 티켓 등록·처리 상태, 분석 진행, 답변과 근거를 확인할 프론트 프로젝트 `web`을 추가한다. C가 VOC 서버와 프론트·AI 연동을 담당한다. 이 문서는 설계이며, 프론트 코드나 배포 URL은 아직 생성하지 않았다.
+VOC 티켓 등록·처리 상태, 분석 진행, 답변과 근거를 확인할 프론트 프로젝트 `web`을 추가한다. [김아름](roles/kim-areum-voc.md)이 VOC 서버와 프론트·AI 연동을 담당한다. 이 문서는 설계이며, 프론트 코드나 배포 URL은 아직 생성하지 않았다.
 
 - 프론트: Next.js App Router, React, TypeScript를 기본안으로 한다.
 - 배포: Vercel에서 `web` 프로젝트를 빌드하고 제공한다. Next.js는 Vercel에서 지원하는 프레임워크다. [Vercel Next.js 문서](https://vercel.com/docs/frameworks/full-stack/nextjs)
@@ -79,7 +79,7 @@ sequenceDiagram
     W-->>U: 티켓 상세 화면
     U->>W: 분석 요청
     W->>V: POST /api/tickets/{ticketId}/analyses
-    V->>T: 입력 스냅샷과 requestKey 저장
+    V->>T: 티켓 버전·입력 스냅샷·requestKey 저장
     V-->>W: 202, analysisRequestId
     W-->>U: 분석 접수 표시
     V->>A: 서버 작업으로 POST /api/investigations
@@ -104,17 +104,18 @@ sequenceDiagram
 
 브라우저는 약 1~2초 간격으로 VOC의 분석 요청 상태를 조회하고 종료 상태에서 멈춘다. 통신 실패 시 간격을 늘리고 마지막 확인 시각과 조회 오류를 표시한다. 새로고침 후에는 URL의 티켓 ID와 선택한 분석 요청 ID로 이력을 복원한다. VOC의 서버 작업은 브라우저를 닫아도 요청 전달·Agent 상태 갱신을 계속한다. 요청 키와 입력 스냅샷을 저장해 응답 유실 시에도 같은 분석에 연결한다.
 
-추가 정보로 재조사할 때에는 티켓 내용을 보완한 뒤 새 요청 키와 이전 조사 ID를 함께 전송한다. 기존 조사 결과를 보존하고 새 분석 이력을 연결한다.
+티켓 수정 시 화면에서 확인한 `expectedVersion`, 분석 요청 시 `ticketVersion`을 전달한다. 버전 충돌은 최신 티켓을 불러와 확인하게 한다. 추가 정보로 재조사할 때에는 티켓 내용을 보완한 뒤 새 버전·요청 키와 이전 조사 ID를 함께 전송한다. 기존 조사 결과를 보존하고 새 분석 이력을 연결한다. 전달 실패의 수동 재시도에는 저장된 키·버전·이전 조사 ID를 재사용한다.
 
 | API 계약 | 용도 |
 | --- | --- |
+| `GET /api/assignees` | 배정할 담당자의 내부 ID·표시 이름 |
 | `POST /api/tickets`, `GET /api/tickets` | 티켓 생성·목록 조회 |
 | `GET /api/tickets/{ticketId}`, `PATCH /api/tickets/{ticketId}` | 티켓 상세·업무 상태·담당자 관리 |
 | `POST /api/tickets/{ticketId}/analyses` | 조사 요청 저장; `202`와 분석 요청 ID 반환 |
 | `GET /api/tickets/{ticketId}/analyses/{analysisRequestId}` | 전달·조사 상태, 수행 작업, 추가 정보 요청, 최종 보고서 |
 | `GET /api/tickets/{ticketId}/analyses/{analysisRequestId}/evidence/{evidenceId}` | 해당 티켓·분석에 연결된 근거의 실제 내용 |
 
-VOC와 Agent 사이의 내부 API, 요청 키, 상태와 오류 처리는 [연동 계약](integration-contract.md)을 따른다.
+티켓·분석의 정확한 DTO와 JSON 예제, 요청 키·상태·오류 처리는 [VOC·Agent 연동 계약](integration-contract.md)을 따른다. `/shop`과 시나리오 실행이 사용하는 API는 [커머스 인터페이스](commerce-interface.md)를 따른다.
 
 Next.js Route Handler는 HTTP 메서드별 요청 처리를 제공하므로 이 중계 계층을 구현할 수 있다. 모델 호출과 조사 반복은 `agent-app`에 둔다. 상태·근거 응답은 캐시하지 않도록 설정한다. [Next.js Route Handler 문서](https://nextjs.org/docs/app/getting-started/route-handlers)
 
@@ -163,7 +164,7 @@ LLM API 키와 DB 접속 정보는 Spring Boot 백엔드에서 관리한다. Nex
 ## 6. 이틀 동안의 연결 순서
 
 1. 티켓·분석 요청·조사 결과·근거 JSON을 먼저 합의한다.
-2. C가 VOC와 `web`의 티켓·결과 화면을 만들고, A가 조사 API, B가 커머스 API를 구현한다. UI 개발용 예시 응답은 개발용으로 명확하게 표시한다.
+2. 김아름이 VOC와 `web`의 티켓·결과 화면을 만들고, 한재홍이 조사 API, 이상효가 커머스 API를 구현한다. UI 개발용 예시 응답은 개발용으로 명확하게 표시한다.
 3. 로컬에서 티켓 → 분석 요청 → Agent 조사 → 상태 조회 → 답변·근거 표시를 한 번 연결한다.
 4. 백엔드 HTTPS 주소를 준비하고 `web`을 Vercel Preview에 배포해 같은 요청을 실행한다.
 5. 7개 시나리오와 정보 부족·실패 상태, 중복 요청, 티켓 상태 전이, 새로고침 후 조회를 확인한다.

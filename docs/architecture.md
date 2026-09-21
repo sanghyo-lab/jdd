@@ -5,7 +5,7 @@
 이 문서는 3명이 Java·Spring Boot로 이틀 동안 구현할 구조 제안이다. 현재 저장소에는 설계 문서가 있으며, 아래 디렉터리와 빌드 설정은 구현 대상이다.
 
 - 하나의 저장소에 백엔드 Gradle 모듈 10개와 프론트 프로젝트 `web`을 둔다. 백엔드 빌드 스크립트는 Groovy DSL을 기본안으로 한다.
-- 상시 실행하는 Spring Boot 애플리케이션은 `commerce-app`, `agent-app`, `voc-app` 세 개다. A는 AI, B는 커머스, C는 VOC 티켓과 AI 연동을 담당한다. [3인 협업 가이드](collaboration.md)
+- 상시 실행하는 Spring Boot 애플리케이션은 `commerce-app`, `agent-app`, `voc-app` 세 개다. 한재홍은 AI, 이상효는 커머스, 김아름은 VOC 티켓과 AI 연동을 담당한다. [담당별 구현 문서](roles/README.md)
 - `web`은 Next.js·React·TypeScript를 사용하는 별도 프로젝트로 제안한다. Vercel에서 화면과 짧은 API 중계 요청을 처리하고, 분석 작업은 Spring Boot 백엔드에서 실행한다.
 - 커머스의 상품·주문·결제·쿠폰·재고·취소는 같은 애플리케이션과 DB 트랜잭션 안에서 처리한다.
 - 조사 에이전트는 커머스의 데이터, 로그, 실행 버전의 소스코드를 독립적으로 조회한다.
@@ -33,18 +33,21 @@ jdd/
 ├── voc-core/                       # 티켓 모델·처리 상태·AI 연동 유스케이스
 ├── voc-infra/                      # 티켓 저장·Agent HTTP 클라이언트
 ├── scenario-runner/                # 데이터 준비·동시 요청·시나리오 검증
+├── fixtures/commerce/              # 이상효가 제공하는 재현 입력·초기화 자료
 ├── infra/                          # PostgreSQL 실행·스키마·계정 초기화 설정
 ├── runtime/                        # 실행 로그·소스 스냅샷·재현 산출물
 └── docs/
     ├── collaboration.md
     ├── integration-contract.md
+    ├── commerce-interface.md
+    ├── roles/                      # 담당별 기능·전달 자료·완료 기준
     ├── architecture.md
     ├── frontend-deployment.md
     ├── business-policy.md
     └── voc-scenarios.md
 ```
 
-`web`은 자체 `package.json`과 잠금 파일을 가진 프론트 프로젝트이며 Gradle의 `include` 대상에 넣지 않는다. `infra`, `runtime`, `docs`는 일반 디렉터리다. `runtime`의 실행 산출물은 버전 관리에서 제외하고, 재현에 필요한 입력 데이터와 정책은 버전 관리한다.
+`web`은 자체 `package.json`과 잠금 파일을 가진 프론트 프로젝트이며 Gradle의 `include` 대상에 넣지 않는다. `fixtures`, `infra`, `runtime`, `docs`는 일반 디렉터리다. `runtime`의 실행 산출물은 버전 관리에서 제외하고, 재현에 필요한 입력 데이터와 정책은 버전 관리한다.
 
 | 모듈 | 책임 | 직접 프로젝트 의존성 | 실행 형태 |
 | --- | --- | --- | --- |
@@ -184,7 +187,7 @@ agent-infra/com.jdd.agent
 대표 조사 흐름:
 
 1. 개발자가 자연어 문의와 알고 있는 주문·상품 식별자, 발생 시각을 입력해 VOC 티켓을 만든다.
-2. `web`이 VOC에 분석을 요청한다. VOC는 입력 스냅샷과 요청 키를 저장하고 `202 Accepted`와 분석 요청 ID를 반환한다. 서버 작업이 Agent에 요청을 전달하고 반환된 조사 ID를 연결한다.
+2. `web`이 확인한 티켓 버전과 요청 키로 VOC에 분석을 요청한다. VOC는 해당 버전의 입력 스냅샷과 요청 키를 저장하고 `202 Accepted`와 분석 요청 ID를 반환한다. 서버 작업이 Agent에 요청을 전달하고 반환된 조사 ID를 연결한다.
 3. 모델이 필요한 조회 도구를 선택한다. 앱이 도구를 실행하고 결과와 출처를 저장한다.
 4. 추가 조사가 필요하면 다른 도구를 호출한다. 호출 횟수·전체 시간·조회 결과 크기를 설정으로 제한한다.
 5. 조사 결과를 구조화된 보고서로 저장한다. 근거가 부족하면 필요한 추가 정보와 함께 결과를 남긴다.
@@ -206,8 +209,8 @@ agent-infra/com.jdd.agent
 - 업무 단계에 맞춰 `orderId`, `paymentId`, `productId`를 로그와 데이터에 연결한다. 주문 생성 전 실패도 요청 ID와 체크아웃 키로 찾을 수 있어야 한다.
 - 모든 실행 로그에 `buildId`, UTC 시각, 이벤트명을 포함한다. 이벤트마다 필요한 상태·수량·오류 정보를 구조화한다.
 - 실행할 때 소스와 스키마 정의를 `buildId`에 대응하는 스냅샷으로 준비한다. 에이전트는 해당 버전의 파일 경로와 줄 번호를 결과에 인용한다.
-- 코드 조회 범위는 커머스의 세 모듈에 있는 Java 소스와 업무 SQL·스키마 정의다. 정책 조회는 `business-policy.md`를 별도로 읽는다.
-- 시나리오 실행 코드와 평가 정답은 `scenario-runner` 및 평가 문서에 둔다. 소스 조회 경로와 구분해 분석을 평가한다.
+- 코드 조회 범위는 커머스 세 모듈의 `src/main/java`와 `commerce-infra/src/main/resources/db/migration`이다. 정책 조회는 `business-policy.md`를 별도로 읽는다. 필드·이벤트·경로는 [커머스 인터페이스](commerce-interface.md)를 따른다.
+- 시나리오 실행 코드와 평가 정답은 `scenario-runner`, `fixtures/commerce` 및 평가 문서에 둔다. 테스트 전용 동기화 코드는 테스트 소스에 두고 모두 Agent 조회 범위에서 제외한다.
 - 각 근거는 `evidenceId`, 유형, 조회 시각, 출처, 실제 관측 값을 가진다. 출처는 DB 레코드 식별자, 로그 위치, 또는 소스의 빌드·경로·줄 번호로 표현한다.
 
 재고 초과 판매 조사에서는 초기 재고와 두 요청의 로그, 각각 커밋된 주문·예약 이력, 재고 차감 코드를 같은 상품 기준으로 연결한다. 이 흐름이 전체 구조를 검증하는 주요 사례다.
@@ -236,11 +239,11 @@ include 'scenario-runner'
 
 | 담당 | 주 작업 경계 | 시나리오 책임 |
 | --- | --- | --- |
-| A — AI Agent | `agent-app`, `agent-core`, `agent-infra` | 7개 공통 조사, 근거·원인·해결안 검증 |
-| B — 이커머스 | `commerce-app`, `commerce-core`, `commerce-infra` | 7개 장애 조건·초기 데이터·로그, 쿠폰·재고를 포함한 전체 업무 처리 |
-| C — VOC·AI 연동 | `voc-app`, `voc-core`, `voc-infra`, `web`, `scenario-runner` | 티켓별 분석 연결, 7개 전체 흐름, 동시 요청 재현 실행·결과 취합 |
+| 한재홍 — AI Agent | `agent-app`, `agent-core`, `agent-infra` | 7개 공통 조사, 근거·원인·해결안 검증 |
+| 이상효 — 이커머스 | `commerce-app`, `commerce-core`, `commerce-infra`, `fixtures/commerce` | 7개 장애 조건·초기 데이터·로그, 쿠폰·재고를 포함한 전체 업무 처리 |
+| 김아름 — VOC·AI 연동 | `voc-app`, `voc-core`, `voc-infra`, `web`, `scenario-runner` | 티켓별 분석 연결, 7개 전체 흐름, 동시 요청 재현 실행·결과 취합 |
 
-각 역할은 자신의 모듈에서 구현하고, B가 업무 스키마·로그·소스 규약을 제공하면 A가 조회 구현을 맞춘다. A가 조사·보고서 HTTP 계약을 제공하면 C가 티켓·화면에 연결한다. 각자 별도 clone의 `main`에서 작업한다. 공통 설정과 동기화 순서, GitHub Issue·커밋·상태 기록은 [협업 가이드](collaboration.md)를 따른다.
+각 역할은 자신의 모듈에서 구현한다. 이상효가 커머스 계약에 맞춘 스키마·로그·소스를 제공하면 한재홍이 조회 도구를 연결하고, 한재홍이 조사·보고서 HTTP API를 제공하면 김아름이 티켓·화면에 연결한다. 구체적인 전달물은 [담당별 문서](roles/README.md)를 따른다. 각자 별도 clone의 `main`에서 작업하며 공통 설정과 동기화 순서는 [협업 가이드](collaboration.md)를 따른다.
 
 1. 공통 시작: 모듈 의존성, 추적 식별자, 주요 테이블, 도구 입출력, 보고서 구조를 맞춘다.
 2. 첫날 오전: 세 앱과 PostgreSQL을 실행하고, 최소 주문 API와 모델의 실제 도구 호출을 각각 확인한다. VOC와 프론트는 합의한 응답 형식으로 티켓·연동을 구현한다.
