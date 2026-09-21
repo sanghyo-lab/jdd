@@ -171,3 +171,11 @@
 - 실제 브라우저 생성 티켓 e0720129-4425-4d82-ab87-ba3f481fbd91은 최종 v5/RESOLVED/areum이다. 별도 합성 경쟁 수정을 포함하며 최종 상태만 브라우저에서 바꾼 뒤 occurredAt=2026-09-21T01:02:03.123456Z의 마이크로초도 그대로였다. HTTP 원문 요약은 runtime/verification/web-http-results.json이며 인증 없는 업무 API 401·임의 관리 경로 404·외부 Origin 403·쿠키 속성·실제 VOC 재조회 결과를 포함한다. 모델 호출은 0회이고 실제 AI/공개 URL 성공이 아니다.
 - VOC-LEAD-MVP-001의 원격 9965c73은 OS별 wrapper 기대값만 수정한 것을 확인했다. 안전한 통합 뒤 원래 Windows 8개 검사를 재실행해 회신한다. 140f8d5 로그 발견 수정은 runner 의존성으로 인수하며 같은 경로를 중복 수정하지 않는다.
 - VOC-LEAD-020/LEAD020을 접수했다. 1a4d9f5에서 리더가 HttpAgentGateway 본문 시간/바이트 제한·독립 회귀를 직접 맡았으므로 중복 편집하지 않는다. 공유 뒤 기존 동일 키/429/전달·조회 오류/캐시·복구 소비를 확인한다. 공개 토큰 연동·모델·runner·세 DONE/리더 승인은 남아 Goal active/IN_PROGRESS를 유지한다.
+
+
+## 2026-09-21T22:43:00+09:00 — 리더 Windows·Agent 전송 제한 수정 직접 인수
+
+- VOC-LEAD-MVP-001: 원격 9965c73의 OS별 wrapper 기대값을 포함한 main에서 네이티브 Python의 원래 test_live_mvp.py 8개가 모두 통과·제외 0·0.329초/종료 0이다. 원문 runtime/verification/web-native-live-mvp.log. [DISC-commerce-002](../discussions/DISC-20260921-commerce-002-live-mvp-runtime.md)에 직접 답변하고 목록을 갱신했다. 기존 실패는 보존하며 실제 모델/MVP 성공으로 계산하지 않는다.
+- VOC-LEAD-020/LEAD020: e237c35의 전체 future 기한·4MiB 수신 바이트 제한·초과 취소·interrupt 보존과 새 전송 검사 5개를 직접 읽었다. 이 PC의 네이티브 Java 21·기존 격리 PostgreSQL 17.6에서 `gradlew.bat :voc-app:test --tests 'com.jdd.voc.*HttpContractTest' --tests 'com.jdd.voc.AgentHttpTransportTest' --rerun-tasks` 종료 0/57초다. XML 4개·29개 검사 통과·실패/오류/제외 0을 확인했다.
+- 동일 키/429/일반 전달 재시도·조회 실패의 마지막 캐시 보존·lease/재시작과 티켓/분석 저장 24개, 실제 HTTP 본문 지연/UTF-8 크기/끝나지 않는 chunked/정확한 경계/중단 5개를 함께 검증했다. 실제 VOC HTTP/JDBC와 명시적인 합성 Agent HTTP다. 앱 DB·모델 호출은 없고 다른 PC의 runtime 복구 결과를 본인 실행으로 기록하지 않는다.
+- 원문 runtime/verification/web-transport-postgresql.log와 web-transport-postgresql-results/의 XML. 기존 사용자 DB/파일과 앞선 실패 원문은 보존했다. 수신 제한 수정과 소비 회귀를 직접 인수하며 리더의 최종 승인/DONE은 대신 작성하지 않는다. 실제 모델·분석 화면·shop·서버 간 인증·runner·공개 URL은 계속 구현/검증 대상이다.

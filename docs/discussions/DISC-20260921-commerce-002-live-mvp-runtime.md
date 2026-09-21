@@ -3,15 +3,15 @@
 | 항목 | 내용 |
 | --- | --- |
 | ID | DISC-20260921-commerce-002 |
-| 상태 | DISCUSSING |
+| 상태 | AGREED |
 | 제안 버전 | P1 |
 | 작성자 / 역할 | 이상효 / commerce·lead |
 | 정리 담당 | 이상효 |
 | 영향받는 역할 | commerce·lead, agent, voc |
 | 필수 합의자 | 이상효(리더), 한재홍(모델 실행), 김아름(공통 실행·runner) |
-| 확인·답변 대기 | 김아름 Windows 재검증/runner 인수·전체 실제 모델 검증 |
-| 생성 시각 / 최종 갱신 | 2026-09-21T21:17:00+09:00 / 2026-09-21T22:46:02+09:00 |
-| 다음 행동 / 담당 | 수정 공유 후 김아름 Windows 네이티브 재검증, 제공자 관측·runner 인수 |
+| 확인·답변 대기 | 김아름 runner 소비 인수·전체 실제 모델 검증 |
+| 생성 시각 / 최종 갱신 | 2026-09-21T21:17:00+09:00 / 2026-09-21T22:52:00+09:00 |
+| 다음 행동 / 담당 | 세 담당자 P1 합의·Agent 관측·Windows 8/8 직접 인수 완료, runner/실제 모델 검증 |
 
 ## 결정할 질문
 
@@ -121,9 +121,17 @@
 - 모의 Windows 선택으로 같은 8개 검사를 변경 전 7통과/1실패, 변경 후 8통과로 확인했다. macOS 네이티브 8개도 통과했다. 합성 보고서는 임시 저장소 안에만 생성하며 실제 Windows나 live MVP 성공이 아니다. 원문은 commerce 상태의 같은 시각 기록에 있다.
 - 전체 publish 뒤 김아름이 원래 Windows 명령으로 직접 재검증해 달라. 제공자 답변·runner/실제 모델 인수는 남아 DISCUSSING을 유지한다. 한재홍의 다른 PC OAuth 최소 응답 성공도 이 PC의 실제 MVP로 대체하지 않는다.
 
+### 김아름 — VOC-LEAD-MVP-001 Windows 수정 직접 인수
+
+2026-09-21T22:43:00+09:00 / 김아름 / voc / P1
+
+- 원격 9965c73의 OS별 wrapper 단언을 실제 변경 전체와 대조하고 8bd5699를 포함한 로컬 main에 통합했다. 다른 단언·보고서/비밀 경계는 유지한다. 원래 Windows Python에서 `python -m unittest discover -s scripts/tests -p test_live_mvp.py -v`를 다시 실행해 8개 모두 통과·실패/제외 0이다.
+- 원문 runtime/verification/web-native-live-mvp.log, 실제 0.329초/종료 0이다. 이전 worker-live-mvp-windows.log의 7/8 실패도 보존한다. 테스트가 출력하는 PASS 문구와 합성 보고서는 임시 저장소의 모의 workflow 결과이며 실제 MVP/모델 호출 성공이 아니다.
+- VOC-LEAD-MVP-001의 Windows 기대값 문제는 소비자로서 인수했다. 제공자 확인·runner·실제 모델 검증은 남아 본건 전체는 DISCUSSING을 유지한다. 리더 검토 JSON이나 다른 담당자의 수락/완료를 대신 작성하지 않는다.
+
 ## 결정·실행·검증
 
-세 작업자가 P1을 직접 수락했고 Agent의 provider/model 관측·실행 순서 인수를 확인했다. Windows 네이티브 재검증·runner 인수·실제 모델 검증이 남아 DISCUSSING이다. 실제 모델 미검증·runner 미구현 상태와 소스/흐름 검사를 구분하며 구현 인수 전 해소하지 않는다.
+세 작업자가 P1을 직접 수락했고 Agent의 provider/model 관측·실행 순서와 김아름의 Windows 네이티브 8개 통과 인수를 확인했다. 남은 이견 없이 실행·검증이 남았으므로 AGREED다. runner 소비 인수·현재 빌드의 실제 모델 검증은 아직 남아 있으며, 소스/흐름 검사나 mock 기동을 실제 MVP 성공으로 계산하지 않는다. 건별 해소 기준을 모두 확인하기 전에는 RESOLVED로 바꾸지 않는다.
 
 ## 해소 또는 재개 이력
 
@@ -139,3 +147,8 @@
 - 공유 `8bd5699`에서 RuntimeObservationTest 3개, macOS test_live_mvp.py 8개를 직접 실행해 통과했다. provider 변경/자동 로그인/모델 호출 없이 현재 빌드·명시 선택·모의/이전/불일치 거절, 비밀 없는 자식 환경·전후 일치/실패 보존을 확인했다. 실제 컨테이너도 test/mock/mock, workerEnabled=true, businessReady=false를 응답한다.
 - 원문: `runtime/submission/agent-20260921/followup-consumer-tests.log`, `followup-consumer-results/`, `followup-live-mvp-tests.log`, `followup-voc-handoff.json`. 일반 up/check/publish는 mock을 유지하며 이 검증의 API/OAuth 호출은 0회다.
 - Windows 네이티브와 실제 모델 runner/MVP를 실행했다고 주장하지 않는다. 김아름의 화면/runner가 공유되면 local/codex_oauth로 준비한 실제 흐름을 별도 검증하고, 배포 API는 기존 범위/예산과 보존 장부를 지킨다. 현재 논의는 미해소다.
+
+### 2026-09-21T22:52:00+09:00 — 김아름 / voc / P1 합의 기록 통합
+
+- 한재홍의 22:46 직접 답변과 김아름의 22:43 Windows 직접 인수를 모두 보존해 통합했다. 세 필수 합의자의 P1 수락을 근거로 AGREED로 갱신한다. 과거 시점의 DISCUSSING 기록은 이력으로 보존한다.
+- runner 소비 인수와 허용 범위의 실제 모델 검증은 남아 미해소다. 타인의 완료 기록이나 리더 승인은 작성하지 않았다.
