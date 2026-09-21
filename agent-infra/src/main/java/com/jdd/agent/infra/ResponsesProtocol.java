@@ -7,6 +7,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 /** Text, strict report schema and function calls only. No client-side tool execution. */
 public final class ResponsesProtocol {
+    private static final System.Logger LOG = System.getLogger(ResponsesProtocol.class.getName());
     private final JsonMapper json;
     public ResponsesProtocol(JsonMapper json) { this.json = json; }
 
@@ -52,7 +53,9 @@ public final class ResponsesProtocol {
     public InvestigationModel.Reply reply(JsonNode response) {
         if (!"completed".equals(response.path("status").asText()) || !response.path("output").isArray())
             throw InvestigationFailure.unavailable();
-        var text = new StringBuilder();
+        var unphasedText = new StringBuilder();
+        var finalText = new StringBuilder();
+        int finalMessages = 0, unphasedMessages = 0, commentaryMessages = 0;
         var calls = new ArrayList<InvestigationModel.ToolCall>();
         var items = new ArrayList<String>();
         for (var item : response.path("output")) {
@@ -65,14 +68,28 @@ public final class ResponsesProtocol {
                 if (id.isBlank() || name.isBlank() || !item.path("arguments").isString()) throw InvestigationFailure.unavailable();
                 calls.add(new InvestigationModel.ToolCall(id, name, item.path("arguments").asText()));
             } else if (type.equals("message")) {
+                StringBuilder target;
+                var phase = item.path("phase");
+                if (phase.isMissingNode() || phase.isNull()) {
+                    unphasedMessages++; target = unphasedText;
+                } else if (phase.isString() && phase.asText().equals("final_answer")) {
+                    finalMessages++; target = finalText;
+                } else if (phase.isString() && phase.asText().equals("commentary")) {
+                    commentaryMessages++; target = null;
+                } else throw InvestigationFailure.modelConfiguration();
                 for (var part : item.path("content")) {
                     if ("refusal".equals(part.path("type").asText()))
                         throw new InvestigationFailure(new Investigation.ApiError("REPORT_VALIDATION_FAILED", "모델이 조사 보고서를 반환하지 못했습니다.", false));
-                    if ("output_text".equals(part.path("type").asText())) text.append(part.path("text").asText());
+                    if (target != null && "output_text".equals(part.path("type").asText())) target.append(part.path("text").asText());
                 }
             }
         }
-        if (text.isEmpty() && calls.isEmpty()) throw InvestigationFailure.unavailable();
+        var text = finalMessages > 0 ? finalText : unphasedText;
+        LOG.log(System.Logger.Level.INFO, "Model output selection: finalMessages={0}, unphasedMessages={1}, commentaryMessages={2}, toolCalls={3}",
+                finalMessages, unphasedMessages, commentaryMessages, calls.size());
+        if (text.isEmpty() && calls.isEmpty() && commentaryMessages == 0 && finalMessages == 0)
+            throw InvestigationFailure.unavailable();
+        // An interim-only response gets bounded report feedback, never a completed report.
         return new InvestigationModel.Reply(text.toString(), List.copyOf(calls), List.copyOf(items));
     }
     private static Map<String, Object> reportSchema() {

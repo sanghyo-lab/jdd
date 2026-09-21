@@ -141,6 +141,26 @@ class InvestigationRunnerTest {
         assertThat(modelCalls).hasValue(2);
     }
 
+    @Test
+    @org.junit.jupiter.api.extension.ExtendWith(org.springframework.boot.test.system.OutputCaptureExtension.class)
+    void rejectedReportsLogBoundedReasonsWithoutModelTextOrEvidenceValues(org.springframework.boot.test.system.CapturedOutput output) {
+        var claim = start();
+        var candidate = new AnalysisReport("1.0", "sensitive-summary", List.of(new Fact("private-id", "sensitive-description",
+                java.util.Collections.nCopies(100, "sensitive-unknown-observation"))), List.of(), List.of(), List.of(), List.of());
+        runner(request -> {
+            if (request.iteration() == 2) assertThat(request.history().getLast().text())
+                    .isEqualTo("보고서 검증 오류만 수정하세요. 새 근거 ID를 만들지 마세요: facts.evidenceIds contains an unknown observation");
+            return reportReply(candidate);
+        }, tools(false), 8, 24).run(claim);
+        assertThat(view(claim).error().code()).isEqualTo("REPORT_VALIDATION_FAILED");
+        assertThat(modelCalls).hasValue(2);
+        assertThat(output.getAll()).contains("Report validation rejected", claim.investigationId(), "facts.evidenceIds contains an unknown observation")
+                .doesNotContain("sensitive-summary", "private-id", "sensitive-description", "sensitive-unknown-observation");
+        var malformed = start();
+        runner(request -> new Reply("sensitive-malformed-json", List.of()), tools(false), 8, 24).run(malformed);
+        assertThat(output.getAll()).contains("Report JSON does not match the required schema").doesNotContain("sensitive-malformed-json");
+        assertThat(view(malformed).report()).isNull();
+    }
     @Test void anEmptyUnsubstantiatedConclusionCannotBePublishedAsCompleted() {
         var claim = start();
         runner(request -> reportReply(emptyReport()), tools(false), 8, 24).run(claim);

@@ -62,6 +62,39 @@ class ResponsesSseTest {
         assertThat(payload.path("input").get(4).path("call_id").asText()).isEqualTo("b");
         assertThat(payload.path("input").get(5).path("content").asText()).contains("모델 응답 1회", "조회 도구 0회", "사용자 입력 부족으로 바꾸지");
     }
+    @Test void assistantPhasesSeparateFinalReportFromPreamblesAndRemainInHistory() throws Exception {
+        var commentary = Map.of("type", "message", "role", "assistant", "phase", "commentary",
+                "content", List.of(Map.of("type", "output_text", "text", "확인 중입니다.")));
+        var finalAnswer = Map.of("type", "message", "role", "assistant", "phase", "final_answer",
+                "content", List.of(Map.of("type", "output_text", "text", "{\"answer\":\"최종 보고서\"}")));
+        String stream = event(Map.of("type", "response.output_item.done", "output_index", 0, "item", commentary))
+                + event(Map.of("type", "response.output_item.done", "output_index", 1, "item", finalAnswer))
+                + event(Map.of("type", "response.completed", "response", Map.of("status", "completed")));
+        for (int chunk = 1; chunk <= 16; chunk++) {
+            var protocol = new ResponsesProtocol(json);
+            var reply = protocol.reply(ResponsesSse.read(fragmented(stream, chunk), json, ignored -> {}));
+            assertThat(reply.text()).isEqualTo("{\"answer\":\"최종 보고서\"}");
+            var request = new InvestigationModel.Request("test", new InvestigationInput("1.0", "ticket", 1, "key", "문의", null, null),
+                    InvestigationPromptLoader.load(), 2, List.of(), List.of(InvestigationModel.Message.assistant(reply)));
+            var input = json.valueToTree(protocol.payload(request, "explicit-model")).path("input");
+            assertThat(input.get(1)).isEqualTo(json.valueToTree(commentary));
+            assertThat(input.get(2)).isEqualTo(json.valueToTree(finalAnswer));
+        }
+    }
+    @Test void absentPhaseRemainsCompatibleButCommentaryAloneIsNeverAReport() {
+        var protocol = new ResponsesProtocol(json);
+        var message = json.createObjectNode().put("type", "message").put("role", "assistant");
+        message.putArray("content").addObject().put("type", "output_text").put("text", "legacy final");
+        for (boolean nullPhase : List.of(false, true)) {
+            if (nullPhase) message.putNull("phase");
+            assertThat(protocol.reply(json.valueToTree(Map.of("status", "completed", "output", List.of(message)))).text()).isEqualTo("legacy final");
+        }
+        message.put("phase", "commentary");
+        assertThat(protocol.reply(json.valueToTree(Map.of("status", "completed", "output", List.of(message)))).text()).isEmpty();
+        message.put("phase", "unrecognized");
+        assertThatThrownBy(() -> protocol.reply(json.valueToTree(Map.of("status", "completed", "output", List.of(message)))))
+                .isInstanceOf(InvestigationFailure.class);
+    }
     @Test void terminalFailureAndIncompleteRemainFailuresEvenAfterTextDeltas() throws Exception {
         for (String state : List.of("failed", "incomplete")) {
             var response = ResponsesSse.read(fragmented(event(Map.of("type", "response.output_text.delta", "delta", "partial"))

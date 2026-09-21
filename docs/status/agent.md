@@ -1,5 +1,14 @@
 # 한재홍 — AI Agent 작업 상태
 
+## 2026-09-21T23:53:30+09:00 — v5 실제 보고서 실패 보존·응답 phase 처리와 진단 보완
+
+- v5 단위 `10a770a`의 전체 publish가 종료 0으로 끝났다(`followup-citation-publish.log/json`). 같은 정상 티켓의 새 키 조사 `23f36956-0707-46e0-a563-c26376d8e492`, 분석 `d16864f2-9a49-4f8e-bc9b-b2706f53605a`는 7도구·20근거 저장 후 REPORT_VALIDATION_FAILED로 종료했다. 성공한 이전 정상 판단/인용 누락 결과와 분리하며 v5 품질 성공으로 계산하지 않는다.
+- 실제 OAuth 6회는 모두 HTTP 200 completed/usage 관측이다. 입력 53,360·출력 3,250·캐시 입력 10,240·reasoning 519(각 입력/출력의 일부)·cache write 0, 모델 요청 지연 합계 93,663ms. 이 스택 누적 OAuth 33행/API 0행이고 과거 미관측 usage는 null로 유지한다. 원문 `followup-oauth-normal-03/`, `followup-oauth-normal-run-03.log/json`이다.
+- 기존 실행기는 보고서 상세 검증 사유를 기록하지 않아 이 실제 실패가 JSON 형식인지 근거 참조인지 확정할 수 없다. 서버 고정 필드/사유만 중복 제외 최대 16개로 진단하고 모델 보정에 전달하도록 했다. 원문 보고서·예외 원문·근거 값은 로깅하지 않는다. 수정 횟수·검증 기준·오류 DTO를 완화하지 않는다.
+- 공식 Responses phase 안내와 기존 확인 Codex 공개 소스의 MessagePhase를 대조했다. 별도 모의 스트림에서 commentary와 final_answer 본문을 합쳐 최종 JSON을 깨뜨리는 문제를 재현했다. 수정 전 7개 중 2개 실패(`followup-phase-before.log/xml`). 실제 v5 실패의 원인이 반드시 phase 혼합이었다고 단정하지 않는다.
+- final_answer가 있으면 그 본문을 선택하고 commentary를 보고서로 쓰지 않는다. 누락/null phase의 기존 응답은 호환하고 원래 phase/전체 응답 항목은 후속 이력에 보존한다. 알 수 없는 phase는 명확히 거절한다. 원문 대신 메시지 종류별 개수/도구 수만 진단한다.
+- 수정 후 SSE/phase 7·실행기 12·격리 9·API 전송 24, 합계 52개 성공·실패/제외 0(`followup-phase-after.log/json`, `followup-phase-results/`). UTF-8/chunk 분할·단계별 최종 선택·이력 보존·누락/null 호환·중간 설명만으로 완료 금지와 합성 민감 원문/미등록 근거 값의 로그 제외를 확인했다. 실제 모델 호출 0인 회귀이며 공유 후 실제 검증을 이어간다.
+
 ## 2026-09-21T23:43:16+09:00 — NORMAL 완료·정상 판정 인수·문장별 인용 보완
 
 - 없는 정책 제목 안내 단위 `93c892e`를 전체 publish 종료 0으로 공유했다. Python 67·web 13/production build·전체 Gradle check·세 앱/실제 PostgreSQL/HTTP/근거 연결 통과, 원문 `followup-policy-section-publish.log/json`이다.

@@ -10,6 +10,7 @@ import java.util.List;
 
 /** Bounded service-owned loop. Reads and writes are local; inference is behind the model port. */
 public final class InvestigationRunner {
+    private static final System.Logger LOG = System.getLogger(InvestigationRunner.class.getName());
     public record Limits(int modelCalls, int toolCalls, int reportRepairs, int argumentRepairs) {
         public Limits {
             if (modelCalls < 1 || toolCalls < 1 || reportRepairs < 0 || argumentRepairs < 0)
@@ -113,6 +114,10 @@ public final class InvestigationRunner {
                 executions.complete(claim, report, clock.instant());
                 return;
             }
+            // Validator messages contain only server-defined field names/reasons, never model values.
+            errors = errors.stream().distinct().limit(16).toList();
+            LOG.log(System.Logger.Level.WARNING, "Report validation rejected: investigationId={0}, iteration={1}, reasons={2}",
+                    claim.investigationId(), iteration, errors);
             if (++repairedReports > limits.reportRepairs()) throw reportFailure();
             history.add(Message.feedback("보고서 검증 오류만 수정하세요. 새 근거 ID를 만들지 마세요: " + String.join(", ", errors)));
         }
