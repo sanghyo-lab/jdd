@@ -162,6 +162,31 @@ class TicketHttpContractTest {
         assertThat(jdbc.queryForObject("SELECT count(*) FROM voc.tickets", Long.class)).isZero();
     }
 
+    @Test void optionalIdentifiersRejectBlankTextAndPreserveMeaningfulCharacters() throws Exception {
+        var original = create(Map.of("title", "식별자 검증", "message", "문의"));
+        String path = "/api/tickets/" + original.get("ticketId").asText();
+        for (String key : List.of("customerId", "orderId", "productId", "requestId", "checkoutKey")) {
+            for (String blank : List.of("", " ", "\t\n", "\u2003")) {
+                var context = Map.of(key, blank);
+                var createBody = Map.of("title", "식별자 검증", "message", "문의", "context", context);
+                var error = call("POST", "/api/tickets", JSON.writeValueAsString(createBody), 400);
+                assertThat(error.get("code").asText()).isEqualTo("INVALID_REQUEST");
+                assertThat(error.get("retryable").asBoolean()).isFalse();
+                var patchBody = Map.of("expectedVersion", 1, "context", context);
+                assertThat(call("PATCH", path, JSON.writeValueAsString(patchBody), 400).get("code").asText())
+                        .isEqualTo("INVALID_REQUEST");
+            }
+            assertThat(call("GET", path, null, 200).get("ticket")).isEqualTo(original);
+        }
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM voc.tickets", Integer.class)).isEqualTo(1);
+        Map<String, Object> optional = new java.util.LinkedHashMap<>();
+        optional.put("orderId", null);
+        optional.put("productId", " product-한글 ");
+        var valid = create(Map.of("title", "보존", "message", "문의", "context", optional));
+        assertThat(valid.get("context").size()).isEqualTo(1);
+        assertThat(valid.get("context").get("productId").asText()).isEqualTo(" product-한글 ");
+    }
+
     private JsonNode create(Map<String, ?> body) throws Exception {
         return call("POST", "/api/tickets", JSON.writeValueAsString(body), 201);
     }

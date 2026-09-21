@@ -97,7 +97,7 @@ VOC는 요청을 먼저 저장하고 서버 작업 실행기로 Agent에 전달�
 }
 ```
 
-`InvestigationContext`는 `customerId`, `orderId`, `productId`, `requestId`, `checkoutKey`, `occurredAt`을 선택적으로 받는다. ID·키는 문자열, occurredAt은 timestamp다. context 내 null 필드는 없는 조건으로 취급한다. 필요한 식별자나 시각이 부족하면 접수 후 `NEEDS_INPUT`과 필요한 항목을 반환한다. 호출 측은 시나리오 정답이나 결함 ID를 조사 입력에 넣지 않는다.
+`InvestigationContext`는 `customerId`, `orderId`, `productId`, `requestId`, `checkoutKey`, `occurredAt`을 선택적으로 받는다. ID·키는 문자열, occurredAt은 timestamp다. context 내 생략/null 필드는 없는 조건으로 취급한다. VOC 생성/PATCH와 Agent 접수는 명시된 ID·키가 빈 문자열이거나 공백뿐이면 `400 INVALID_REQUEST`로 거절하며, 유효한 문자열의 문자를 임의로 trim하거나 바꾸지 않는다. 화면에서 입력하지 않은 선택 값은 생략/null로 보낸다. 기존에 저장한 공백 context를 전달하다 거절되면 재시도 불가능한 전달 오류로 표시하고 티켓 수정과 새 키의 분석을 안내한다. 기존 스냅샷이나 키 의미를 자동으로 바꾸지 않는다. 필요한 식별자나 시각이 부족하면 접수 후 `NEEDS_INPUT`과 필요한 항목을 반환한다. 호출 측은 시나리오 정답이나 결함 ID를 조사 입력에 넣지 않는다.
 
 Agent는 `(ticketId, requestKey)`를 유일하게 저장한다. 같은 키·입력으로 재호출하면 기존 조사 ID와 현재 상태를 반환하고, 입력이 다르면 `409 REQUEST_KEY_CONFLICT`를 반환한다. 비교에는 정규화한 ticketVersion·message·context·previousInvestigationId·schemaVersion을 사용한다. JSON 키 순서는 비교에 영향을 주지 않는다. 중복 요청에서도 `202` 응답 형식은 동일하다.
 

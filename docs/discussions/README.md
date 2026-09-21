@@ -17,7 +17,7 @@
 | [DISC-20260921-commerce-001 / 재고 재현·근거](DISC-20260921-commerce-001-inventory-evidence.md) | AGREED | 이상효 | VOC runner 검증 | 제공자 PC의 일곱 소비 8도구·300근거·333필드/로그 비교 통과 | 미해소: VOC 소비자 검증 필요 | 2026-09-21T19:32:00+09:00 |
 | [DISC-20260921-agent-002 / build별 정책 사본](DISC-20260921-agent-002-policy-snapshot.md) | AGREED | 한재홍 | VOC 공유·Agent/commerce 실제 인수 | 생성기 Linux38/Windows4·소스25개 조회와 Agent 소비 a545332·파일/도구14개 통과 | 미해소: 생성기 공유·새 실제 snapshot 소비 필요 | 2026-09-21T19:12:00+09:00 |
 | [DISC-20260921-voc-001 / runner 선택 메타데이터](DISC-20260921-voc-001-runner-metadata.md) | AGREED | 김아름 | 공유 확인·해소 기록 | P1 전원 수락·계획 연결. 기존 필수 계약 유지·선택 확장 보류 | 미해소: 계획 반영의 원격 포함 확인 필요 | 2026-09-21T18:56:45+09:00 |
-| [DISC-20260921-agent-003 / 선택 ID 공백 입력](DISC-20260921-agent-003-empty-context.md) | OPEN | 한재홍 | 김아름 P1 | commerce 영향 없음·P1 수락. VOC 입력/화면/기존 티켓 처리 답변 대기 | 미해소: 답변·구현·소비 검증 필요 | 2026-09-21T19:08:10+09:00 |
+| [DISC-20260921-agent-003 / 선택 ID 공백 입력](DISC-20260921-agent-003-empty-context.md) | AGREED | 한재홍 | VOC 화면·전달, Agent 실제 소비 | P1 전원 수락. VOC 생성/PATCH 수정·HTTP 회귀 통과, 전체 공유 진행 | 미해소: 실제 소비·화면·기존 티켓 처리 필요 | 2026-09-21T19:18:47+09:00 |
 | [DISC-20260921-agent-004 / 데모 예산 배분](DISC-20260921-agent-004-demo-allocation.md) | OPEN | 한재홍 | 김아름 P1, 사용자 데모 범위 | Agent·commerce 수락 및 각 PC 기존 장부 확인. 실제 활성화/사용 없음 | 미해소: 직접 합의·사용 범위·VOC 장부 확인 필요 | 2026-09-21T19:49:00+09:00 |
 
 새 건은 이 표에 한 행으로 등록한다. 미해소 건을 먼저, RESOLVED 건을 뒤에 놓고 해소된 행도 삭제하지 않는다.

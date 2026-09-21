@@ -88,3 +88,9 @@
 
 - [DISC-20260921-voc-001](../discussions/DISC-20260921-voc-001-runner-metadata.md)의 P1에 세 담당자가 직접 수락한 것을 `1b5adc8`·`c1276d4`에서 확인했다. 선택 메타데이터 생성·필수 승격 보류, 기존 실제 모델·완료 계약 유지와 후속 관측 제안의 담당·조건을 비용 계획 및 연동 위험 검토에 반영했다.
 - 실제 모델 결과·usage를 만들지 않았고 scripts의 판정·역할 JSON은 변경하지 않았다. 계획 반영과 문서 검증을 공유한 뒤 원격 포함을 확인해 이 문서 결정 건을 해소한다. 필수 runner 구현·실제 MVP 검증은 별도로 계속한다.
+
+## 2026-09-21 — 선택 식별자 공백 입력 불일치 수정
+
+- AGENT-VOC-003의 실제 201 → 400 불일치를 확인하고 P1 방향을 적용한다. VOC 생성/PATCH에서 명시적인 빈 문자열·공백만인 context 값을 거절한다. 생략/null은 정보 없음으로 유지하고 유효한 식별자 문자를 trim하거나 바꾸지 않는다.
+- 회귀 검증: HTTP 테스트에서 빈 customerId가 수정 전 201로 저장되는 실패를 재현했다. 수정 후 `gradlew.bat --no-daemon :voc-app:test` 7개를 통과했다. 다섯 선택 ID의 빈 문자열·공백·탭/개행·유니코드 공백, 실패 시 버전/저장 내용 보존, null 생략과 정상 문자의 보존을 확인했다.
+- 실패 원문은 로컬 `runtime/verification/blank-context-before.log`·`blank-context-before.xml`, 성공은 `blank-context-after.log`다. 계약에 화면의 빈 입력 생략과 기존 잘못된 티켓의 전달 오류·수정·새 키 안내 기준을 추가했다. 화면·영속 분석 전달의 구현과 실제 VOC → Agent 재검증은 아직 남아 있다.

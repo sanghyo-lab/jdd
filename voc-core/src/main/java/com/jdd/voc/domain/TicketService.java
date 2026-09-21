@@ -99,6 +99,7 @@ public final class TicketService {
                 throw VocFailure.invalid("지원하지 않는 context 필드입니다.");
             if (entry.getValue() == null) continue;
             if (!(entry.getValue() instanceof String s)) throw VocFailure.invalid("context 값은 문자열이어야 합니다.");
+            if (s.isBlank()) throw VocFailure.invalid("context." + key + "는 빈 문자열일 수 없습니다. 정보가 없으면 생략해 주세요.");
             if (key.equals("occurredAt")) {
                 try { result.put(key, Instant.parse(s).toString()); }
                 catch (DateTimeParseException error) { throw VocFailure.invalid("occurredAt은 시간대를 포함한 시각이어야 합니다."); }
