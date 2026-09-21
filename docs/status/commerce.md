@@ -22,6 +22,14 @@
 
 
 
+## 2026-09-21T22:20:14+09:00 — 로그·Windows 수정 공유 완료와 팀 미완료 확인
+
+- 140f8d5의 로그 검색 수정과 9965c73의 Windows 검사/worker 인수 기록을 최신 main에 공유했다. 재시도 publish는 종료 0/309.401초, Python 65개·Java 178개 중 169통과/9조건부 제외·실패 0, 세 앱 재빌드·재기동·실제 PostgreSQL/HTTP/근거 연결 통과다. 앞선 원격 경합 종료 1 기록도 보존했다.
+- 현재 세 앱 buildId는 `9965c73eb1ff-c811ac566f52`, Agent는 test/mock/mock이다. 독립 worker PostgreSQL/실제 앱 복구를 검증한 앱 소스 75개와 로그 검색 회귀의 소스 3개가 공유 코드의 실제 바이트와 일치했다. `runtime/submission/commerce-20260921-resumed/log-discovery-worker-publication.json`, `commands/20260921T131136.726289Z-log-discovery-windows-worker-publish.log`에 집계·실행 관측을 보존했다.
+- 깨끗하고 동기화된 9965c73의 `./scripts/dev team-check`는 종료 1/1.155초, commerce·agent·voc·lead 모두 IN_PROGRESS다. `commands/20260921T131747.373549Z-team-check-after-worker-integration.log`. 실제 모델·화면·runner·현재 세 DONE/독립 APPROVED가 없어 완료하지 않는다.
+- AGENT-LEAD-019와 DISC-commerce-002의 Agent 제공자 인수, VOC-LEAD-MVP-001의 김아름 Windows 네이티브 8개 재검증/runner 인수를 계속 요청한다. 이미 공유한 실제 worker 검증은 인수 근거로 제공하며 담당자의 화면/runner 구현을 중복 편집하지 않는다.
+- [DISC-agent-004](../discussions/DISC-20260921-agent-004-demo-allocation.md)에 3e50801의 기존 $1 배정·CONFIRMED 1회·계산 비용 $0.00083725·보존 장부를 리더 집계 대상으로 직접 접수했다. 이는 Agent PC의 최소 연결 관측이며 이 PC의 실제 모델 호출은 0회다. 새로운 배포 배정이나 전체 VOC 품질 완료가 아니다. 보고서 초안의 22:10까지 기록 이후 추가된 최소 API 검증으로 구분하고 다음 보고서 갱신에 반영한다.
+
 ## 2026-09-21T22:10:23+09:00 — VOC-LEAD-MVP-001 수정·새 worker 독립 PostgreSQL/실제 앱 복구 인수
 
 - 로그 검색 단위의 publish는 원격 main이 세 번 바뀌어 종료 1/540.963초로 공유를 보류했다. 모든 로컬 변경/커밋을 보존했고 각 통합 검증은 통과했다. 마지막 빌드는 `0ba4439f9c67-49641f4c5d11`, Python 65개·Java 178개 중 169통과/9조건부 제외·실패 0이었다. `log-discovery-publication-retry-required.json`, `commands/20260921T125821.857527Z-log-discovery-publish.log`에 실패 사유와 마지막 집계를 보존했다. f5064c8/4d412ec/460ff05/86154c5/06de540의 전체 변경을 읽었으며 최신 main 통합 후 다시 publish한다.
