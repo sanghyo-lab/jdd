@@ -83,3 +83,8 @@
 - 실제 검증: 수정 전 새 회귀 테스트 실패 확인 → Linux 협업 테스트 38개 통과 → Windows 네이티브 핵심 4개 통과. 개발 snapshot `c2bdb4e1542c-983995caabc9`의 허용 소스 25개를 실제 Agent 조회 클래스로 Linux에서 읽어 원문·해시 일치를 확인했다. 모델·DB 호출은 없다.
 - 원문: 로컬 `runtime/verification/snapshot-before.log`, `snapshot-after.log`; Windows 검사와 실제 소스 조회 결과는 작업 실행 출력에 있다. 전체 publish 결과는 공유 후 추가한다.
 - 남은 연동: Agent 담당자의 정책 사본 우선 조회·구형 manifest 호환·실제 사본 소비 검증과 commerce의 새 snapshot 검증. 동시 공유된 commerce 수락도 보존해 전원 P1 합의를 확인했다. 생성기 제공만으로 논의를 RESOLVED나 역할 DONE으로 처리하지 않는다.
+
+## 2026-09-21 — 선택 메타데이터 전원 합의의 계획 반영
+
+- [DISC-20260921-voc-001](../discussions/DISC-20260921-voc-001-runner-metadata.md)의 P1에 세 담당자가 직접 수락한 것을 `1b5adc8`·`c1276d4`에서 확인했다. 선택 메타데이터 생성·필수 승격 보류, 기존 실제 모델·완료 계약 유지와 후속 관측 제안의 담당·조건을 비용 계획 및 연동 위험 검토에 반영했다.
+- 실제 모델 결과·usage를 만들지 않았고 scripts의 판정·역할 JSON은 변경하지 않았다. 계획 반영과 문서 검증을 공유한 뒤 원격 포함을 확인해 이 문서 결정 건을 해소한다. 필수 runner 구현·실제 MVP 검증은 별도로 계속한다.
