@@ -8,14 +8,22 @@ import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Flow;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
@@ -23,6 +31,7 @@ import tools.jackson.databind.json.JsonMapper;
 /** Fixed server origin, bounded requests, no redirects or model credentials. */
 public final class HttpAgentGateway implements AgentGateway, AutoCloseable {
     private static final Set<String> STATES = Set.of("QUEUED", "RUNNING", "COMPLETED", "NEEDS_INPUT", "FAILED");
+    private static final int MAX_RESPONSE_BYTES = 4 * 1024 * 1024;
     private static final TypeReference<Map<String, Object>> OBJECT = new TypeReference<>() {};
     private final URI base;
     private final JsonMapper json;
@@ -102,18 +111,29 @@ public final class HttpAgentGateway implements AgentGateway, AutoCloseable {
                 .header("Accept", "application/json");
         if (body != null) request.header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8));
-        HttpResponse<String> response;
+        HttpResponse<byte[]> response;
+        var pending = client.sendAsync(request.build(), ignored -> new BoundedBody());
         try {
-            response = client.send(request.build(), HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+            // HttpRequest.timeout can end once response headers arrive. Bound the
+            // whole body too, and cancel its network subscription on expiry.
+            response = pending.get(requestTimeout.toNanos(), TimeUnit.NANOSECONDS);
         } catch (InterruptedException interrupted) {
+            pending.cancel(true);
             Thread.currentThread().interrupt();
             throw unavailable();
-        } catch (IOException transport) {
+        } catch (TimeoutException timeout) {
+            pending.cancel(true);
+            throw unavailable();
+        } catch (ExecutionException transport) {
+            for (Throwable cause = transport; cause != null; cause = cause.getCause())
+                if (cause instanceof ResponseTooLarge) throw protocol();
+            throw unavailable();
+        } catch (CancellationException cancelled) {
             throw unavailable();
         }
         JsonNode result = null;
         try {
-            if (response.body().length() <= 4_194_304) result = json.readTree(response.body());
+            result = json.readTree(response.body());
         } catch (RuntimeException malformed) { /* Classify status even when a proxy returns HTML. */ }
         if (response.statusCode() != expected) {
             String code = result == null ? "" : result.path("code").asText("");
@@ -132,6 +152,35 @@ public final class HttpAgentGateway implements AgentGateway, AutoCloseable {
         require(result != null && result.isObject());
         return result;
     }
+
+    /** Reject while receiving; never buffer an unbounded body before measuring it. */
+    private static final class BoundedBody implements HttpResponse.BodySubscriber<byte[]> {
+        private final HttpResponse.BodySubscriber<byte[]> delegate = HttpResponse.BodySubscribers.ofByteArray();
+        private Flow.Subscription subscription;
+        private int received;
+        private boolean finished;
+        @Override public CompletionStage<byte[]> getBody() { return delegate.getBody(); }
+        @Override public void onSubscribe(Flow.Subscription value) {
+            subscription = value; delegate.onSubscribe(value);
+        }
+        @Override public void onNext(List<ByteBuffer> buffers) {
+            if (finished) return;
+            for (ByteBuffer buffer : buffers) {
+                if (buffer.remaining() > MAX_RESPONSE_BYTES - received) {
+                    finished = true; subscription.cancel(); delegate.onError(new ResponseTooLarge()); return;
+                }
+                received += buffer.remaining();
+            }
+            delegate.onNext(buffers);
+        }
+        @Override public void onError(Throwable error) {
+            if (!finished) { finished = true; delegate.onError(error); }
+        }
+        @Override public void onComplete() {
+            if (!finished) { finished = true; delegate.onComplete(); }
+        }
+    }
+    private static final class ResponseTooLarge extends IOException {}
 
     private static void report(JsonNode report, Set<String> evidence, String status) {
         require(report.isObject() && "1.0".equals(text(report, "schemaVersion")));

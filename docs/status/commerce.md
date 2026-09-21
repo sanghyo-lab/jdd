@@ -22,6 +22,14 @@
 
 
 
+## 2026-09-21T22:27:30+09:00 — LEAD-020 HTTP 본문 제한 수정과 실제 PostgreSQL 회귀
+
+- HttpAgentGateway는 전체 HTTP 완료 future에 요청 기한을 적용하고 만료/스레드 중단 시 전송을 취소한다. 본문 subscriber는 최대 4MiB를 바이트로 제한하고 초과 조각에서 즉시 수신을 취소한다. 시간 초과는 AGENT_UNAVAILABLE·재시도 가능, 크기 초과는 AGENT_PROTOCOL_ERROR·자동 재시도 없음으로 기존 오류 경로에 연결한다. DTO·저장/lease·모델·화면 변경은 없고 새 의존성도 추가하지 않았다.
+- 변경 전 전송 회귀 5개 중 지연 본문·UTF-8 크기·미종료 chunked 세 검사가 실패했다(종료 1/16.584초). 수정 후 새 5개와 기존 worker 9개가 모두 통과·건너뜀 0이었다(종료 0/9.812초). 정확히 4MiB 정상 경계, 초과 즉시 취소, interrupt 유지, 시간 초과 뒤 같은 gateway의 정상 요청 복구와 내부 중복 전송 없음도 확인했다.
+- 기존 실제 Java probe를 다시 실행하니 400ms 설정의 본문 지연이 412ms에 AGENT_UNAVAILABLE, 450만 바이트 이상의 응답은 55ms에 AGENT_PROTOCOL_ERROR로 거절됐다(종료 0/1.866초). 이후 격리 PostgreSQL의 HTTP 계약 24개와 전송 5개를 함께 새로 실행해 총 29개 통과·실패/건너뜀 0이었다(종료 0/17.754초). 명시적인 합성 Agent HTTP이며 실제 모델/앱 DB 쓰기는 0회다.
+- 원문: `runtime/submission/commerce-20260921-resumed/voc-http-transport-before/`, `voc-http-transport-after/`, `voc-transport-worker-postgresql-01/`, `voc-http-body-bounds-before.json`, `voc-http-body-bounds-after.json`. commands의 20260921T132507.121828Z·132545.087800Z·132614.889497Z와 소스 해시 `voc-http-transport-source-provenance.json`을 보존했다.
+- VOC-LEAD-020은 이 단위 검증을 인수 근거로 공유하고 김아름의 직접 확인을 기다린다. 전체 publish·실제 앱 연결 검증을 이어 실행한다. 해커톤 보고서도 한재홍의 3e50801 최소 API 연결/비용과 이 PC의 호출 0·실제 VOC/화면 미검증을 구분해 갱신했다. 최종 리더 승인과 타인의 DONE은 작성하지 않았다.
+
 ## 2026-09-21T22:23:48+09:00 — LEAD-020 / VOC-LEAD-020 실제 Agent HTTP 본문 제한 누락
 
 - 현재 c46b0c1의 HttpAgentGateway를 실제 loopback HTTP 서버로 검사했다. 정상 접수 뒤 같은 연결에서 requestTimeout=400ms·본문 지연 1,500ms를 주면 1,510ms 후 ACCEPTED였다. 450만 바이트 이상인 UTF-8 응답도 문자 수가 기존 4,194,304 아래라 ACCEPTED였다. 크기 검사는 이미 전체 본문을 메모리에 받은 뒤 수행한다. 두 검사 모두 기대한 거절에 실패했고 종료 1/2.926초였다.

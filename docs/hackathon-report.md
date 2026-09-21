@@ -38,7 +38,7 @@ JDD는 자연어 문의를 입력받아 관련 주문과 결제·쿠폰·재고 
 | 영역 | 현재 구현·선택 | 검증 범위 |
 | --- | --- | --- |
 | 백엔드 | Java 21, Spring Boot 4.1.1, Spring MVC | 전체 Gradle check·세 앱 실행 |
-| AI 연결 | 공통 모델 포트와 직접 Responses HTTP/SSE 어댑터: 로컬 Codex OAuth, 배포 OpenAI API, 테스트 mock | 합성 loopback 전송·인증 경계·영속 API 비용/OAuth 관측·근거 저장; Agent 담당자 PC의 실제 OAuth 최소 응답 확인; VOC 조사 품질·리더 PC의 실제 모델은 미검증 |
+| AI 연결 | 공통 모델 포트와 직접 Responses HTTP/SSE 어댑터: 로컬 Codex OAuth, 배포 OpenAI API, 테스트 mock | 합성 loopback 전송·인증 경계·영속 API 비용/OAuth 관측·근거 저장; Agent 담당자 PC의 실제 OAuth·배포 API 최소 응답 확인; VOC 조사 품질·리더 PC의 실제 모델은 미검증 |
 | 저장·조회 | PostgreSQL 17.6, Spring JDBC | 실제 업무 트랜잭션·SELECT 전용 조사 계정 |
 | 스키마 관리 | Flyway | 각 앱 스키마와 마이그레이션 |
 | 프론트 | Next.js·React·TypeScript 계획 | 담당 구현·실제 화면 검증 대기 |
@@ -47,7 +47,7 @@ JDD는 자연어 문의를 입력받아 관련 주문과 결제·쿠폰·재고 
 
 버전과 의존성은 저장소의 빌드 파일·Wrapper·Compose에 고정되어 있다. 기술 선택만으로 업무·실제 모델·화면 완료를 주장하지 않는다.
 
-[현재 실행 정책](llm-runtime.md)은 로컬 개발·영상 데모를 프로젝트 전용 Codex OAuth로, 배포를 OpenAI API로 구분한다. 일반 up/check/publish는 test/mock이며 실제 모델을 호출하지 않는다. $50 API 프로모션은 배포 전용이고 기존 누적 $30 상한을 자동 증액하지 않는다. 한재홍은 자신의 PC에서 gpt-5.6-luna의 OAuth 최소 응답을 확인했다. 수동 OAuth 요청 4회 중 앞선 3회 usage는 미확정이며 마지막 1회는 입력 1,479·출력 217토큰을 관측했다. 이는 실제 VOC 조사 품질 검증이 아니다. 리더 PC의 프로젝트 인증/모델 설정과 실제 모델 검증은 아직 없고, 이 PC의 OAuth/API 호출은 0회다. 직접 결과는 [Agent 상태](status/agent.md)의 21:58·22:03 기록에 있다. 공개 접속은 [ngrok 로컬 데모 절차](ngrok-local-demo.md)를 따르며 구성 선택을 실제 실행 완료로 표시하지 않는다.
+[현재 실행 정책](llm-runtime.md)은 로컬 개발·영상 데모를 프로젝트 전용 Codex OAuth로, 배포를 OpenAI API로 구분한다. 일반 up/check/publish는 test/mock이며 실제 모델을 호출하지 않는다. $50 API 프로모션은 배포 전용이고 기존 누적 $30 상한을 자동 증액하지 않는다. 한재홍은 자신의 PC에서 gpt-5.6-luna의 OAuth 최소 응답을 확인했다. 수동 OAuth 요청 4회 중 앞선 3회 usage는 미확정이며 마지막 1회는 입력 1,479·출력 217토큰을 관측했다. 이는 실제 VOC 조사 품질 검증이 아니다. 리더 PC의 프로젝트 인증/모델 설정과 실제 모델 검증은 아직 없고, 이 PC의 OAuth/API 호출은 0회다. 직접 결과는 [Agent 상태](status/agent.md)의 21:58·22:03 기록에 있다. 추가로 한재홍은 사용자 지정 배포 키를 별도 deployed/openai_api 컨테이너에서 한 번 호출해 같은 모델의 NEEDS_INPUT 보고서를 저장·재조회했다(3e50801). 기존 $1 배정·총 1회 한도에서 입력 2,620·출력 152토큰, 장부 계산 비용 $0.00083725를 관측했고 장부 볼륨을 보존했다. 리더는 이 배정·비용을 팀 누적 집계 대상으로 접수했다. 실제 청구/프로모션 차감·원격 배포·일곱 VOC 품질은 검증하지 않았다. 공개 접속은 [ngrok 로컬 데모 절차](ngrok-local-demo.md)를 따르며 구성 선택을 실제 실행 완료로 표시하지 않는다.
 
 ## 4. 시스템 구조
 
@@ -95,7 +95,7 @@ flowchart LR
 5. 확인한 사실, 원인 후보, 조치와 수정안을 구조화된 보고서로 저장한다.
 6. 개발자가 화면에서 보고서와 인용된 근거를 확인한다.
 
-현재 `InvestigationRunner`가 모델 포트·8개 조회 도구·영속 근거 저장을 연결한다. 도구 결과를 DB에 저장한 뒤 모델에 전달하고, 보고서의 evidenceId를 검사한다. DB는 제한된 매개변수 조회, 로그는 상관 ID와 범위 검색, 소스와 정상 정책은 buildId별 보관본·manifest 해시 검증을 사용한다. 기본 모델은 MOCK이며 성공 보고서를 만들지 않고 설정 오류로 끝나는 실패 대역이다. Agent 담당자의 OAuth 최소 응답 결과와 별개로 실제 VOC 도구 선택·조사 품질과 배포 API는 검증해야 한다.
+현재 `InvestigationRunner`가 모델 포트·8개 조회 도구·영속 근거 저장을 연결한다. 도구 결과를 DB에 저장한 뒤 모델에 전달하고, 보고서의 evidenceId를 검사한다. DB는 제한된 매개변수 조회, 로그는 상관 ID와 범위 검색, 소스와 정상 정책은 buildId별 보관본·manifest 해시 검증을 사용한다. 기본 모델은 MOCK이며 성공 보고서를 만들지 않고 설정 오류로 끝나는 실패 대역이다. Agent 담당자의 OAuth·배포 API 최소 응답 결과와 별개로 실제 VOC 도구 선택·조사 품질과 전체 배포 흐름은 검증해야 한다.
 
 Agent의 대기 기한은 기본 10분, 수용량은 20건이며 실행 예산과 구분한다. 큐가 가득 차면 새 접수만 429로 거절하고, 같은 키는 기존 조사 ID를 돌려준다. VOC는 티켓 버전과 입력 사본을 원자적으로 저장하며 전달 재시도와 새 조사를 구분한다. VOC 담당자는 실제 Agent의 429 네 번, 같은 키 수동 복구와 재시작 후 조회를 인수했다(06de540). 화면의 과부하/복구 표시·실제 모델 흐름은 아직 미검증이다.
 
@@ -162,7 +162,7 @@ Agent의 대기 기한은 기본 10분, 수용량은 20건이며 실행 예산�
 결제/취소 각각 4개 동시 재전송과 재시작 후 같은 키·새 키의 중복 방지는 별도 복구 실행에 기록했다.
 `c09694cde1cd-643370744894`의 JVM 복구는 `lifecycle-recovery-20260921.json`, `c1276d472e74-17642d53be51`의 Docker 복구는 `container-lifecycle-recovery-02.json`이다.
 정상 카드 결제·환불, 쿠폰 경계·소유·기간·상한, 충분한 재고·순차 재고 부족·대기 시간 초과 롤백/복구도 통과했다.
-정보 부족 문의, 실제 AI 조사, PC·모바일 화면은 미검증이다. HTTP/H2 입력·동시성·DB 실패 롤백 검사는 19개를 통과했다.
+Agent 담당자의 배포 API 최소 문의 한 건은 NEEDS_INPUT과 추가 입력 요청을 확인했다. 전체 정보 부족·재조사 흐름, 일곱 VOC의 실제 AI 조사, PC·모바일 화면은 미검증이다. HTTP/H2 입력·동시성·DB 실패 롤백 검사는 19개를 통과했다.
 그중 업무 HTTP 계약 18개를 같은 단언으로 별도 PostgreSQL 17.6 DB에서도 실행해 모두 통과했다.
 애플리케이션 DB를 잘못 지정한 경우에는 연결 초기화 전에 거절했다. 원문은 `runtime/submission/commerce-20260921-resumed/commerce-http-postgresql-01/`과 `commerce-http-application-db-rejection/`에 구분해 보존했다.
 
@@ -183,11 +183,13 @@ VOC에서도 같은 외부 DB 재검사 누락을 실제 티켓 값 변경으로
 `f1d6082` 전체 publish는 195.993초/종료 0, Python 57개 통과, Java 158개 중 149개 통과·9개 조건부 제외·실패 0이었다. 세 앱 buildId `f1d60822a48e-c5c367ca49d9`의 실제 DB/HTTP/근거 연결을 확인했다. 조건부 제외를 실제 DB 검사나 실제 모델 성공으로 계산하지 않았다. 별도 실제 PostgreSQL 검증 원문과 전체 검증 XML 집계는 `queue-admission-publication-junit-runtime.json`에 구분했다.
 
 이전 API 데모 구성에서 worker 2와 모델 동시 호출 한도 1의 불일치도 발견해 worker를 1로 맞췄다. 이 구성은 새 인증 분리에서 교체되었고 local OAuth override에도 worker=1이 있다. 설정 확인을 실제 모델 동시성 성공으로 계산하지 않았다. Windows 비용 내보내기 경로는 리더가 보완하고 macOS 실제 DB에서 확인했다. 이어 김아름이 원래 Windows 명령·실제 PostgreSQL 조회 성공을 직접 공유했고 Agent 담당자의 통합 확인도 받았다.
-[리더 지적](status/lead-review.json) LEAD-001~019와 [커머스 상태](status/commerce.md)가 실패·수정·재검증 원문을 연결한다. LEAD-018의 실제 MVP 실행 환경 보존과 내부 설정 관측은 오프라인/실제 mock 거절 검사를 통과했으며 제공자/runner 인수·실제 모델 검증은 [별도 논의](discussions/DISC-20260921-commerce-002-live-mvp-runtime.md)로 추적하는 미해결 항목이다.
+[리더 지적](status/lead-review.json) LEAD-001~020와 [커머스 상태](status/commerce.md)가 실패·수정·재검증 원문을 연결한다. LEAD-018의 실제 MVP 실행 환경 보존과 내부 설정 관측은 오프라인/실제 mock 거절 검사를 통과했으며 제공자/runner 인수·실제 모델 검증은 [별도 논의](discussions/DISC-20260921-commerce-002-live-mvp-runtime.md)로 추적하는 미해결 항목이다.
 
 리더는 새 VOC worker의 티켓/분석/작업 계약 24개를 격리 PostgreSQL에서 다시 실행해 모두 통과했다. 실제 두 앱에서도 Agent 중지→전달 3회 소진→복원→동일 키/원래 입력 재전송→v2 새 조사→VOC 컨테이너 교체를 검증했다. 두 분석·조사·전체 DB 행과 HTTP 결과가 보존됐고 티켓 OPEN, 전달 SUBMITTED, 조사 FAILED/LLM_CONFIGURATION_ERROR를 구분했다. 모델은 MOCK, API/OAuth 호출은 0이며 실제 모델 품질 성공이 아니다. 원문은 `voc-worker-postgresql-01/`, `voc-agent-recovery-01/`와 커머스 상태의 22시 이후 기록에 있다.
 
 LEAD-019에서는 빈 빌드 폴더가 로그 검색 한도를 소모하는 실패를 고쳤다. 최종 로그·소스 도구 검사 19개와 실제 보관 로그 35개 빌드/9파일/1,793행을 기준으로 한 18회 원문 대조가 통과했다. 실패한 초기 검사와 중간 테스트 입력 생성 오류도 함께 보존했다. `log-discovery-final-file-budget/`, `log-discovery-real-archives-final.json`이 원문이며 모델 호출은 없다.
+
+LEAD-020에서는 VOC의 Agent 응답 본문이 요청 기한을 넘겨도 계속 대기하고 전체 본문을 받은 뒤 문자 수만 검사하는 오류를 실제 HTTP로 확인했다. 전체 수신 기한과 4MiB 바이트 제한을 추가해 지연·과대 응답을 수신 중 취소한다. 변경 전 5개 중 3개 실패를 보존했고, 수정 후 전송/worker 14개와 별도 PostgreSQL HTTP 계약 24개·전송 5개가 통과했다. 원문은 `voc-http-transport-before/after/`, `voc-transport-worker-postgresql-01/`이며 합성 upstream을 사용한 전송 검사다. 실제 모델·화면 검증과 구분한다.
 
 각 실행에는 시나리오 ID, 조사 ID, 앱의 `buildId`, 모델명·설정, 실행 시각, 검토자, 판정 이유를 남긴다. 반복 실행은 별도 행으로 기록한다.
 
@@ -242,7 +244,7 @@ LEAD-019에서는 빈 빌드 폴더가 로그 검색 한도를 소모하는 실�
 | 산출물 | 위치 | 현재 상태 |
 | --- | --- | --- |
 | 실행·계약 | [루트 README](../README.md), [커머스 실행](../commerce-app/README.md), [인터페이스](commerce-interface.md) | 세 앱 기동과 커머스 재현 제공 |
-| 실제 모델 준비 | [LLM 실행 안내](llm-runtime.md), [사용·비용 정책](planning/demo-llm-policy.md) | 분리 구현·Agent 담당자 OAuth 최소 응답 확인; 실제 VOC 품질·배포 API·리더 모델 미검증 |
+| 실제 모델 준비 | [LLM 실행 안내](llm-runtime.md), [사용·비용 정책](planning/demo-llm-policy.md) | 분리 구현·Agent 담당자 OAuth/배포 API 최소 응답 확인; 실제 VOC 품질·원격 배포·리더 모델 미검증 |
 | 합성 데이터·독립 재현 | `fixtures/commerce/VOC-01`~`VOC-07`, `reproduce_commerce.py`, `reproduce_inventory.py` | SQL·HTTP·기대 관측값과 실제 반복 결과 |
 | 실제 근거 | `runtime/evidence/logs/commerce/<buildId>/`, `runtime/evidence/source/<buildId>/` | 해당 바이너리의 로그·소스 manifest |
 | 실행 원문 | `runtime/submission/commerce-reproductions/`, `runtime/submission/commerce-20260921-resumed/commands/` | 성공·실패·명령·종료 코드·실행 시간 보존, Git 제외 |
