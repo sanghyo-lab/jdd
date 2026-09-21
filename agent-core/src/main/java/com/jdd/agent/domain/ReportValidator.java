@@ -23,8 +23,10 @@ public final class ReportValidator {
         var evidenceIds = new HashSet<String>();
         var sourcePaths = new HashSet<String>();
         var codePathsByEvidence = new HashMap<String, String>();
+        var typesByEvidence = new HashMap<String, EvidenceType>();
         for (var evidence : storedEvidence) {
             evidenceIds.add(evidence.evidenceId());
+            typesByEvidence.put(evidence.evidenceId(), evidence.type());
             if (evidence.type() == EvidenceType.CODE && evidence.source() != null
                     && evidence.source().get("path") instanceof String path) {
                 sourcePaths.add(path);
@@ -47,6 +49,19 @@ public final class ReportValidator {
                     "hypotheses", evidenceIds, errors);
             texts(candidate.limitations(), candidate.supportLevel() != SupportLevel.SUPPORTED,
                     "hypotheses.limitations", errors);
+            if (candidate.supportLevel() != null && candidate.supportLevel() != SupportLevel.UNVERIFIED
+                    && candidate.evidenceIds() != null) {
+                var citedTypes = new HashSet<EvidenceType>();
+                candidate.evidenceIds().forEach(id -> citedTypes.add(typesByEvidence.get(id)));
+                // A code-based explanation must connect the implementation to observed execution.
+                // This is coverage only: natural-language entailment still needs independent review.
+                if (citedTypes.contains(EvidenceType.CODE)) {
+                    for (var type : List.of(EvidenceType.DATA, EvidenceType.LOG, EvidenceType.POLICY)) {
+                        if (typesByEvidence.containsValue(type) && !citedTypes.contains(type))
+                            errors.add("hypotheses with CODE evidence must directly cite available " + type + " observations");
+                    }
+                }
+            }
         }
         if (report.actions() == null) errors.add("actions is required");
         else for (var action : report.actions()) {

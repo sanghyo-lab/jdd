@@ -1,5 +1,13 @@
 # 한재홍 — AI Agent 작업 상태
 
+## 2026-09-22T08:16:00+09:00 — 실제 화면 재조사·v6 한계와 서버 원인 인용 검사
+
+- `86d6f6a` 전체 publish 종료0 후 local OAuth/Luna로 준비했다. 실제 인증 web의 새 분석 버튼으로 VOC-02 분석 `de67f334-ccc6-43f4-90eb-481fe507ffc9`/조사 `c1c4dbdd-86d5-4084-b844-bcaa8bcc412c`를 한 번 접수했다. 새로고침/모바일390에서 같은 ID·실제10도구 진행과 완료를 관측했다. Agent build `86d6f6afcdf5-6b81733d92de`, 보존 업무 근거 build `754528c0add7-efde6c0e0ab6`이며 전체 최신 빌드 MVP가 아닌 실패 사례의 재조사다.
+- 결과는 앱 COMPLETED/23근거이나 품질 실패다. v6 응답의 쿠폰 거절·주문 부재 사실은 올바른 개별 관측을 인용했지만 원인 항목은 여전히 DATA를 빠뜨렸고 원인 한계/조치는 주문 부재·후속 조치 불필요를 설명하며 그 조회를 직접 인용하지 않았다. 지침만으로 해결됐다고 쓰지 않는다. 원문 `followup-oauth-voc02-02/`, `followup-oauth-voc02-run-02.log/json`, `followup-voc02-v6-review.json`, `output/playwright/followup-voc02-v6-mobile-running.png`를 보존했다.
+- 이번 OAuth5회는 입력48,300/출력2,655/reasoning716·모델79,462ms, cached/cache write0, API0이다. reasoning은 출력 일부이며 앞선 실패·미관측 usage를 삭제하지 않는다. 추가 검수 모델이나 자동 재조사를 실행하지 않았다.
+- 서버가 CODE를 인용한 SUPPORTED/PARTIAL 원인 후보에 이미 저장된 DATA/LOG/POLICY의 직접 인용을 요구하도록 보완했다. 다른 항목의 인용으로 대신할 수 없으며 미확보 종류를 꾸미거나 정상 보고서에 장애/코드 가설을 강제하지 않는다. 보정 횟수·모델/도구 상한은 기존 그대로다. 문장 의미 전체의 자동 검증은 아니다.
+- 회귀는 수정 전10개 중1실패를 보존하고 수정 후 core17·앱31 합계48개 실패/제외0을 확인했다. 실제 저장 근거→누락 보고서→기존 피드백→한 번 보정 성공, 반복 누락은 FAILED/보고서 미반환·근거4개 보존을 모델3회/도구1회 상한에서 확인했다. JSON schema의 필드 설명도 사실의 분리·조치에는 제안만 쓰도록 안내하며 API 필드를 늘리지 않는다. 원문 `followup-cause-grounding-before.log/xml`, `followup-cause-grounding-after.log/json`, `followup-cause-grounding-repair.log/json`, `followup-cause-grounding-results/`다. 실제 개선은 공유 후 별도 검증한다.
+
 ## 2026-09-22T08:06:30+09:00 — 실제 runner VOC-01 통과·VOC-02 인용 실패와 v6 보완
 
 - 고정 빌드754528c의 첫 실제 runner는 종료1이다. VOC-01은 실제 모델·19근거/HTTP/DB/로그/소스/정책 및 구조 검사 PASSED, VOC-02는 앱 COMPLETED/15근거였으나 `Cause needs direct data, log, and runtime code citations`로 FAILED였다. 이후 VOC-03~07·NORMAL·NEEDS_INPUT·IDEMPOTENCY·RECOVERY는 PENDING이며 실행했다고 쓰지 않는다. runner의 비교 기준·실패 중단을 완화하지 않았다.

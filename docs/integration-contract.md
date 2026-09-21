@@ -194,6 +194,13 @@ QUEUED·RUNNING은 report=null, error=null이다. COMPLETED는 유효한 report�
 
 한재홍은 보고서 저장 전 모든 근거 참조가 해당 조사에 존재하는지 검증한다. 김아름은 구조를 보존해 각 항목을 표시하고 evidenceIds로 근거 패널을 연결한다. 사람이 실제 수정·조치를 수행한 뒤 티켓을 해결 처리한다.
 
+CODE를 직접 인용한 SUPPORTED/PARTIAL 원인 후보는 같은 조사에 이미 저장된 DATA·LOG·POLICY 종류가
+있으면 각 종류의 관련 관측을 그 후보의 evidenceIds에도 직접 포함해야 한다. 다른 사실 항목의 인용으로
+대신하지 않는다. 아직 확보하지 못한 종류의 근거를 꾸미도록 요구하지 않으며, 정상 보고서에 원인 후보나
+코드 인용을 강제로 추가하지 않는다. 각 prevention.targetPaths도 같은 예방 항목이 직접 인용한 CODE의
+실제 경로와 일치해야 한다. 누락은 기존 제한된 보고서 보정 후에도 남으면 REPORT_VALIDATION_FAILED다.
+이 검사는 인용의 소속·종류·경로를 확인하며 문장 의미와 원문의 논리적 일치 전체를 보장하지 않는다.
+
 ## 5. 근거 계약
 
 `EvidenceSummary`는 `evidenceId: string`, `type`, `summary: string`, `observedAt: timestamp`, `source: object`를 가진다. `EvidenceDetail`은 여기에 `content`와 `truncated: boolean`을 추가한다. 근거 API는 저장된 관측 내용을 반환하며 나중에 달라진 DB·파일 내용으로 덮어쓰지 않는다.

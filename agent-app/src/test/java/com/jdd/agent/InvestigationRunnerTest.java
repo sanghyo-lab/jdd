@@ -95,6 +95,52 @@ class InvestigationRunnerTest {
         assertThat(toolCalls).hasValue(0);
     }
 
+    @Test void missingDirectCauseCoverageUsesExistingRepairBudgetAndNeverPublishesUnrepairedReport() {
+        for (boolean repair : List.of(true, false)) {
+            modelCalls.set(0); toolCalls.set(0);
+            var claim = start();
+            var observations = new InvestigationTools() {
+                @Override public List<ToolDefinition> definitions() { return tools(false).definitions(); }
+                @Override public List<String> validate(ToolCall call) { return List.of(); }
+                @Override public Outcome execute(ToolCall call) {
+                    toolCalls.incrementAndGet();
+                    return new Outcome(List.of(EvidenceType.DATA, EvidenceType.LOG, EvidenceType.CODE, EvidenceType.POLICY)
+                            .stream().map(type -> new Observation(type, "Synthetic " + type, now,
+                                    type == EvidenceType.CODE ? Map.<String, Object>of("path", "commerce-core/Example.java") : Map.<String, Object>of(),
+                                    Map.of("synthetic", true), false)).toList(), "Four saved synthetic observations");
+                }
+            };
+            runner(request -> {
+                if (request.iteration() == 1) return toolReply("read-1", "getInventoryContext", "{}");
+                var saved = request.history().stream().filter(message -> message.kind() == MessageKind.TOOL)
+                        .flatMap(message -> message.observations().stream()).toList();
+                if (request.iteration() == 3) {
+                    assertThat(request.history().getLast().kind()).isEqualTo(MessageKind.FEEDBACK);
+                    assertThat(request.history().getLast().text()).contains(
+                            "hypotheses with CODE evidence must directly cite available DATA observations");
+                    assertThat(view(claim).status()).isEqualTo(Status.RUNNING);
+                    assertThat(view(claim).report()).isNull();
+                    assertThat(request.tools()).isEmpty();
+                }
+                var causeIds = saved.stream().filter(e -> (repair && request.iteration() == 3) || e.type() != EvidenceType.DATA)
+                        .map(EvidenceDetail::evidenceId).toList();
+                return reportReply(new AnalysisReport("1.0", "Synthetic coverage check",
+                        List.of(new Fact("f", "Stored observations", saved.stream().map(EvidenceDetail::evidenceId).toList())),
+                        List.of(new Hypothesis("h", "Implementation explanation", SupportLevel.SUPPORTED, causeIds, List.of())),
+                        List.of(), List.of(), List.of()));
+            }, observations, 3, 1).run(claim);
+            assertThat(modelCalls).hasValue(3);
+            assertThat(toolCalls).hasValue(1);
+            assertThat(view(claim).evidence()).hasSize(4);
+            if (repair) assertThat(view(claim).status()).isEqualTo(Status.COMPLETED);
+            else {
+                assertThat(view(claim).status()).isEqualTo(Status.FAILED);
+                assertThat(view(claim).error().code()).isEqualTo("REPORT_VALIDATION_FAILED");
+                assertThat(view(claim).report()).isNull();
+            }
+        }
+    }
+
     @Test void batchesIndependentReadsAndReservesTheLastModelCallForStoredEvidenceReport() {
         var claim = start();
         runner(request -> {

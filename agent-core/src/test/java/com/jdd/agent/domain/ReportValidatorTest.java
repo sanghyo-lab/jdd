@@ -90,6 +90,37 @@ class ReportValidatorTest {
         assertFalse(validator.validate(candidate, evidence).isEmpty());
     }
 
+    @Test void codeBackedCauseCannotBorrowDataLogsOrPolicyFromOtherItems() {
+        var observations = new java.util.ArrayList<>(evidence);
+        observations.add(new EvidenceSummary("log-1", EvidenceType.LOG, "Actual event", Instant.EPOCH, Map.of()));
+        observations.add(new EvidenceSummary("policy-1", EvidenceType.POLICY, "Archived policy", Instant.EPOCH, Map.of()));
+        var all = List.of("data-1", "log-1", "code-1", "policy-1");
+        var facts = List.of(new Fact("f", "Stored observations", all));
+        for (var level : List.of(SupportLevel.SUPPORTED, SupportLevel.PARTIAL)) {
+            for (String omitted : List.of("data-1", "log-1", "policy-1")) {
+                var references = all.stream().filter(id -> !id.equals(omitted)).toList();
+                var candidate = report(facts, List.of(new Hypothesis("h", "Runtime implementation explains this case",
+                        level, references, List.of("Only the observed case is explained"))), List.of());
+                assertFalse(validator.validate(candidate, observations).isEmpty(), "Missing direct " + omitted);
+            }
+            var complete = report(facts, List.of(new Hypothesis("h", "Runtime implementation explains this case",
+                    level, all, List.of("Only the observed case is explained"))), List.of());
+            assertTrue(validator.validate(complete, observations).isEmpty());
+        }
+    }
+
+    @Test void citationCoverageDoesNotInventUnavailableKindsOrRequireAnIncidentForNormalInput() {
+        var limited = report(observedFact(), List.of(new Hypothesis("h", "Limited implementation explanation",
+                SupportLevel.PARTIAL, List.of("data-1", "code-1"), List.of("No runtime log was observed"))), List.of());
+        assertTrue(validator.validate(limited, evidence).isEmpty());
+        var normal = report(observedFact(), List.of(new Hypothesis("normal", "Observed normal state",
+                SupportLevel.SUPPORTED, List.of("data-1"), List.of())), List.of());
+        assertTrue(validator.validate(normal, evidence).isEmpty());
+        var unknown = report(observedFact(), List.of(new Hypothesis("h", "Unverified possibility",
+                SupportLevel.UNVERIFIED, List.of("code-1"), List.of("No supporting execution was observed"))), List.of());
+        assertTrue(validator.validate(unknown, evidence).isEmpty());
+    }
+
     private AnalysisReport report(List<Fact> facts, List<Hypothesis> hypotheses, List<Prevention> prevention) {
         return new AnalysisReport("1.0", "관측과 한계를 검토했습니다.", facts, hypotheses, List.of(), prevention, List.of());
     }

@@ -104,10 +104,13 @@ public final class ResponsesProtocol {
         var properties = new LinkedHashMap<String, Object>();
         properties.put("schemaVersion", Map.of("type", "string", "enum", List.of("1.0")));
         properties.put("summary", text());
-        properties.put("facts", array(object(Map.of("id", text(), "description", text(), "evidenceIds", references))));
-        properties.put("hypotheses", array(object(Map.of("id", text(), "description", text(), "supportLevel", Map.of("type", "string",
+        properties.put("facts", array(object(Map.of("id", text(), "description", describedText(
+                "인용한 실제 관측으로 직접 확인되는 사실만 적습니다. 서로 다른 사건과 부재 판단은 별도 항목으로 나눕니다."), "evidenceIds", references))));
+        properties.put("hypotheses", array(object(Map.of("id", text(), "description", describedText(
+                "확인 사실을 설명하는 원인 후보와 범위입니다. CODE를 인용한 SUPPORTED/PARTIAL 설명에는 같은 항목에서 확보한 DATA/LOG/POLICY도 직접 인용해야 합니다."), "supportLevel", Map.of("type", "string",
                 "enum", List.of("SUPPORTED", "PARTIAL", "UNVERIFIED")), "evidenceIds", references, "limitations", array(text())))));
-        properties.put("actions", array(object(Map.of("id", text(), "description", text(), "evidenceIds", references, "requiresHumanAction", Map.of("type", "boolean")))));
+        properties.put("actions", array(object(Map.of("id", text(), "description", describedText(
+                "사람이 검토하고 수행할 제안만 적습니다. 현재 상태나 기록 부재·처리 불필요 판단은 이 문장에 반복하지 말고 해당 조회를 인용한 facts에 둡니다."), "evidenceIds", references, "requiresHumanAction", Map.of("type", "boolean")))));
         properties.put("prevention", array(object(Map.of("id", text(), "description", text(), "targetPaths", array(text()), "evidenceIds", references, "validationSteps", array(text())))));
         properties.put("missingInformation", array(object(Map.of("field", text(), "reason", text()))));
         var schema = new LinkedHashMap<String, Object>(object(properties));
@@ -119,4 +122,7 @@ public final class ResponsesProtocol {
     }
     private static Map<String, Object> array(Map<String, Object> items) { return Map.of("type", "array", "items", items); }
     private static Map<String, Object> text() { return Map.of("type", "string"); }
+    private static Map<String, Object> describedText(String description) {
+        return Map.of("type", "string", "description", description);
+    }
 }
