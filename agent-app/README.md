@@ -238,6 +238,14 @@ python3 agent-app/scripts/check_commerce_handoff.py \
 실제 근거 도구 → Agent PostgreSQL 저장 → 원문 HTTP 재조회·동일 키 재전송을 검사한다.
 커머스에는 SELECT만 수행하며 재현 데이터 생성·초기화·앱 재시작은 수행하지 않는다.
 Java 21과 실행 중인 제공자 스택의 `.env`가 필요하다. 비밀 값은 출력·보고서에 포함하지 않는다.
+
+VOC-01~06도 검사하려면 같은 buildId의 `reproduce_commerce.py --runs 3` 결과를
+`--business-artifact /path/to/retained-business.json`으로 추가한다. 출력 디렉터리는 새 경로여야 한다.
+각 시나리오의 첫 재현에 공통 모의 모델 절차를 적용하며 후보 주문·쿠폰·재고·로그를 읽은 뒤,
+관측한 주문 ID·코드 경로·policyVersion으로 상세 근거를 읽어 저장한다. 원문 HTTP 재조회·동일 키·새로고침도 확인한다.
+모델에는 합성 식별자만 전달하고 공급자의 기대 DB/로그 비교는 모델 프로세스 밖에서 수행한다.
+`business-comparison.json`은 모든 주문·결제·환불·쿠폰 상태와 로그 원문의 일치를 기록한다.
+첫 실패를 포함한 명령 로그와 각 조사 원문을 보존한다. 이 검사는 일곱 실제 AI 원인/조치 품질이나 VOC 화면 검증을 대신하지 않는다.
 입력 파일에서는 상관 ID와 buildId만 사용한다. 모의 모델 2회와 실제 OpenAI 검증을 구분한다.
 `--rerun-tasks`로 이전 Gradle 결과를 재사용하지 않고 매번 현재 근거를 읽는다.
 `command.json`/`command.log`에 성공·실패, `result.json`에 조사·저장 근거·모의 검증 한계를 남긴다.

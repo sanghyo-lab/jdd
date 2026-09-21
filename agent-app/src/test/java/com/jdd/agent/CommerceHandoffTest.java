@@ -15,6 +15,8 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
@@ -117,6 +119,105 @@ class CommerceHandoffTest {
                 "mode", "MOCK_MODEL_REAL_COMMERCE_POSTGRES", "paidModelCalls", 0, "mockModelCalls", modelCalls.get(),
                 "commerceBuildId", build, "investigation", view, "evidence", details,
                 "actualModelQualityValidated", false)) + "\n");
+    }
+
+    @Test
+    @EnabledIfEnvironmentVariable(named = "JDD_HANDOFF_BUSINESS_INPUT_PATH", matches = ".+")
+    void allRetainedBusinessCasesUseTheSameToolsAndReopenTheirOwnStoredEvidence() throws Exception {
+        JsonNode cases = json.readTree(Files.readString(Path.of(System.getenv("JDD_HANDOFF_BUSINESS_INPUT_PATH"))));
+        assertThat(cases.size()).isEqualTo(6);
+        Path directory = Path.of(System.getenv("JDD_HANDOFF_REPORT_PATH")).getParent().resolve("business");
+        Files.createDirectories(directory);
+        for (JsonNode input : cases) checkBusinessCase(input, directory);
+    }
+
+    private void checkBusinessCase(JsonNode input, Path directory) throws Exception {
+        String label = input.path("caseId").asText(), customer = input.path("customerId").asText();
+        String product = input.path("productId").asText(), build = input.path("buildId").asText();
+        assertThat(label).matches("VOC-0[1-6]"); assertThat(customer).startsWith("jdd-v0");
+        var request = new InvestigationInput("1.0", "handoff-" + UUID.randomUUID(), 1, UUID.randomUUID().toString(),
+                "합성 업무의 실제 데이터·로그·소스·정책 저장과 재조회를 모의 모델로 확인합니다.",
+                new InvestigationInput.Context(customer, null, product, null, null, null), null);
+        var service = new InvestigationService(repository, Clock.systemUTC());
+        String id = service.submit(request).investigationId();
+        var clock = Clock.systemUTC();
+        var claim = executions.claimNext(clock.instant(), Duration.ofMinutes(3)).orElseThrow();
+        assertThat(claim.investigationId()).isEqualTo(id);
+        var modelCalls = new AtomicInteger();
+        // This common test double receives identifiers only. It does not read expected answers or fixture files.
+        InvestigationModel mock = modelRequest -> {
+            int iteration = modelCalls.incrementAndGet();
+            if (iteration == 1) {
+                var calls = new ArrayList<ToolCall>();
+                calls.add(call("findOrders", Map.of("customerId", customer)));
+                calls.add(call("getCouponContext", Map.of("customerId", customer)));
+                calls.add(call("getInventoryContext", Map.of("productId", product)));
+                for (JsonNode key : input.path("checkoutKeys"))
+                    calls.add(call("searchLogs", Map.of("buildId", build, "checkoutKey", key.asText())));
+                for (String type : List.of("OrderService", "PaymentService", "CouponService"))
+                    calls.add(call("searchCode", Map.of("buildId", build, "query", "class " + type)));
+                return new Reply(null, calls);
+            }
+            var evidence = modelRequest.history().stream().filter(message -> message.kind() == MessageKind.TOOL)
+                    .flatMap(message -> message.observations().stream()).toList();
+            for (var item : evidence) assertThat(repository.findEvidence(id, item.evidenceId())).isPresent();
+            var orders = evidence.stream().filter(item -> item.type() == EvidenceType.DATA
+                    && "orders".equals(item.source().get("table"))).findFirst().orElseThrow();
+            JsonNode rows = json.valueToTree(orders.content()).path("rows");
+            assertThat(rows.isArray()).isTrue(); assertThat(rows.isEmpty()).isFalse();
+            if (iteration == 2) {
+                var calls = new ArrayList<ToolCall>();
+                for (JsonNode order : rows) calls.add(call("getOrderContext", Map.of("orderId", order.path("id").asText())));
+                var paths = new LinkedHashSet<String>();
+                var versions = new LinkedHashSet<String>();
+                for (var item : evidence) if (item.type() == EvidenceType.CODE) {
+                    paths.add(item.source().get("path").toString());
+                    versions.add(item.source().get("policyVersion").toString());
+                }
+                assertThat(paths).hasSize(3); assertThat(versions).hasSize(1);
+                for (String path : paths) calls.add(call("readCode", Map.of("buildId", build, "path", path, "startLine", 1, "endLine", 300)));
+                calls.add(call("readBusinessPolicy", Map.of("buildId", build, "version", versions.iterator().next())));
+                return new Reply(null, calls);
+            }
+            assertThat(iteration).isEqualTo(3);
+            return new Reply(json.writeValueAsString(new AnalysisReport("1.0",
+                    "공통 모의 모델의 실제 근거 인수 검사입니다. 원인·조치의 AI 품질 평가는 아닙니다.",
+                    List.of(new Fact("observed-orders", "조회 시점 고객의 주문 " + rows.size() + "건을 관측했습니다.", List.of(orders.evidenceId()))),
+                    List.of(), List.of(), List.of(), List.of())), List.of());
+        };
+        new InvestigationRunner(repository, executions, mock, tools, InvestigationPromptLoader.load(),
+                candidate -> json.readValue(candidate, AnalysisReport.class), new InvestigationRunner.Limits(3, 24, 0, 0), clock).run(claim);
+        var view = repository.find(id).orElseThrow().investigation();
+        var details = new ArrayList<JsonNode>();
+        var report = new LinkedHashMap<String, Object>();
+        report.put("caseId", label); report.put("mode", "MOCK_MODEL_REAL_COMMERCE_POSTGRES");
+        report.put("paidModelCalls", 0); report.put("mockModelCalls", modelCalls.get());
+        report.put("commerceBuildId", build); report.put("actualModelQualityValidated", false);
+        report.put("investigation", view); report.put("evidence", details);
+        try {
+            assertThat(view.status()).withFailMessage("%s: %s, progress=%s", label, view.error(), view.progress()).isEqualTo(Status.COMPLETED);
+            assertThat(view.progress()).allMatch(tool -> tool.status() == ToolStatus.SUCCEEDED);
+            assertThat(view.progress().stream().map(ToolExecution::toolName).distinct())
+                    .containsExactlyInAnyOrder("findOrders", "getOrderContext", "getCouponContext", "getInventoryContext", "searchLogs", "searchCode", "readCode", "readBusinessPolicy");
+            assertThat(view.evidence().stream().map(EvidenceSummary::type).distinct())
+                    .containsExactlyInAnyOrder(EvidenceType.DATA, EvidenceType.LOG, EvidenceType.CODE, EvidenceType.POLICY);
+            var http = HttpClient.newHttpClient();
+            String base = "http://127.0.0.1:" + port + "/api/investigations/" + id;
+            for (var evidence : view.evidence()) {
+                var response = http.send(HttpRequest.newBuilder(URI.create(base + "/evidence/" + evidence.evidenceId())).GET().build(), HttpResponse.BodyHandlers.ofString());
+                assertThat(response.statusCode()).isEqualTo(200);
+                var reopened = json.readTree(response.body());
+                assertThat(reopened).isEqualTo(json.valueToTree(repository.findEvidence(id, evidence.evidenceId()).orElseThrow()));
+                details.add(reopened);
+            }
+            for (int refresh = 0; refresh < 3; refresh++)
+                assertThat(http.send(HttpRequest.newBuilder(URI.create(base)).GET().build(), HttpResponse.BodyHandlers.ofString()).statusCode()).isEqualTo(200);
+            assertThat(service.submit(request).investigationId()).isEqualTo(id);
+            assertThat(modelCalls.get()).isEqualTo(3);
+            assertThat(jdbc.queryForObject("SELECT count(*) FROM agent.model_calls", Long.class)).isZero();
+        } finally {
+            Files.writeString(directory.resolve(label + ".json"), json.writerWithDefaultPrettyPrinter().writeValueAsString(report) + "\n");
+        }
     }
     private ToolCall call(String name, Map<String, Object> input) { return new ToolCall(UUID.randomUUID().toString(), name, json.writeValueAsString(input)); }
 }

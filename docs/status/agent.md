@@ -215,4 +215,12 @@
 - 유지한 VOC-07 데이터에 실제 8개 도구를 실행해 근거 25건을 별도 Agent PostgreSQL에 저장하고 모든 원문을 HTTP로 재조회했다. 같은 키의 동일 조사 ID·모의 모델 호출 2회 유지 확인. 조사 ID `bb0f38d6-adb3-4ba8-980b-86c0f1880754`. 실제 모델 품질 검증은 아니다.
 - 전체 명령·종료 코드·제공자 원문 경로·조사/근거 원문: `runtime/submission/agent-20260921/seven-commerce-20260921T101653Z/report.json`, `agent-handoff/result.json`. 요약과 실제 응답을 구분한다. 커머스 데이터는 조회 종료 뒤에도 보존했다.
 - 일곱 공급자 재현 성공을 일곱 실제 AI 조사 성공으로 계산하지 않는다. VOC-01~06의 Agent 소비 확장, 새 생성기의 정책 사본, VOC/web/ngrok와 승인된 실제 모델 검증이 남아 있다. 유료 모델 호출 0회, DONE·리더 승인은 보류다.
+
+## 2026-09-21 — 일곱 재현의 공통 Agent 근거 소비 검사
+
+- `check_commerce_handoff.py --business-artifact`를 추가했다. VOC-01~06의 보존한 첫 재현마다 같은 모의 모델 절차로 8종 도구를 실행하고 실제 DB·로그·실행 소스·정책을 Agent PostgreSQL에 저장한다. 다음 도구 입력의 주문 ID·코드 경로·policyVersion은 앞선 조회에서 얻는다. 시나리오별 원인/조치 정답을 반환하는 고정 모델은 만들지 않았다.
+- 식별자만 모의 모델 프로세스로 전달하고 제공자 기대 응답·DB/로그 원문 대조는 별도 Python 검사에서 수행한다. 여섯 건의 주문·결제·환불·쿠폰 상태 333개 필드와 제공자의 업무 로그 원문이 일치했다. 정상 대조의 행도 모두 포함한다. 근거 원문 GET·조회 3회·같은 키 재전송 뒤 모의 모델 호출 수는 건당 3회로 유지됐다.
+- 실제 빌드 `cfd36d1c9044-8fd07a02b0f4`의 보존 데이터로 전체 명령 종료 0. 원문 `runtime/submission/agent-20260921/seven-agent-handoff-02/`의 result.json(VOC-07), business/VOC-01~06.json, business-comparison.json과 `seven-handoff-final.log`. 유료 모델 호출 0회, 일곱 건 모의 모델 총 20회다.
+- 최초 Java 소비 검사는 통과했으나 Python 후처리가 LOG의 content.entry 경로를 잘못 읽어 KeyError로 실패했다. `seven-agent-handoff-01/`·`seven-handoff-run.log`를 보존하고 실제 DTO 경로에 맞게 수정했다. 결제 상태 변조·로그 누락을 복사한 메모리 산출물에 주입했을 때 비교기가 모두 거절함도 확인했다. 원본 데이터는 변경하지 않았다.
+- `d1f92dc`의 리더 Agent 405/404 오류 DTO·회귀·상태/검토와 실행 안내 변경 전체를 읽고 통합했다. 새 정책 생성기의 실제 인수, VOC/web/ngrok, 실제 모델 품질·토큰/비용은 여전히 별도 미검증이다. 역할 완료를 선언하지 않는다.
 - 실제 개발 세션의 사용자/응답/도구 이벤트 852건을 `runtime/submission/agent-20260921/session/20260921T100624Z/`에 중간 캡처했다. 이메일·비밀 값 검사/가림과 원문 prefix/산출물 SHA·제외 유형을 manifest에 남겼다. 요약이나 미가림 원본과 구분하고 진행 종료 시 갱신한다. Git에는 원시 세션/개인정보를 공유하지 않는다.

@@ -23,10 +23,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--compose-dir', type=Path, default=ROOT)
     parser.add_argument('--inventory-artifact', type=Path, required=True)
+    parser.add_argument('--business-artifact', type=Path, help='Optional retained VOC-01~06 PostgreSQL reproduction artifact')
     parser.add_argument('--report-dir', type=Path, required=True)
     args = parser.parse_args()
     project, output = args.compose_dir.resolve(), args.report_dir.resolve()
-    output.mkdir(parents=True, exist_ok=True)
+    # Preserve failed and successful attempts separately; never replace earlier evidence.
+    output.mkdir(parents=True, exist_ok=False)
     config = {}
     for line in (project / '.env').read_text().splitlines():
         if line and not line.startswith('#') and '=' in line:
@@ -48,6 +50,25 @@ def main():
     # Only identifiers reach the test model's tools; expected reports/fixture files are not model inputs.
     input_path = output / 'input.json'
     input_path.write_text(json.dumps(request, indent=2) + '\n')
+    business_cases = []
+    if args.business_artifact:
+        business = json.loads(args.business_artifact.read_text())
+        if business.get('status') != 'PASSED' or business.get('mode') != 'commerce-http-postgresql' or business.get('buildId') != artifact['buildId']:
+            parser.error('Business and inventory artifacts must pass with the same real commerce buildId')
+        for number in range(1, 7):
+            case_id = f'VOC-{number:02d}'
+            retained = next((item for item in business['results'] if item['id'] == case_id and item['status'] == 'PASSED'), None)
+            if retained is None or not retained['prefix'].startswith(f'jdd-v{number:02d}-'):
+                parser.error('Each business case needs retained synthetic identifiers')
+            prefix = retained['prefix']
+            business_cases.append(retained)
+        identifiers = [{'caseId': item['id'], 'buildId': business['buildId'],
+                        'customerId': item['prefix'] + '-customer', 'productId': item['prefix'] + '-product',
+                        'checkoutKeys': sorted({row['event']['checkoutKey'] for row in item['evidence']['logs']
+                                               if row['event'].get('checkoutKey')})} for item in business_cases]
+        business_input = output / 'business-input.json'
+        business_input.write_text(json.dumps(identifiers, indent=2) + '\n')
+        env['JDD_HANDOFF_BUSINESS_INPUT_PATH'] = str(business_input)
     compose = ['docker', 'compose', '--env-file', '.env']
     if config.get('COMPOSE_PROJECT_NAME'):
         compose += ['-p', config['COMPOSE_PROJECT_NAME']]
@@ -72,8 +93,55 @@ def main():
         result = subprocess.run(command, cwd=ROOT, env=env, stdout=log, stderr=subprocess.STDOUT)
     record.update(finishedAt=datetime.now(timezone.utc).isoformat(), exitCode=result.returncode)
     (output/'command.json').write_text(json.dumps(record, indent=2)+'\n')
+    # Expected DB/log values are read only here, outside the test model's process/input.
+    # Compare all captured orders, payments/refunds and coupon state, including normal controls.
+    if result.returncode == 0 and business_cases:
+        comparison = {'status': 'FAILED', 'actualModelQualityValidated': False, 'cases': []}
+        try:
+            for case in business_cases:
+                observed = json.loads((output / 'business' / (case['id'] + '.json')).read_text())
+                count = compare_retained_business(case, observed)
+                comparison['cases'].append({'caseId': case['id'], 'status': 'PASSED',
+                                            'comparedFields': count, 'investigationId': observed['investigation']['investigationId']})
+            comparison['status'] = 'PASSED'
+        finally:
+            (output / 'business-comparison.json').write_text(json.dumps(comparison, indent=2) + '\n')
     print(json.dumps({'exitCode': result.returncode, 'reportDirectory': str(output), 'paidModelCalls': 0}), flush=True)
     return result.returncode
+
+
+def compare_retained_business(expected, actual):
+    tables = {'orders': ('orders', ('id', 'customer_id', 'checkout_key', 'request_id', 'status', 'subtotal', 'discount_amount', 'total_amount', 'customer_coupon_id')),
+              'payments': ('payments', ('id', 'order_id', 'request_key', 'method', 'status', 'amount', 'provider_reference')),
+              'refunds': ('refunds', ('id', 'order_id', 'payment_id', 'request_key', 'status', 'amount', 'failure_code')),
+              'customer_coupons': ('coupons', ('id', 'customer_id', 'coupon_id', 'status')),
+              'coupons': ('policies', ('id', 'discount_type', 'min_order_amount', 'fixed_discount_amount', 'discount_rate', 'max_discount_amount')),
+              'coupon_usages': ('usages', ('id', 'customer_coupon_id', 'order_id', 'status', 'discount_amount'))}
+    count = 0
+    for table, (key, columns) in tables.items():
+        rows = {}
+        for evidence in actual['evidence']:
+            if evidence['type'] == 'DATA' and evidence['source'].get('table') == table:
+                for row in evidence['content']['rows']:
+                    projected = {column: row[column] for column in columns}
+                    if row['id'] in rows:
+                        assert rows[row['id']] == projected, (expected['id'], table, 'contradictory stored rows')
+                    rows[row['id']] = projected
+        wanted = {row['id']: {column: row[column] for column in columns} for row in expected['database'][key]}
+        assert rows == wanted, (expected['id'], table, 'stored Agent evidence differs from retained provider data')
+        count += len(wanted) * len(columns)
+    events = {}
+    for evidence in actual['evidence']:
+        if evidence['type'] == 'LOG':
+            entry = evidence['content']['entry']
+            assert json.loads(evidence['content']['raw']) == entry, (expected['id'], 'stored raw log differs from parsed entry')
+            if entry['eventId'] in events:
+                assert events[entry['eventId']] == entry, (expected['id'], 'conflicting stored event')
+            events[entry['eventId']] = entry
+    for row in expected['evidence']['logs']:
+        entry = row['event']
+        assert events.get(entry['eventId']) == entry, (expected['id'], 'missing or changed retained business log event')
+    return count
 
 
 if __name__ == '__main__':
