@@ -26,6 +26,12 @@
 
 
 
+## 2026-09-21T22:03+09:00 — OAuth 호환성 수정 전체 검증·공유 완료
+
+- `460ff05`를 인증 없는 별도 main clone의 `scripts/dev publish` 종료 0으로 공유했다. 중간에 추가된 VOC worker/상태 조회/근거 중계 `f5064c8`과 Windows 회귀 요청 `4d412ec`을 통합하고 전체 검사를 다시 실행했다. 이 인수는 실제 모델을 사용하는 VOC 전체 흐름 성공을 뜻하지 않는다.
+- 마지막 검사는 Python 65개 통과, JUnit 173개 중 성공 164·조건부 건너뜀 9·실패/오류 0, 문서·Gradle check·세 앱 재빌드/재기동·실제 PostgreSQL/HTTP/읽기 전용 근거 연결 통과다. buildId는 `460ff05e5a3f-2392c70a8ed4`, 공유 검증 환경의 Agent는 test/mock이다. 이 전체 검증에서는 추가 OAuth/API 호출을 하지 않았다.
+- 명령 원문은 runtime/submission/agent-20260921/oauth-luna-publish.log/json, 전체 XML 집계·runtime은 oauth-luna-publication-results.json에 보존했다. 실제 모델 최소 검증과 수동 호출 4회의 성공/실패·미확정 usage는 oauth-luna-validation-summary.json과 아래 기록으로 구분한다. 이 PC의 로컬 설정은 gpt-5.6-luna를 유지하며 배포 모델·키·예산과 분리한다.
+
 ## 2026-09-21T21:58:47+09:00 — gpt-5.6-luna 로컬 설정·실제 OAuth 최소 응답 성공
 
 - 사용자 요청에 따라 공식 Codex 모델 안내의 경량 모델 gpt-5.6-luna를 CODEX_MODEL로 선택했다. 이 PC의 Git 제외 .env에 local/codex_oauth·프로젝트 인증 경로와 함께 저장했고 다른 설정은 보존했다. 실제 호출 자식은 환경 허용 목록을 사용해 배포 API key를 전달하지 않았다. 모델·provider 자동 전환이나 앱 재기동은 수행하지 않았다.
