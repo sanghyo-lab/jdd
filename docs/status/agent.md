@@ -5,6 +5,7 @@
 - 사용자 추가 지시 “장황하지 않고 간략하게”를 반영해 7개 내레이션을 각각 3문장으로 줄였다. 증상·검수된 원인·조치 제안에 집중하고 같은 접수 과정과 모든 필드 낭독을 반복하지 않는다. 본편 20~30초/case·전체 약3분은 초안 목표이며 실제 정상 속도 발화로 확정한다. 화면1.5배속/음성1.0배속·8장·무음2초·정박 조건은 유지한다.
 - 앞선 제작 지침 `e0d44c2`의 전체 publish는 종료0으로 공유됐다. Python70·Java219 중210통과/9조건부 제외·실패0, web 검사/production build, 세 앱 PostgreSQL/HTTP/근거 smoke 통과다. 모의 검사와 실제 연결 검사이며 서비스 모델·음성 API 호출은0이다. 이 간략화는 후속 문서 변경으로 별도 공유 검증한다.
 - 시나리오별 기대값·입력 분리·촬영 전 진위 검수는 유지했다. 실제 PPT·녹화·음성 샘플을 제작하거나 완성됐다고 표시하지 않았다.
+- 간략화는 동시 원격 `d4ab5b0`·`8b23657`을 보존해 통합·재검증하고 `3add054`로 전체 publish 종료0·main 공유를 확인했다. Python70·문서50/504링크/8JSON·web 검사/production build·Gradle check·세 앱 실제 연결이 통과했다. 변경 없는 Gradle 검사는 이전 통과 결과를 재사용했으며 Java XML 합계219/실패0/제외9다. 검증 Agent는 test/mock이고 모델/TTS 호출0이다. 원문은 분리 검증 clone의 `runtime/demo-prompt-publish-02.log`, `demo-prompt-publish-03.log`, 이 PC의 `runtime/demo-video-prompt-result.json`에 보존했다.
 
 ## 2026-09-22T08:20:05+09:00 — 7개 VOC 시연 영상 제작 프롬프트 준비
 
