@@ -9,7 +9,7 @@
 - 공유 커밋: 티켓 `d8246e9`, 검증 안내 `d5d5484`, 주문 시각 정밀도 수정 `1d29d20`
 - 담당 경로: `voc-app/`, `voc-core/`, `voc-infra/`, `web/`, `scenario-runner/`
 - 준비된 자료: [구현 범위](../roles/kim-areum-voc.md), [VOC·Agent 계약](../integration-contract.md), [커머스 계약](../commerce-interface.md), [프론트 설계](../frontend-deployment.md)
-- 다음 작업: 분석 요청 스냅샷·요청 키/이력 영속 저장, 서버의 Agent 전달/조회·재시작 복구, 한국어 화면 구현
+- 다음 작업: 분석 저장 단위 공유 후 서버의 Agent 전달/조회·재시작 복구, 근거 중계와 한국어 화면 구현
 - 제공받은 입력: Agent 조사 API·실행기·8개 조회 도구, commerce VOC-07/02/03 재현 자료. 실제 모델 검증 허용 범위·배포 환경은 별도다.
 - 검증 결과: 티켓 HTTP/H2·실제 PostgreSQL 계약, 전체 Gradle check, 세 앱 Docker 기동·smoke와 앱 재기동 후 티켓 보존 통과. 프론트·VOC runner·실제 모델은 미검증.
 - 연동 요청: 아래 논의의 P1 수락과 공통 생성기 책임을 기록했다. scenario-runner는 아직 미구현을 알리는 실패 종료 골격이다.
@@ -106,3 +106,14 @@
 - 원문: runtime/verification/policy-context-publish-local-frontend.log, linux-gradle-check, context-handoff.json, ticket-restart.json, SourceSnapshotProbe.java와 publication clone의 runtime/smoke.json·runtime/evidence/source. 테스트 입력은 합성이며 실제 모델·web·MVP·DONE은 미검증이다.
 - 논의: 선택 메타데이터 결정은 원격 포함을 확인해 RESOLVED. 데모 배분 P1과 대기열 P1에 직접 수락하고 본문·목록을 갱신했다. 유료 활성화 조건, 큐 수용량/429·VOC 영속 전달/조회/화면의 구현·검증이 남아 둘은 AGREED다.
 - Agent 요청 VOC-AGENT-EXPORT-001: agent-app/scripts/export_model_calls.py의 Windows Compose 탐색/실행 환경을 보완해 달라. 동일 허용 환경에서 docker compose version은 하위 명령 없음으로 종료 1, DOCKER_CONFIG 지정 후 export도 종료 1이었다. 별도 Agent 계정 READ ONLY SQL에서는 예산/모델 호출/대기·실행 모두 0을 확인했다. 요청 없이 진행 가능한 다음 작업은 영속 분석 요청 API다.
+
+## 2026-09-21 — 분석 요청·입력 스냅샷·이력 영속 저장
+
+- 제공 단위: 분석 POST는 V3 analysis_requests에 저장 후 202/PENDING을 반환한다. 티켓별 분석 GET·상세 이력과 nullable 조사/전달/조회 오류 필드를 제공한다. 입력 message/context/버전/키/이전 조사 ID는 기존 티켓이 바뀌어도 그대로 유지한다.
+- 원자성: 티켓 행 잠금과 같은 트랜잭션에서 기존 키 확인·버전 비교·입력 복사를 수행한다. 같은 키·버전·이전 조사 ID는 기존 기록을 반환하고 다른 입력이면 REQUEST_KEY_CONFLICT다. 새 키의 오래된 버전은 TICKET_VERSION_CONFLICT이며 혼합된 스냅샷을 저장하지 않는다.
+- 소속·이력: 이전 조사 ID는 같은 티켓에 연결되어 있어야 하며 다른 티켓의 분석 조회는 404다. 생성 시각·ID 내림차순 이력을 제공하고 기존 분석을 덮어쓰지 않는다. 재시도 가능한 전달 실패만 같은 키로 원자적으로 PENDING에 되돌린다. SUBMITTED의 조사 FAILED는 자동 재실행하지 않는다.
+- 실제 검사: Windows 네이티브 전체 VOC HTTP/H2·앱 16개(신규 분석 8개, 기존 티켓 7개, 앱 1개) 통과. 같은 분석/티켓 HTTP 15개를 격리 PostgreSQL 17.6에서 --rerun-tasks로 새로 실행해 통과했고 실패/건너뜀은 0이다. V2가 있던 DB에 V3를 적용했다.
+- 검증 범위: 동일 키 동시 8요청, 티켓 수정/스냅샷 경쟁 12회, 이전 조사·다른 티켓 접근, 잘못된 입력, 고정 시각에서 ID 정렬, HTTP 응답을 읽지 않은 클라이언트의 같은 키 복구를 검사했다. 전달/조사 실패의 분기 테스트에는 명시적인 합성 저장 기록을 사용했다.
+- 원문: runtime/verification/analysis-http-h2.log·analysis-h2-results와 analysis-http-postgresql.log·analysis-postgresql-results. 실제 모델 호출은 없으며 이 결과를 Agent 작업기·화면·MVP 성공으로 계산하지 않는다.
+- 현재 제한: 전달/상태 조회 worker와 근거 중계·UI는 아직 없어 새 분석은 PENDING에 머문다. 실제 Agent로 보내고 오류·조회 상태를 영속 갱신하는 다음 단위를 계속한다. businessReady=false와 역할 IN_PROGRESS를 유지한다.
+- 통합: 리더 6b9ca6f의 외부 PostgreSQL 검사 캐시 차단 변경을 확인했다. 편집 중 rebase하지 않았고 이번 외부 검사는 --rerun-tasks로 실행했다. 커밋 경계에서 리더 변경을 보존해 통합하고 전체 publish를 수행한다.

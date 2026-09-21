@@ -44,7 +44,10 @@ class TicketHttpContractTest {
         properties.add("spring.datasource.password", () -> url == null ? "" : System.getenv("VOC_TEST_DB_PASSWORD"));
     }
 
-    @BeforeEach void clearFixtures() { jdbc.update("DELETE FROM voc.tickets"); }
+    @BeforeEach void clearFixtures() {
+        jdbc.update("DELETE FROM voc.analysis_requests");
+        jdbc.update("DELETE FROM voc.tickets");
+    }
 
     @Test void createsPersistentTicketAndReturnsAssigneesAndEmptyAnalysisHistory() throws Exception {
         JsonNode assignees = call("GET", "/api/assignees", null, 200).get("items");

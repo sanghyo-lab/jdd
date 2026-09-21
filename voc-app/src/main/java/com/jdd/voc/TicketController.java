@@ -2,8 +2,8 @@ package com.jdd.voc;
 
 import com.jdd.voc.domain.Ticket;
 import com.jdd.voc.domain.TicketService;
+import com.jdd.voc.domain.AnalysisService;
 import java.net.URI;
-import java.util.List;
 import java.util.Map;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -12,7 +12,10 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api")
 public class TicketController {
     private final TicketService tickets;
-    public TicketController(TicketService tickets) { this.tickets = tickets; }
+    private final AnalysisService analyses;
+    public TicketController(TicketService tickets, AnalysisService analyses) {
+        this.tickets = tickets; this.analyses = analyses;
+    }
 
     @GetMapping("/assignees")
     public Map<String, ?> assignees() { return Map.of("items", TicketService.ASSIGNEES); }
@@ -32,7 +35,7 @@ public class TicketController {
 
     @GetMapping("/tickets/{ticketId}")
     public Map<String, ?> detail(@PathVariable String ticketId) {
-        return Map.of("ticket", tickets.get(ticketId), "analyses", List.of());
+        return Map.of("ticket", tickets.get(ticketId), "analyses", analyses.list(ticketId));
     }
 
     @PatchMapping("/tickets/{ticketId}")
