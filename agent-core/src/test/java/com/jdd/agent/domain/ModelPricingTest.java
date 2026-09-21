@@ -39,4 +39,21 @@ class ModelPricingTest {
         assertThrows(IllegalArgumentException.class, () -> new ModelUsage(10L, 1L, 0L, 0L, 2L));
         assertThrows(IllegalArgumentException.class, () -> price.maximumCost(0, 100));
     }
+
+    @Test void contextBoundaryRepricesTheWholeRequestIncludingCachedInputAndOutput() {
+        var tiered = new ModelPricing("synthetic-tiered", "mock-priced-model", price.input(), price.cachedInput(),
+                price.cacheWrite(), price.output(), true, 1000L, new BigDecimal("2"), new BigDecimal("1.5"));
+        assertEquals(0, tiered.observedCost(new ModelUsage(1000L, 200L, 600L, 100L, 150L)).orElseThrow()
+                .compareTo(new BigDecimal("0.00337")));
+        assertEquals(0, tiered.observedCost(new ModelUsage(1001L, 200L, 600L, 100L, 150L)).orElseThrow()
+                .compareTo(new BigDecimal("0.005544")));
+        assertEquals(0, tiered.maximumCost(1_050_000, 4096).compareTo(new BigDecimal("5.323728")));
+    }
+
+    @Test void contextTransitionCannotReduceTheWorstCaseReservation() {
+        assertThrows(IllegalArgumentException.class, () -> new ModelPricing("bad", "mock", price.input(), price.cachedInput(),
+                price.cacheWrite(), price.output(), true, 1000L, new BigDecimal("0.5"), BigDecimal.ONE));
+        assertThrows(IllegalArgumentException.class, () -> new ModelPricing("bad", "mock", price.input(), price.cachedInput(),
+                price.cacheWrite(), price.output(), true, null, BigDecimal.ONE, BigDecimal.ONE));
+    }
 }

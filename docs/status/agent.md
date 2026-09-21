@@ -163,3 +163,11 @@
 - 같은 데이터의 8개 도구 결과 25건을 전용 Agent PostgreSQL에 저장하고, 모든 근거 원문 GET 200과 같은 키 재전송의 동일 ID를 확인했다. 조사 `6b2ab6d9-c22d-4302-8ea3-d1c1af9f1a84`, 결과 `commerce-handoff-result.json`은 모의 모델 2회·OpenAI 호출 0회임을 명시한다. 최종 원인 분석 품질이나 VOC UI 완료를 뜻하지 않는다.
 - 재현 가능한 `CommerceHandoffTest`·`agent-app/scripts/check_commerce_handoff.py`를 제공한다. 평가 정답·fixtures 내용은 모델 입력에 포함하지 않는다. 저장·재조회 완료까지 재현 데이터를 보존했다.
 - [DISC-20260921-commerce-001](../discussions/DISC-20260921-commerce-001-inventory-evidence.md)에 직접 검증 결과를 답변했다. COMMERCE-002 조회 연결을 확인했으며 VOC 직접 답변·runner 확인이 남아 논의는 미해소다.
+
+## 2026-09-21 — 장문 요금과 최악 비용 예약
+
+- `595034a`의 실제 커머스 근거 인수 단위도 전체 publish·세 앱 재기동/smoke 후 공유됐다. `check_commerce_handoff.py` 명령을 동일 보존 데이터에 다시 실행한 결과도 종료 0이며 원문은 `commerce-handoff-rechecked/`에 있다.
+- [DISC-20260921-agent-002](../discussions/DISC-20260921-agent-002-policy-snapshot.md)에 build별 정책 사본·해시 보관을 제안했다(`0166c7c`, 목록 형식 수정 `92dc81a`). 다른 담당자의 답변·공통 생성기 담당 확정을 기다리는 동안 모델 연동을 진행한다.
+- 모델 가격에 입력 길이 경계와 입력/출력 배수를 추가했다. 경계를 넘으면 일반 입력·캐시 읽기·쓰기와 출력 전체에 해당 배수를 적용한다. 예약은 최대 입력 분류와 출력의 최악 비용을 사용하고 실제 정산은 관측 usage 길이로 요금을 선택한다. 기존 단일 구간 가격과 저장 JSON은 호환한다.
+- `:agent-core:test`의 가격 7개 및 기존 core 검증, `ModelCallLedgerTest`의 모의 장부 10개가 통과했다. 합성 가격으로 경계 바로 아래/같음/초과와 캐시·reasoning 중복 제외를 확인했으며 실제 모델 비용 측정은 아니다. 원문 `runtime/submission/agent-20260921/pricing-context-tests.log`.
+- OpenAI 연동에서는 추정 tokenizer 값으로 최대 비용을 보장했다고 주장하지 않고, 공식 모델 context 한도와 제한한 출력 상한을 예약하는 방법을 적용한다. 이는 초기 보수적 예약 설계이며 실제 후보 품질·비용/지연 비교는 아직 미수행이다.
