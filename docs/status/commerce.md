@@ -17,6 +17,14 @@
 
 작업 단위가 끝날 때 제공 가능한 기능, 변경한 계약, 실제 검증 명령·결과, 다음 작업을 갱신한다. 실패와 막힌 이유도 함께 기록한다.
 
+## 2026-09-21T20:19:00+09:00 — 다음 필수 연동의 실제 대기 조건
+
+- 원격 `f0ddbb6`까지 검토했고 로컬과 origin/main은 깨끗하게 일치한다. 직전 단위에서 LEAD-012/013 보완·실제 대기열/복구 인수를 끝내 공유했으며, 이번 확인에는 새 구현·담당자 답변이 없다. 반복 상태 확인을 새 기능 진척이나 검증 성공으로 세지 않는다.
+- 현재 코드를 다시 확인했다. `TicketController.detail`의 analyses는 빈 배열, `web/`은 없음, ScenarioRunner는 미구현 안내/종료 2 골격이다. 김아름이 JDD-VOC-001/002/007/009·COMMERCE-001·정책 snapshot의 책임을 접수했지만 구현/소비 검증 공유는 아직 없다. 상태 문서의 다음 작업을 다른 PC의 살아 있는 실행 프로세스라고 가정하지 않으며 소유 범위의 중복 구현은 하지 않는다.
+- 실제 기본 앱 관측: 세 앱 buildId `1c02f85b4391-64991e1f84a7`, Agent DISABLED, VOC businessReady=false. `ngrok config check` 종료 1/기본 설정 파일 없음. 원문 `runtime/submission/commerce-20260921-resumed/pending-dependencies-audit-20260921T111841.652863Z.json`과 `commands/20260921T111816.086801Z-continued-goal-status.log`.
+- 재개 입력: 기존 요청 ID의 VOC 분석/화면/runner·정책 사본 구현과 소비 결과, DISC-agent-003/004/005의 VOC 직접 답변, 사용자에게 이미 요청한 실제 데모 모델/비용 범위와 로컬 비밀 파일·ngrok 설정 경로·공개 접속 허용 범위다. 비밀 값 자체를 문서로 받거나 같은 승인을 다시 요청하지 않는다. 이 PC의 유료 호출은 계속 0회다.
+- 최신 `team-check`는 `f0ddbb6`에서 종료 1이며 세 담당자/리더 모두 IN_PROGRESS다. `commands/20260921T111655.086192Z-team-check-after-queue-handoff.log`. 이번 조건 재확인은 첫 연속 외부 대기 관측이며 goal 완료/blocked를 선언하지 않는다. 새 구현·답변이 오면 전체 변경을 읽고 그 범위의 실행·인수부터 이어간다.
+
 ## 2026-09-21T20:15:20+09:00 — 데모 구성 공유와 대기 만료 독립 검증
 
 - LEAD-013의 데모 전용 worker 동시성 1과 대기열 P1 답변을 최신 Agent `104761f`·`0ad4bfd`·`a3d7d5b` 전체 변경과 통합해 `1c02f85`로 공유했다. 논의 파일 두 곳의 동시 답변 충돌은 양쪽 기록을 보존해 해결했다. 첫 publish의 rebase 중단도 `commands/20260921T110602.515611Z-publish-demo-worker-alignment.log`에 남겼다.
