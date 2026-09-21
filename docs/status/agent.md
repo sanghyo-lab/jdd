@@ -1,6 +1,6 @@
 # 한재홍 — AI Agent 작업 상태
 
-- 상태: 조사 API·영속 실행·8개 실제 근거 도구·OpenAI 전송·명시 데모 활성화·비용 장부를 구현했다. 로컬 모의 전송과 실제 PostgreSQL/커머스 인수를 검증했고 실제 모델 품질·VOC/화면·ngrok 연동은 진행 중이다.
+- 상태: 조사 API·영속 실행·8개 실제 근거 도구와 local Codex OAuth/deployed OpenAI Responses 분리·비용 장부를 구현했다. 로컬 모의 전송과 실제 PostgreSQL/커머스 인수를 검증했고 실제 모델 품질·VOC/화면·ngrok 연동은 진행 중이다.
 - 담당자: 한재홍 (역할 A)
 - GitHub 계정: 공유받은 뒤 기입
 - 작업 브랜치: `main`
@@ -11,13 +11,22 @@
 - 담당 경로: `agent-app/`, `agent-core/`, `agent-infra/`
 - 준비된 자료: [구현 범위](../roles/han-jaehong-agent.md), [VOC·Agent 계약](../integration-contract.md), [커머스 조회 계약](../commerce-interface.md)
 - 다음 작업: 새 정책 snapshot과 VOC 분석 전달·web·runner를 인수하고 승인된 실제 모델·ngrok 검증을 연결한다. 일곱 업무의 실제 근거 조회·저장·원문 재조회 검사는 통과했다. 일반 실행의 유료 차단을 유지한다.
-- 필요한 입력: 김아름의 정책 생성기·분석/화면 전달과 데모 모델·기간·호출 수·팀/PC 예산 배분·사용 범위 확정. 제공된 데모 키는 저장·설정·호출하지 않았다.
+- 필요한 입력: 프로젝트 전용 Codex 최초 로그인과 CODEX_MODEL, 김아름의 분석/화면/runner 전달 및 공개 ngrok 설정. API 크레딧은 배포 전용이며 배포 시 profile 범위를 별도로 설정한다. 실제 OAuth/API 호출은 아직 0회다.
 - 검증 결과: 전체 Gradle check·세 앱 Docker·PostgreSQL/HTTP smoke, 실제 DB 동시성·권한·복구·비용 예약과 일곱 커머스 조사 300근거·333필드/로그 대조를 확인했다. 모의 모델과 실제 모델을 구분하며 실제 모델 품질·화면은 미검증.
-- 연동 요청: 정책 archive 소비자 구현 제공, DISC-20260921-agent-003의 선택 ID 공백 입력 경계 확인. 기본 모델은 DISABLED이며 키 존재만으로 활성화하지 않는다.
+- 연동 요청: 정책 archive 소비자 구현 제공, DISC-20260921-agent-003의 선택 ID 공백 입력 경계 확인. 기본 Compose는 explicit test/mock이며 OAuth/API로 자동 활성화·fallback하지 않는다.
 
 작업 단위가 끝날 때 제공 가능한 기능, 변경한 계약, 실제 검증 명령·결과, 다음 작업을 갱신한다. 실패와 막힌 이유도 함께 기록한다.
 
 
+
+## 2026-09-21T21:05:14+09:00 — 분리 구현 최종 검증·공유 완료, 실제 로그인 대기
+
+- 최종 소스 `de13f74`가 scripts/dev publish 종료 0으로 GitHub main에 공유됐다. 동시 원격 `0c07ca9`의 리더 Windows exporter 수정 전체를 읽고 양쪽을 보존해 통합했으며 전체 검사를 다시 실행했다. 마지막 실행은 Python 57개, JUnit 146개 중 성공 137·조건부 건너뜀 9·실패/오류 0, 문서·전체 Gradle check·세 앱 재빌드/재기동·실제 PostgreSQL/HTTP/읽기 전용 근거 smoke 성공이다.
+- 실제 최종 buildId는 `de13f74d48ba-354297e68645`, Agent mode는 MOCK이다. 이후 같은 실제 Agent의 동시 접수·같은 키·입력 충돌·형식 오류·저장 상태 조회를 check_intake.py로 통과했다. 모델/업무 보고서를 생성하지 않았다. V7 OAuth 관측 표 적용과 API/OAuth 호출 행 0개도 READ ONLY로 확인했다.
+- 원문은 `runtime/submission/agent-20260921/oauth-api-startup-publish.log`·json, `oauth-api-final-publication.json`, `oauth-api-final-intake.json`, `oauth-api-postgresql-observation.json`이다. 시작 오류 세 경우는 `runtime/llm-early-startup-results.json`, Compose 경로 분리는 `runtime/llm-compose-isolation.json`에 있다. 비밀 값·실제 auth 파일은 산출물/빌드/Git에 넣지 않았다.
+- 전달물은 [LLM 실행 설명](../llm-runtime.md), scripts/llm, .env.example, agent-app의 local-oauth/deployed-api Compose와 API profile 예제다. 로컬 로그인/실행/데모/재로그인, 배포 환경변수/별도 smoke, 공식 근거·기능 차이를 연결했다. Codex SDK/추론별 CLI/범용 프록시 없이 기존 조사·도구·근거·보고서 계약을 유지한다.
+- 프로젝트 전용 `~/.local/share/jdd/codex-auth/auth.json`은 아직 없고 CODEX_MODEL도 미지정이다. 개발자 로그인과 모델명이 준비되지 않아 실제 OAuth 최소 호출은 미검증이다. 배포 API 실호출도 수행하지 않았고 프로모션 키 사용은 0회다. Codex backend와 범용 API의 동등한 지원 또는 워크스페이스 무제한 사용을 주장하지 않는다.
+- 이 인증 분리 구현 단위는 검증·공유했지만 실제 모델 품질·일곱 VOC/화면/외부 ngrok 검증과 기존 협업 요청은 별도로 남아 있다. role DONE/타인 완료/리더 APPROVED를 작성하지 않았다.
 
 ## 2026-09-21T20:59:43+09:00 — OAuth/API 분리 전체 공유와 시작 오류 검증
 
