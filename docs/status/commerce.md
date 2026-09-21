@@ -17,6 +17,12 @@
 
 작업 단위가 끝날 때 제공 가능한 기능, 변경한 계약, 실제 검증 명령·결과, 다음 작업을 갱신한다. 실패와 막힌 이유도 함께 기록한다.
 
+## 2026-09-21T20:02:00+09:00 — 검증 캐시 수정 공유와 대기열 제안 확인
+
+- LEAD-012를 `145f404`로 전체 publish 종료 0/197.312초 후 공유했다. Python 38개·문서·전체 Gradle check·3앱/DB/HTTP/근거 smoke를 통과했다. 원문 `commands/20260921T105703.630075Z-publish-commerce-postgresql-cache.log`. 기본 H2 검사는 외부 DB 결과로 대체하지 않고 다시 실행했다.
+- [DISC-agent-005](../discussions/DISC-20260921-agent-005-queue-limits.md) P1을 직접 수락하고 commerce 영향 없음, 리더가 확인할 만료/선점·기한 보존·동시 접수·소비자 재전송 기준을 답변했다. Agent의 진행 중인 만료 구현은 편집하지 않으며 VOC의 직접 합의와 실제 검증 전에는 OPEN을 유지한다.
+- 데모 구성만 렌더링해 worker 기본 2와 예제 model concurrentCalls 1의 불일치를 확인했다. `demo-worker-concurrency-before.json`은 만료된 예제 profile과 존재하지 않는 키 경로를 사용한 설정 검사다. 앱을 띄우거나 키를 등록하거나 모델을 호출하지 않았다. 전용 demo override의 worker 1 설정을 다음 단위에서 보완한다.
+
 ## 2026-09-21T19:56:00+09:00 — LEAD-012 외부 DB 반복 검사 실행 누락
 
 - 원격 `620654f`의 Agent 외부 DB 캐시 수정과 `6e240ab`의 소비자 인계·활성화 전 관측을 전체 검토·통합했다. 커머스는 H2/PostgreSQL 모드 전환을 구분했지만 같은 외부 DB 모드에서 반복 실행할 때는 이전 Gradle 결과를 재사용할 수 있었다.
