@@ -24,3 +24,5 @@
 - LEAD-001: `Dockerfile`의 소스 COPY 뒤 Gradle 다운로드가 매번 반복되어 첫 세 앱 갱신이 1010.09초 걸렸다. 빌드 중 변경으로 기존 레이어도 재사용되지 않았다. 공통 빌드 유지 담당 VOC의 진행 중 티켓 API와 경로가 겹치지 않음을 확인하고 리더 권한으로 보완한다.
 - 변경: BuildKit cache mount로 `/root/.gradle`만 빌드 간 보존하고 `sharing=locked`로 병렬 Compose 빌드의 캐시 접근을 보호한다. Java·Gradle·앱 버전과 업무 계약은 그대로다. Buildx 준비 기준을 로컬 실행 문서에 추가했다.
 - 검증: 변경 전 개발 스냅샷의 `scripts/dev up`과 `scripts/dev smoke`는 각각 종료 0이었다. 캐시 변경 후에는 첫 publish의 전체 check·재빌드·세 앱 smoke 결과를 기록한다. 시간 개선 수치는 두 번째 실제 빌드 전까지 주장하지 않는다.
+
+- LEAD-001 후속: `e080390`의 전체 publish가 종료 0이었다. 첫 BuildKit 빌드에서 3개 이미지가 하나의 Gradle 빌드 단계를 공유했고 실제 재기동·smoke를 통과했다. 이후 소스 변경 시 캐시 재사용은 다음 빌드에서 확인한다. Agent `943e961`의 비용 게이트·장부·회복·테스트·문서 전체 변경을 읽었고 현재 PC의 전체 check에서도 통과했다. 실제 OpenAI 호출과 최종 독립 검토는 수행하지 않았다.

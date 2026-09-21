@@ -1,6 +1,6 @@
 # 이상효 — 이커머스 구현과 개발리더 작업 상태
 
-- 상태: DDL·상품·주문·재고·커밋 후 JSONL을 구현했다. HTTP/H2 8개 및 전용 PostgreSQL의 VOC-07 첫 재현·대조·복구를 통과했다. 20회 반복·나머지 업무·모델 통합은 진행 중이다.
+- 상태: DDL·상품·주문·재고·커밋 후 JSONL을 구현했다. HTTP/H2 8개 및 전용 PostgreSQL의 VOC-07 첫 재현·대조·복구를 통과했다. VOC-07 20회와 대조·복구를 실제 PostgreSQL에서 통과했다. 나머지 업무·모델 통합은 진행 중이다.
 - 담당자: 이상효 (역할 B)
 - 겸임 책임: [개발리더](../roles/lee-sanghyo-lead.md). 세 담당자 DONE 이후에도 전체 코드 검사·실제 검증·수정을 수행하며 [리더 상태](lead.md)에 기록한다.
 - GitHub 계정: `sanghyo-lab`
@@ -10,7 +10,7 @@
 - 작업 Issue·공유 커밋: 시작 후 기입
 - 담당 경로: `commerce-app/`, `commerce-core/`, `commerce-infra/`, `fixtures/commerce/`
 - 준비된 자료: [구현 범위](../roles/lee-sanghyo-commerce.md), [커머스 계약](../commerce-interface.md), [업무 정책](../business-policy.md), [7개 시나리오](../voc-scenarios.md)
-- 다음 작업: 첫 단위 publish와 커밋된 빌드의 VOC-07 20회 재현, 이어 결제·쿠폰·취소·환불 및 VOC-01~06
+- 다음 작업: 쿠폰의 VOC-02·03과 정상 대조, 이어 결제·취소·환불 및 VOC-01·04~06
 - 필요한 입력: 한재홍의 조회 연결 확인, 김아름의 재현 실행 연동 확인
 - 검증 결과: 준비 PC에서 전체 Gradle check와 세 앱의 Docker 기동·smoke 통과. 실제 PostgreSQL 기본 마이그레이션과 조사 계정 SELECT 확인. VOC-07의 실제 HTTP·DB 첫 재현과 대조·복구를 추가 검증했다. 나머지 업무와 20회 반복은 진행 중이다.
 - 연동 요청: 담당 goal 시작 후 v1 커머스 DDL·API·업무 로그 구현 결과를 제공한다.
@@ -43,3 +43,11 @@
 - 첫 실행 buildId는 `45f29bc18686-39a1a2137c7f`이며 당시 workingTreeDirty=true인 개발 빌드다. 공식 반복 검증은 커밋된 새 빌드에서 실행한다. 3개 앱의 갱신 빌드는 진행 중이고 이 단독 검증을 전체 통합 성공으로 표기하지 않는다. 이후 개발 스냅샷의 세 앱 Docker 기동은 종료 0을 확인했다.
 - 원문: `runtime/submission/commerce-reproductions/20260921T084840.769772Z-inventory.json`, `runtime/submission/commerce-20260921-resumed/commands/`. 현재 대화의 실제 사용자/응답/도구 이벤트 제출본과 원본 위치·SHA는 같은 폴더의 `session/`에 있다. 내부 지시·분석을 제외한 실제 기록이며 요약과 구분한다. 계속되는 세션의 중간 캡처다.
 - COMMERCE-001(voc)·COMMERCE-002(agent): [DISC-20260921-commerce-001](../discussions/DISC-20260921-commerce-001-inventory-evidence.md)에 재현 제어·로그 지연/중복·소스 범위를 제안했다. 소비자 접수·구현·검증 전까지 OPEN이다. 모델 호출은 0회, DONE·APPROVED는 미작성이다.
+
+## 2026-09-21T17:58:54+09:00 — 첫 구현 공유와 VOC-07 20회 검증
+
+- `e080390`까지 `scripts/dev publish` 종료 0으로 GitHub main에 공유했다. 협업 테스트 31개·문서 검사·전체 Gradle check·세 앱 BuildKit 재빌드·실제 DB/HTTP/SELECT 권한/근거 볼륨 smoke가 통과했다. 전체 publish 원문은 `commands/20260921T085231.376043Z-first-commerce-publish.log`다.
+- 커밋된 buildId `e080390b7157-083e2c0c180d`로 전용 PostgreSQL의 commerce를 새로 실행하고 `COMMERCE_PORT=18080 POSTGRES_DB=jdd_commerce_it_20260921 python3 fixtures/commerce/reproduce_inventory.py --runs 20` 종료 0을 확인했다. 스냅샷 workingTreeDirty=false. 20/20회가 독립 PID·txid, 재고 1 읽기, 주문 2 커밋, 최종 -1, 예약 이력·로그·소스 일치를 통과했다. SELECT 전용·순차 거절·충분 재고·장벽 시간 초과/해제 복구도 통과했다.
+- 실제 원문: `runtime/submission/commerce-reproductions/20260921T085638.823004Z-inventory.json`; 명령 로그 `runtime/submission/commerce-20260921-resumed/commands/20260921T085638.657224Z-inventory-20-committed.log`(26.67초). 이 시간은 검증 실행 시간이며 사람의 조사 시간·절감률이 아니다.
+- 기존 개발 commerce 프로세스는 새 커밋 빌드 기동을 위해 SIGTERM으로 정상 종료했다. 해당 bootRun의 종료 143/래퍼 종료 1은 의도한 프로세스 종료로 원문에 보존했다. 시나리오 실패로 숨기거나 성공으로 바꾸지 않았다.
+- COMMERCE-001/002는 구현·재현 자료를 제공했으며 agent·voc의 직접 접수/소비자 검증을 계속 추적한다. 모델 호출 0회, DONE·APPROVED는 미작성이다.
