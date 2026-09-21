@@ -106,3 +106,11 @@
 - 이 PC에서 `check_commerce_handoff.py` 종료 0. 보존한 기본 Compose VOC-07 데이터의 8개 도구·25개 근거를 전용 PostgreSQL `jdd_agent_handoff_test`에 저장하고 HTTP 재조회·동일 접수 키의 불변을 확인했다. 조사 `c1420128-694f-44e5-aad1-d8af09abe924`, 공급 buildId `e080390b7157-083e2c0c180d`, 원문 `runtime/submission/commerce-20260921-resumed/agent-handoff-01/`. 모의 모델 2회이며 유료 호출은 0회다.
 - `1d29d20..c2bdb4e`의 모든 변경과 세 논의 답변을 읽었다. COMMERCE-001/002는 전원 수락·Agent 실제 소비를 확인했으며 VOC runner 검증이 남았다. 정책 snapshot P1은 전원 수락으로 AGREED이며 김아름이 생성기, 한재홍이 조회 소비를 구현한다.
 - [DISC-20260921-voc-001](../discussions/DISC-20260921-voc-001-runner-metadata.md) P1 수락: 선택 메타데이터는 기존 필수 판정에 추가하지 않고 실제 관측 방식 합의 후 확장한다. 실모델/비용/근거의 기존 검증 기준은 유지한다. Agent 답변과 정리 담당의 계획 연결이 남아 있다.
+
+## 2026-09-21 — 커머스 전체 공유와 기본 Compose 반복·복구
+
+- `c1276d4` 전체 publish 종료 0으로 결제·취소·환불, 격리/정밀도 수정·보고서·인수 답변을 main에 공유했다. 동시 push/논의 충돌을 양쪽 기록 보존 후 재검증했으며 원문은 `commands/20260921T094332.611538Z-publish-commerce-consensus-integrated.log`다. 앞선 충돌/검증 실패 로그를 삭제하지 않았다.
+- 기본 Compose의 buildId `fb403fb25ec8-17642d53be51`에서 VOC-01~06 각 3/3회, VOC-07 20/20회·독립 PID/txid·정상/롤백/복구, 초기화 격리 9/9개를 통과했다. 원문은 `runtime/submission/commerce-reproductions/20260921T094348.084911Z-business.json`, `20260921T094408.942193Z-inventory.json`, `20260921T094434.095986Z-fixture-isolation.json`. 이후 논의 통합 빌드 `c1276d472e74-17642d53be51`은 같은 소스 내용 해시다.
+- LEAD-009: Docker restart가 HTTP 준비 전에 반환하여 최초 컨테이너 복구 검사가 RemoteDisconnected로 실패했다. 당시 publish와도 겹쳤으므로 그 시도는 실패로 보존한다(`container-lifecycle-recovery-20260921.json`). 실행 안내에 build.env·동시 배포 금지를 명시하고 verify가 연결 수립만 최대 30초 기다리게 했다. 잘못된 응답/다른 buildId/업무 실패는 우회하지 않는다.
+- 재검증: publish 종료 후 독립 실행한 `container-lifecycle-recovery-02.json`은 c1276d4의 실제 컨테이너 재시작 전후 결제·취소 각 4개 동시 요청, 동일/새 키의 중복 방지, DB 불변을 통과했다. NOT_READY 18회와 READY 관측을 보존했고 verify는 5.423초였다. 이 시간은 검사 실행 시간이며 조사 시간 절감률이 아니다.
+- 리더 독립 검증: 실제 별도 PostgreSQL의 VOC 티켓 5개·Agent 조회 5개 모두 통과(건너뜀 0), 원문 `postgresql-contracts-01/`와 `commands/20260921T093950.784200Z-independent-postgresql-contracts.log`. 새 Agent JVM의 복구·근거 보존·동일 키·소유권/인계 7개 확인은 `agent-worker-01/`에 있다. 모의/비활성 모델 검사이며 유료 호출 0회다.

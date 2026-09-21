@@ -160,6 +160,17 @@ class InvestigationApiTest {
         }
     }
 
+    @Test void unsupportedMediaTypeDoesNotCreateAnInvestigationOrReserveACall() throws Exception {
+        long before = jdbc.queryForObject("SELECT count(*) FROM agent.investigations", Long.class);
+        long calls = jdbc.queryForObject("SELECT count(*) FROM agent.model_calls", Long.class);
+        var response = http.send(HttpRequest.newBuilder(uri("")).header("Content-Type", "text/plain")
+                .POST(HttpRequest.BodyPublishers.ofString(input(UUID.randomUUID().toString(), "media", ""))).build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertError(response, 415, "INVALID_REQUEST");
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM agent.investigations", Long.class)).isEqualTo(before);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM agent.model_calls", Long.class)).isEqualTo(calls);
+    }
+
     private String input(String ticket, String key, String extra) {
         return "{\"schemaVersion\":\"1.0\",\"ticketId\":\"" + ticket + "\",\"ticketVersion\":1,"
                 + "\"requestKey\":\"" + key + "\",\"message\":\"문의\"" + (extra.isEmpty() ? "" : "," + extra) + "}";

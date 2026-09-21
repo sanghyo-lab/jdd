@@ -1,6 +1,6 @@
 # 이상효 — 개발리더 검토 상태
 
-- 상태: commerce·개발리더 goal 시작. 커머스 첫 구현과 제공 계약 확인을 진행하며 최종 전체 코드 검사·업무 검증·승인은 아직 미수행.
+- 상태: 커머스 일곱 업무 재현·복구와 Agent/VOC 단위 인수·지적 보완을 진행했다. 실제 모델·화면·최종 전 영역 검토/승인은 남아 있다.
 - 담당자: 이상효. commerce 구현과 개발리더를 겸한다.
 - 작업 브랜치: main
 - 최종 승인: [lead.json](lead.json)의 IN_PROGRESS. 세 담당자 DONE 후에도 독립 검토·전체 검증이 필요하다.
@@ -55,3 +55,13 @@
 - `1d29d20`의 주문 시각 수정과 고정 Clock을 내 결제/환불 구현에 통합한 뒤 두 응답과 DB 시각이 다른 것을 회귀 테스트로 확인했다. PaymentService의 두 시각 생성 지점을 마이크로초로 정규화했고 동일성 검사를 유지한 19개 전체 commerce 테스트가 통과했다. 실패/성공 원문은 commerce 상태에 기록했다.
 - `d8246e9`의 VOC 티켓/버전 CAS·입력·오류·저장·5개 HTTP 계약 테스트와 담당 검증 기록 전체를 읽었다. Agent 연결·화면은 담당자가 이어 구현하는 범위이며 중복 구현하지 않는다. 다음 통합에서는 이 PC의 PostgreSQL 티켓 계약과 실제 Agent 근거 저장도 검증한다.
 - 정책 사본 P1을 commerce/lead로 수락하고 새 스냅샷 제공자 검증을 맡았다. VOC의 직접 합의·공통 생성기 담당 답변과 소비 구현은 남아 있다.
+
+## 2026-09-21 — LEAD-007/008 HTTP 오류와 LEAD-009 복구 대기
+
+- 실제 기본 앱에서 Agent의 text/plain POST가 500, VOC의 text/plain POST·지원하지 않는 DELETE·없는 경로가 모두 500이었다. 비교한 commerce는 각각 415·405·404였다. 실패 응답/buildId는 `runtime/submission/commerce-20260921-resumed/http-protocol-errors-before.json`에 보존했다.
+- LEAD-007(agent): `InvestigationExceptionHandler`에 415 INVALID_REQUEST를 추가했다. `InvestigationApiTest`에 유효한 조사 본문을 잘못된 content type으로 보내도 조사/비용 예약 행이 추가되지 않는 HTTP 회귀를 추가했다.
+- LEAD-008(voc): `ApiExceptionHandler`에 405·415·404를 구분하고 기존 code/message/retryable DTO를 유지했다. `TicketHttpContractTest`가 티켓 미생성까지 검사한다. 업무·모델 오류와 클라이언트의 방식/형식 오류를 구분한다.
+- 담당 진행과 경계: 최신 원격 상태에서 VOC는 정책 snapshot, Agent는 모델 어댑터를 진행 중이다. 이 작은 API 오류 처리·테스트만 리더 권한으로 직접 보완했고 타인의 상태/DONE은 수정하지 않았다. 새로운 DTO 필드는 없으며 재시도 가능 여부는 false다.
+- `./gradlew :voc-app:test --tests com.jdd.voc.TicketHttpContractTest :agent-app:test --tests com.jdd.agent.InvestigationApiTest` 종료 0: VOC 6개·Agent 9개, 건너뜀 0. 원문 `commands/20260921T094719.048664Z-lead-http-protocol-regression.log`, `http-protocol-regression/` XML. 전체 publish 뒤 실제 컨테이너에서도 상태를 확인한다.
+- LEAD-009(commerce): check_recovery의 재시작 직후 연결 실패를 제한 있는 준비 대기로 고치고 같은 컨테이너 buildId의 재시작 후 영속 상태를 실제로 재확인했다. 실패·성공과 동시 배포를 피한 재검증 조건은 commerce 상태에 기록했다.
+- 최종 승인 전 단위 검증이다. 이 PC의 실제 PostgreSQL VOC/Agent 계약 10개, Agent JVM 소유권/복구, 커머스 기본 환경 38회 재현·정상 대조를 확인했지만 실제 AI·화면·최종 전체 검토는 남아 있다.

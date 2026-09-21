@@ -48,12 +48,14 @@ python3 fixtures/commerce/reproduce_inventory.py --runs 20
 
 ```bash
 python3 fixtures/commerce/check_recovery.py --phase prepare --report runtime/submission/recovery-first.json
-docker compose --env-file .env restart commerce
+docker compose --env-file .env --env-file runtime/build.env restart commerce
 python3 fixtures/commerce/check_recovery.py --phase verify --report runtime/submission/recovery-first.json
 ```
 
 prepare는 합성 주문의 결제/취소에 각각 4개 동시 요청을 보내고, verify는 동일 키·새 키의 재전송과 DB 불변을 확인한다.
 별도 Compose 프로젝트/파일을 사용했다면 재시작에도 같은 옵션을 전달한다. 새 바이너리를 빌드하는 up과 같은 프로세스의 restart를 구분한다.
+verify는 재시작 직후 연결 실패만 최대 30초 동안 기다린다. 업무 요청을 자동 재시도하지 않으며 다른 buildId는 실패로 처리한다.
+검증 중에는 publish/up처럼 컨테이너를 새 빌드로 바꾸는 작업을 함께 실행하지 않는다.
 
 ## 로그와 조사 경계
 

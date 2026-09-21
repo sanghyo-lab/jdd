@@ -3,10 +3,13 @@ package com.jdd.voc;
 import com.jdd.voc.domain.VocFailure;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
@@ -25,6 +28,21 @@ public class ApiExceptionHandler {
             MissingServletRequestParameterException.class})
     public ResponseEntity<ApiError> malformed(Exception error) {
         return ResponseEntity.badRequest().body(new ApiError("INVALID_REQUEST", "요청 형식을 확인해 주세요.", false));
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ApiError> unsupportedMethod() {
+        return ResponseEntity.status(405).body(new ApiError("INVALID_REQUEST", "지원하지 않는 요청 방식입니다.", false));
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ApiError> unsupportedMediaType() {
+        return ResponseEntity.status(415).body(new ApiError("INVALID_REQUEST", "지원하지 않는 본문 형식입니다.", false));
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiError> missingResource() {
+        return ResponseEntity.status(404).body(new ApiError("NOT_FOUND", "요청한 경로를 찾을 수 없습니다.", false));
     }
 
     @ExceptionHandler(Exception.class)

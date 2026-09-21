@@ -150,6 +150,18 @@ class TicketHttpContractTest {
         assertThat(call("GET", "/api/tickets/missing", null, 404).get("code").asText()).isEqualTo("NOT_FOUND");
     }
 
+    @Test void frameworkRequestErrorsHaveClientStatusesAndDoNotCreateTickets() throws Exception {
+        assertThat(call("DELETE", "/api/tickets", null, 405).path("code").asText()).isEqualTo("INVALID_REQUEST");
+        assertThat(call("GET", "/api/missing-route", null, 404).path("code").asText()).isEqualTo("NOT_FOUND");
+        var unsupported = HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + environment.getProperty("local.server.port") + "/api/tickets"))
+                .header("Content-Type", "text/plain").POST(HttpRequest.BodyPublishers.ofString("{\"title\":\"문의\",\"message\":\"본문\"}")).build();
+        var response = client.send(unsupported, HttpResponse.BodyHandlers.ofString());
+        assertThat(response.statusCode()).isEqualTo(415);
+        assertThat(JSON.readTree(response.body()).path("code").asText()).isEqualTo("INVALID_REQUEST");
+        assertThat(JSON.readTree(response.body()).path("retryable").asBoolean()).isFalse();
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM voc.tickets", Long.class)).isZero();
+    }
+
     private JsonNode create(Map<String, ?> body) throws Exception {
         return call("POST", "/api/tickets", JSON.writeValueAsString(body), 201);
     }

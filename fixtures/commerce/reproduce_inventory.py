@@ -19,10 +19,11 @@ from jdd import Repository
 
 
 class InventoryReproduction:
-    def __init__(self):
+    def __init__(self, request_timeout=15):
         self.repo = Repository(ROOT)
         self.env = self.repo.read_environment()
         self.base = 'http://127.0.0.1:' + self.env.get('COMMERCE_PORT', '8080')
+        self.request_timeout = request_timeout
         self.build = self.http('GET', '/internal/runtime')[1]['buildId']
         self.results = []
 
@@ -33,7 +34,7 @@ class InventoryReproduction:
         request = Request(self.base + path, data=None if body is None else json.dumps(body).encode(),
                           headers=headers, method=method)
         try:
-            with urlopen(request, timeout=15) as response:
+            with urlopen(request, timeout=self.request_timeout) as response:
                 if request_id:
                     assert response.headers.get('X-Request-Id') == request_id
                 return response.status, json.load(response)

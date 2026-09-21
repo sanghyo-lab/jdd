@@ -5,6 +5,7 @@ import concurrent.futures
 from datetime import datetime, timezone
 import json
 from pathlib import Path
+import time
 import uuid
 from reproduce_commerce import CommerceReproduction
 
@@ -12,6 +13,28 @@ from reproduce_commerce import CommerceReproduction
 def simultaneous(action):
     with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
         return list(pool.map(lambda _: action(), range(4)))
+
+
+def after_restart(report):
+    # Restart returns before the HTTP server is ready. Retry connection establishment only;
+    # never retry business mutations or ignore a different build or an invalid response.
+    deadline = time.monotonic() + 30
+    attempts = report.setdefault('readinessAttempts', [])
+    while True:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise RuntimeError('Commerce HTTP did not recover within the readiness wait')
+        observed = {'at': datetime.now(timezone.utc).isoformat()}
+        try:
+            app = CommerceReproduction(request_timeout=min(3, remaining))
+            app.request_timeout = 15
+            attempts.append({**observed, 'status': 'READY', 'buildId': app.build})
+            return app
+        except OSError as unavailable:
+            attempts.append({**observed, 'status': 'NOT_READY', 'errorType': type(unavailable).__name__})
+            if time.monotonic() >= deadline:
+                raise RuntimeError('Commerce HTTP did not recover within the readiness wait') from unavailable
+            time.sleep(min(0.25, max(0, deadline - time.monotonic())))
 
 
 def prepare(app, report):
@@ -77,7 +100,7 @@ def main():
     report = json.loads(args.report.read_text()) if args.phase == 'verify' else {
         'startedAt': datetime.now(timezone.utc).isoformat(), 'mode': 'commerce-http-postgresql', 'modelCalls': 0}
     try:
-        app = CommerceReproduction()
+        app = after_restart(report) if args.phase == 'verify' else CommerceReproduction()
         if args.phase == 'prepare': prepare(app, report)
         else: verify(app, report)
     except Exception as failure:
