@@ -1,5 +1,13 @@
 # 한재홍 — AI Agent 작업 상태
 
+## 2026-09-22T08:41:00+09:00 — 시연 영상 제작·격리 환경의 VOC-02 최종 검수 회귀
+
+- 사용자 승인으로 전문 장표·미디어 담당에게 실제 제작을 위임했다. 8장 편집 PPTX·1920×1080 PNG 렌더/시각 검수, 로컬 여성 Yuna 샘플과 ffmpeg-full/libass·60→30fps/1.5배·48kHz 검증을 완료했다. 음성 음색의 청음과 일곱 최종 영상 완료는 아직 아니다. 프로모션 API/TTS 비용 호출0이다.
+- 다른 개발 세션을 보존해 별도 clone/Compose/DB/포트63935~63939를 기동했다. 촬영 build `86ea1fa87a6a-be6079ea0557`의 local/codex_oauth/gpt-5.6-luna를 사용한다. fixture 평가 정답은 제작 QA에서만 읽고 실제 문의·식별자만 서비스에 전달했다. 실제 결과·근거·모델 관측은 Git 밖 `output/jdd-demo/20260922-233019/`에 보존한다.
+- VOC-01 조사 `df2c68d7-fa5c-4665-9349-0ead29ddd094`는 COMPLETED/27근거, 같은 주문의 DATA·LOG·CARD 조건 CODE·정책 직접 대조를 통과해 Playwright 실제 결과 재생 촬영 중이다. 원본 선녹화→화면1.5배→음성1.0배 순서로 제작한다.
+- **Agent 구현 담당 후속 요청 DEMO-AGENT-001:** 같은 v7의 새 VOC-02 조사 `767420a4-e64f-4738-8451-003da5ed9c11`는 6번의 실제 모델 응답 후 REPORT_VALIDATION_FAILED/report=null이다. iteration4 원인 CODE의 DATA 직접인용 누락을 보정해 iteration5는 형식 검증을 통과했지만, 최종 자기검수 iteration6에서 같은 DATA 누락이 다시 생겼다. 오류 문구 `hypotheses with CODE evidence must directly cite available DATA observations`를 컨테이너 로그에서 확인했다. 가용16근거에는 쿠폰·50000 경계·거절로그·비교식·정책이 있고 인증/업무재현 오류는 아니다. 성공 집중 사례와 별개로 최종 검수의 인용 회귀를 보존한다. 진행 중 Agent 구현과 중복 수정하지 않으며 나머지 사례 조사/촬영을 계속한다.
+- 첫 준비 helper는 완료한 VOC-01 저장 뒤 nullable error 후처리에서 실패했다. 원문 실패를 보존하고 null 안전 후처리/저장 terminal 재사용으로 복구해 case1 새 모델 호출 없이 VOC-02부터 이어갔다. 앱·실제 조사 결과를 수정하지 않았다. 일곱 성공·MVP·DONE을 선언하지 않는다.
+
 ## 2026-09-22T08:37:00+09:00 — v7 실제 최종 검수·VOC 직접 합의 인수
 
 - `27a7040` 전체 publish 종료0. Java222개 중213통과/9조건부제외·실패0, Python70/runner부모6/web19·production build·세 앱 실제 PostgreSQL/HTTP/근거 연결을 확인했다. 원문 `followup-final-review-publish.log/json`, XML집계 `followup-final-review-publish-tests.json`이며 일반 publish의 실제 모델 호출0이다.
