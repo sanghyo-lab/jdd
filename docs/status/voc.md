@@ -127,3 +127,9 @@
 - Windows 인수: 리더 `0c07ca9`의 exporter를 원래 명령으로 다시 실행해 종료 0을 확인했다. plugin docker.EXE compose 선택, READ ONLY on / REPEATABLE READ, API 장부 budget=null·calls=0이다. 원문 runtime/verification/voc-ledger-export-portable.json, SHA-256 8e76e2c14ee65f36a2b0af6bbe15f393e1a9aea1f1f90bae17020befa9d82b77. VOC-AGENT-EXPORT-001의 소비자 실패는 해소됐고 LEAD-015의 최종 분류와 Agent 확인은 담당자에게 남긴다.
 - [DISC-20260921-agent-004](../discussions/DISC-20260921-agent-004-demo-allocation.md)의 P2에 직접 답변했다. 로컬 OAuth/배포 API/test 구분, 기존 오류·재조사·근거 계약, 인증된 web 한정 공개를 수용한다. P1의 로컬 API 배분을 재사용하지 않는다. OAuth 사용량과 API 비용을 구분하며 배포 범위가 남아 DISCUSSING이다.
 - 현재 한계와 다음 단위: 저장 API의 재시작 보존까지 확인했다. 새 분석은 아직 PENDING이고 실제 Agent 자동 전달/조회·근거 중계·web·runner가 남아 있다. 프로젝트 전용 OAuth 로그인·실제 모델·공개 ngrok·MVP·DONE은 미검증이다. Agent worker 소비를 독립적으로 계속한다.
+
+## 2026-09-21T21:21:00+09:00 — 새 대기열 계약과 실제 MVP 실행 경로 수용
+
+- 원격 f1d6082의 수용량/429 제공자 변경과 integration-contract의 동일 키·영속 재전송 횟수·Retry-After·14분 관측 규칙을 읽고 통합했다. 다음 VOC worker에 적용한다. 리더의 PostgreSQL 인수 결과를 이 PC의 소비자 검증으로 계산하지 않는다.
+- [DISC-20260921-commerce-002](../discussions/DISC-20260921-commerce-002-live-mvp-runtime.md) P1을 직접 수락했다. 준비된 실제 모델 런타임을 verify-mvp가 기본 mock으로 교체하는 경로와 Windows wrapper 고정 호출을 소스로 확인했다. 리더가 공통 MVP 실행기·회귀·실행 안내를 보완하고, VOC는 worker/화면/runner를 구현한 뒤 소비자 인수를 수행한다. 동일 파일을 중복 편집하지 않는다.
+- 일반 publish는 모델 호출 없이 유지하고 실제 MVP의 명시 실행·전후 빌드/환경/모델 일치·자격증명 제외·실패 산출물 보존을 수용한다. 한재홍의 관측/실행 답변과 실제 구현·검증이 남아 DISCUSSING이며 완료로 표시하지 않는다.
