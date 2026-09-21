@@ -11,6 +11,14 @@
 
 다른 담당자의 DONE을 대신 작성하지 않는다. 전체 코드 수정 권한으로 직접 보완한 내용과 영향을 여기에 공유한다.
 
+## 2026-09-22T08:17:53+09:00 — 최종 공유·기동 보존 확인과 미완료 게이트
+
+- 양쪽 논의 답변·Agent v6 보완을 합친 `18288a3` 전체 publish가 종료0/241.987초로 공유됐다. Python70·Java207통과/9조건부제외·web19, 세 앱 실제 연결과 buildId `18288a3bbd36-db1465b3a89f`를 확인했다. `handoff-publication-junit-runtime.json`과 `commands/20260921T231109.686886Z-final-handoff-publication-merged.log`에 보존했다. 기존 checkout/직접 인용 기준을 낮추지 않았다.
+- 새 production web3110에서 기존 문의 v2/두 분석·티켓OPEN·전달/조사 상태, 기존 취소 주문과 PC/모바일 표시를 읽기 전용으로 확인해4개 통과/4.033초·업무/조사 POST0이다(`runtime/submission/leader-browser-restored-02/`). PostgreSQL의 원래 결제APPROVED·환불COMPLETED를 포함한 전체 snapshot 불변, 원래 업무로그7줄과 실행소스35개 해시도 직접 대조했다(`final-restarted-database-log-source.json`).
+- 첫 화면 복원 검사는 주문 GET에 없는 환불 이력도 표시될 것으로 잘못 기대해 실패했다(`leader-browser-restored-01/`,34.978초). 공개 Order 계약과 기존 화면의 미관측 안내를 확인하고, 환불 완료 단언은 실제 PostgreSQL 결과로 유지한 별도 검증을 수행했다. 첫 검사 소스·실패·화면은 보존했으며 앱 계약·성공 기준을 바꾸거나 환불 완료를 추정하지 않았다.
+- 깨끗하고 완전히 동기화된 main18288a3에서 `./scripts/dev team-check`를 실행한 실제 결과는 종료1/TEAM_INCOMPLETE다. 세 담당자와 리더가 모두 IN_PROGRESS이며 모델 품질·담당자 직접 완료·독립 승인 전 DONE/APPROVED를 작성하지 않는다. `final-team-check.log/json`이 원문이다.
+- 위임 native 세션의 최종 보존 범위는 web237·runner197·제출보조251개 실제 가시 이벤트다. 원본 prefix·출력SHA·0600·이전 캡처 불변을 리더가 다시 확인했다(`delegated-session-integrity-final.json`). 요약·실행 결과·실제 세션은 구분하고 내부 추론·비밀/인증 파일·암호화 본문을 공유하지 않는다. 이 PC 실제 모델 호출은0이며 모델 ID 답변과 현재 전체 모델 검증이 남아 있다.
+
 ## 2026-09-22T08:06:04+09:00 — 최종 화면 수정 공유·담당 Agent 구현 인수
 
 - `86a0466` 전체 publish 종료0/248.411초로 LEAD-025의 상품 선택 보존을 공유했다. 한재홍의 `a9691bc`·`754528c`도 통합했다. Python70·web19, Java216개 중207통과/9조건부제외·실패0이며 세 앱 buildId `86a046657350-023906d81950`의 실제 PostgreSQL/HTTP/근거 연결을 확인했다. `final-publication-junit-runtime.json`과 `commands/20260921T225715.942433Z-selected-product-final-publish.log`가 원문이다. 변경 없는 Gradle 결과 재사용·조건부 제외를 별도 실제 PostgreSQL 검사로 세지 않는다.

@@ -17,6 +17,11 @@
 
 작업 단위가 끝날 때 제공 가능한 기능, 변경한 계약, 실제 검증 명령·결과, 다음 작업을 갱신한다. 실패와 막힌 이유도 함께 기록한다.
 
+## 2026-09-22T08:17:53+09:00 — 공유 완료와 실제 보존 대조
+
+- `18288a3` 전체 publish 종료0/241.987초·세 앱 buildId `18288a3bbd36-db1465b3a89f`를 공유했다. production 화면을 재기동하고 기존 문의·주문을4개 읽기 전용 확인으로 통과했다. 원래 주문/결제/환불 DB snapshot·로그7줄·커머스 소스35개 해시도 불변이다. 상세 검증·첫 잘못된 화면 기대값 실패의 보존은 [리더 기록](lead.md)에 있다.
+- 같은 깨끗한 동기화 main의 실제 `team-check`는 종료1이다. 세 DONE·독립 APPROVED와 현재 실제 모델 검증을 대신 만들지 않았다. 자기 commerce 완료 JSON도 IN_PROGRESS를 유지한다. 로그·세션·검증 색인은 Git 밖 runtime/submission에 보존한다.
+
 ## 2026-09-22T08:06:04+09:00 — 실제 화면 최종 재검증·원격 공유
 
 - `86a0466`의 전체 publish 종료0, buildId `86a046657350-023906d81950`으로 main을 공유했다. Python70·Java207성공/9조건부제외·web19와 세 앱 DB/HTTP 연결을 확인했다. 실행 원문은 `runtime/submission/commerce-20260921-resumed/commands/20260921T225715.942433Z-selected-product-final-publish.log`다.
