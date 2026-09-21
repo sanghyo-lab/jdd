@@ -208,6 +208,14 @@
       "description": "Commerce reproduction readers silently skipped malformed completed JSONL records and copied manifest hashes without checking source file bytes. Synthetic corruption passed both readers.",
       "resolution": "Shared evidence_files validator rejects corrupt completed log records and mismatched builds, verifies every allowed source path/file SHA-256, and checks declared policy snapshots. Only incomplete trailing appends remain explicit partial observations.",
       "verification": "evidence-validator-before.json and 20260921T101536.690272Z failing regression retained. Seven regression tests passed. Real PostgreSQL/HTTP VOC-01..06 each 3/3 and VOC-07 20/20 plus controls passed on d1f92dc4ed3d-f1239ba8f94e using the strengthened reader: 20260921T101855.977959Z-business.json and 20260921T101927.342268Z-inventory.json. No model calls."
+    },
+    {
+      "id": "LEAD-012",
+      "owner": "commerce",
+      "status": "VERIFIED",
+      "description": "Repeated direct Commerce HTTP contract runs in the same external PostgreSQL mode could report UP-TO-DATE and reuse prior XML after the database changed.",
+      "resolution": "commerce-app/build.gradle disables up-to-date and build-cache reuse whenever JDD_COMMERCE_HTTP_TEST_DB_URL is present. Only the mode flag enters the task fingerprint; H2 mode and all assertions remain intact.",
+      "verification": "Dedicated jdd_commerce_http_test only: commerce-postgresql-cache-before/result.json records a successful but skipped second Gradle invocation, unchanged XML and mutated quantity 777; the independent verifier correctly exited 1. After the fix, both invocations without --rerun-tasks generated fresh XML and verified quantity 1: commerce-postgresql-cache-after/result.json, exit 0. Prior shared 18-contract PostgreSQL checks used --rerun-tasks and remain distinct. App DB and preserved VOC reproduction data were untouched. Final project approval remains pending."
     }
   ]
 }

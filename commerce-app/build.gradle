@@ -16,5 +16,9 @@ dependencies {
 tasks.named('bootJar') { archiveFileName = 'app.jar' }
 tasks.named('test') {
     // A previous isolated PostgreSQL run must not stand in for the default H2 execution.
-    inputs.property('isolatedPostgresContracts', providers.environmentVariable('JDD_COMMERCE_HTTP_TEST_DB_URL').isPresent())
+    def externalDatabase = providers.environmentVariable('JDD_COMMERCE_HTTP_TEST_DB_URL').isPresent()
+    inputs.property('isolatedPostgresContracts', externalDatabase)
+    // External data can change without source changes, including between runs in the same mode.
+    outputs.upToDateWhen { !externalDatabase }
+    outputs.doNotCacheIf('External PostgreSQL requires a fresh execution') { externalDatabase }
 }

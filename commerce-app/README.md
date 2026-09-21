@@ -26,6 +26,8 @@ python3 fixtures/commerce/check_http_postgresql.py
 기본 앱 DB·보존한 VOC 재현 데이터·실행 중인 세 앱은 변경하지 않는다. 대상은 로컬의 고정된 테스트 DB 이름으로 제한하며
 초기화 직전 DB·스키마도 확인한다. 빈/잘못된 숫자·금액 경계·쿠폰 동시 사용·결제/취소 재전송·DB 실패 롤백과
 나노초 Clock의 저장/재조회 일치를 같은 단언으로 검사한다. 기존 H2와 이 검사를 모두 유지한다.
+Gradle에는 DB 모드 플래그만 기록하고 URL·비밀번호를 fingerprint에 넣지 않는다. 외부 DB 모드에서는
+DB 내용이 소스와 별도로 달라질 수 있으므로 같은 명령을 반복해도 UP-TO-DATE·빌드 캐시를 사용하지 않고 검사한다.
 명령/시각/종료 코드·신규 JUnit XML·검증 소스 해시는 `runtime/submission/commerce-reproductions/*-http-postgresql/`에 보존한다.
 `--report-dir`로 새 경로를 지정할 수 있으며 기존 결과를 덮어쓰지 않는다. 유료 모델은 호출하지 않는다.
 

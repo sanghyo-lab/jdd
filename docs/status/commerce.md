@@ -17,6 +17,14 @@
 
 작업 단위가 끝날 때 제공 가능한 기능, 변경한 계약, 실제 검증 명령·결과, 다음 작업을 갱신한다. 실패와 막힌 이유도 함께 기록한다.
 
+## 2026-09-21T19:56:00+09:00 — LEAD-012 외부 DB 반복 검사 실행 누락
+
+- 원격 `620654f`의 Agent 외부 DB 캐시 수정과 `6e240ab`의 소비자 인계·활성화 전 관측을 전체 검토·통합했다. 커머스는 H2/PostgreSQL 모드 전환을 구분했지만 같은 외부 DB 모드에서 반복 실행할 때는 이전 Gradle 결과를 재사용할 수 있었다.
+- 실제 반례: 전용 `jdd_commerce_http_test`에서 단일 HTTP 계약을 실행해 재고 1을 확인한 뒤 해당 테스트 행만 777로 바꿨다. 같은 Gradle 명령의 두 번째 호출은 종료 0/UP-TO-DATE였고 XML도 바뀌지 않았으며 재고 777이 그대로 남았다. 별도 검증기는 FAILED/종료 1로 기록했다. 기본 앱 DB·VOC 재현 데이터는 변경하지 않았다.
+- 수정: 명시적 외부 DB 모드에서는 UP-TO-DATE와 빌드 캐시를 모두 비활성화한다. DB 모드 플래그만 fingerprint에 남기고 비밀번호/URL은 제외한다. 기존 실행기의 `--rerun-tasks`와 테스트 단언은 유지했다. 이 변경은 애플리케이션 업무·의도한 결함·API/DDL을 바꾸지 않는다.
+- 재검증: 강제 재실행 옵션 없이 같은 계약 두 번 모두 실행·새 XML·실제 재고 1을 확인했다. 중간의 테스트 DB 변경도 두 번째 실행이 다시 초기화·검증했다. 원문 `runtime/submission/commerce-20260921-resumed/commerce-postgresql-cache-before/`, `commerce-postgresql-cache-after/`의 명령 로그·XML·result.json이다. 바깥 로그 `commands/20260921T105250.427901Z-commerce-postgresql-cache-before.log`는 종료 1/26.107초, `20260921T105353.831971Z-commerce-postgresql-cache-after.log`는 종료 0/29.824초다.
+- 기존 공유 PostgreSQL 18개 검증과 재현 실행기는 강제 실행으로 수행했으므로 이 캐시 사례를 기존 실제 실행으로 소급하지 않는다. 새 기본 H2·전체 check/앱 연동은 이번 publish에서 확인한다. 유료 모델 호출 0회, 실제 모델·VOC/화면 인수와 팀 완료는 여전히 남아 있다.
+
 ## 2026-09-21T19:48:00+09:00 — 접수 응답 유실의 독립 인수
 
 - 공유된 `fbb43be`의 실제 TCP/HTTP/worker 검사를 전체 검토하고 이 PC의 새 PostgreSQL `jdd_agent_disconnect_test`에서 실행했다. 접수 응답을 읽지 않고 연결을 닫은 뒤, RUNNING 중 새 클라이언트가 같은 키로 원래 조사 ID를 회복했다. 근거 재조회·완료·새로고침 후에도 조사 1건·근거 1건·모의 모델 2회·유료 호출 0회를 유지했다.
