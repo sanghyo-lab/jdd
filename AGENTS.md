@@ -53,6 +53,10 @@ commerce = 이상효, agent = 한재홍, voc = 김아름이다.
 - scripts/dev team-status: 원격 main의 세 완료 기록과 현재 코드에 대한 유효성 확인.
 - scripts/dev team-check: 깨끗한 최신 main에서 세 담당자의 유효한 DONE이 모두 있을 때만 성공.
 - 기동 골격의 businessReady=false는 정상이다. 도메인 구현이 완료되기 전 true로 바꾸지 않는다.
+- 완료는 경과 시간이나 작업량으로 판단하지 않는다. 예상 16~24시간과 해커톤 일정은 계획용 추정이다.
+  정한 필수 기능·데이터·정상/예외 흐름의 실제 검증이 모두 통과하고, 의도한 VOC-01~07 외의
+  알려진 미해결 오류·불안정한 재현·미처리 필수 연동 요청이 없어야 DONE을 기록한다.
+  docs/team-completion.md의 품질 기준을 적용하며, 시간을 맞추려고 범위·검증을 줄이거나 실패를 숨기지 않는다.
 - 모든 역할의 goal 종료 조건은 GitHub main에 이상효·한재홍·김아름의 유효한 DONE이 모두 존재하는 것이다.
   자기 역할 완료만으로 goal을 complete로 처리하지 않는다. docs/team-completion.md에 따라
   마지막 scripts/dev team-check가 종료 코드 0일 때만 goal을 완료한다.
