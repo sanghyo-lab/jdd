@@ -22,7 +22,7 @@ docs/status/voc.md에 실제 연결 상태, 상대 API의 재현 가능한 실�
 다른 API 구현을 기다릴 때에는 명시적인 개발용 예제 응답으로 독립 작업을 진행한다.
 커밋한 뒤 `./scripts/dev publish`로 main에 공유한다. 통합 실패의 대상·입력·예상·실제를 해당 제공자가 확인할 수 있게 남긴다.
 
-## 완료 조건
+## 담당 기능 완료 조건
 
 - 담당 문서의 모든 완료 조건과 실제 티켓→Agent→리포트·근거 화면을 검증했다.
 - 업무 상태와 조사 상태, 전달 실패와 분석 실패, 재전송과 재조사를 구분한다.
@@ -35,3 +35,11 @@ cases의 id에는 VOC-01~07, NORMAL, NEEDS_INPUT, IDEMPOTENCY, RECOVERY가 각�
 각 항목에 status=`PASSED`, mocked=false와 실행·근거 식별자를 남긴다. 실패 시 0이 아닌 종료 코드를 반환한다.
 각 case의 행동 검증은 담당 계약을 따른다. 단순히 성공 문자열만 기록하지 않는다.
 공통 실행 골격의 smoke 통과는 MVP 통과가 아니다. 외부 배포가 미검증이면 로컬 완료와 구분해 기록한다.
+
+## 세 담당자 공통 goal 종료 조건
+
+위 조건을 통과하고 코드를 공유한 뒤 `./scripts/dev role-done voc`로 실제 MVP를 검증한다.
+생성된 자기 완료 JSON을 커밋·publish해 GitHub에 DONE을 전달한다. 이 시점에도 goal을 유지한다.
+[세 담당자 완료 기준](../team-completion.md)에 따라 다른 담당자의 요청·변경을 확인하며 연동·수정·재검증을 계속한다.
+소스·계약·검증 기준이 바뀌면 최신 코드에서 자기 완료를 갱신한다. 문제가 발견되면 role-reopen voc로 철회한다.
+GitHub main의 commerce·agent·voc가 모두 유효한 DONE이고 `./scripts/dev team-check`가 성공해야 goal을 완료한다.

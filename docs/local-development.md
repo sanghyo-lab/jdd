@@ -64,6 +64,19 @@ sync는 깨끗한 main에서만 실행된다. 편집 중인 파일이 있으면 
 소스만 갱신하고 기존 프로세스를 계속 사용하면 이전 코드가 실행되므로 up으로 앱도 갱신한다.
 실행 빌드가 다른 앱이 섞이면 smoke가 실패한다.
 
+## GitHub의 팀 완료 확인
+
+```bash
+./scripts/dev team-status
+./scripts/dev team-check
+```
+
+team-status는 원격 main의 세 담당자 완료 기록을 읽는다. team-check는 깨끗한 최신 main에서
+현재 저장소 내용을 검증한 세 DONE이 모두 있을 때만 종료 코드 0을 반환한다.
+자기 기능 완료는 role-done <role>의 실제 MVP 검증 후 JSON을 커밋·publish해 알린다.
+자기 DONE 이후에도 세 명이 모두 끝날 때까지 연동·검증·수정을 계속한다.
+명령·철회·오래된 완료 처리 기준은 [세 담당자 완료 기준](team-completion.md)에 있다.
+
 ## 근거와 실행 산출물
 
 - runtime/evidence/source/<buildId>: commerce의 허용된 Java·마이그레이션만 복사한 소스와 manifest

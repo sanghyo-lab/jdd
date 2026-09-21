@@ -29,6 +29,9 @@
 설치 조건과 검증 범위는 [로컬 개발 안내](docs/local-development.md)에 있다.
 자동 개발은 [AGENTS.md](AGENTS.md)와 [협업 반복 규칙](docs/autonomous-development.md)을 따른다.
 원격 확인은 `./scripts/dev status`, 소스 반영은 `./scripts/dev sync`, 검증 후 공유는 `./scripts/dev publish`다.
+모든 goal은 **GitHub main에서 세 담당자의 유효한 완료 기록이 모두 확인될 때** 종료한다.
+자기 기능 완료 후에도 연동·검증·수정을 계속하며, 최종 판정은 `./scripts/dev team-check`로 확인한다.
+완료 공유·재검증 절차는 [세 담당자 완료 기준](docs/team-completion.md)을 따른다.
 
 ## 담당자별 구현 문서
 

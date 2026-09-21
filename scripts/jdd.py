@@ -19,6 +19,25 @@ class WorkflowError(RuntimeError):
     pass
 
 
+TEAM_ROLES = {"commerce": "이상효", "agent": "한재홍", "voc": "김아름"}
+MVP_CASES = {"VOC-%02d" % number for number in range(1, 8)} | {"NORMAL", "NEEDS_INPUT", "IDEMPOTENCY", "RECOVERY"}
+
+
+def validate_mvp_result(data, build_id):
+    if not isinstance(data, dict):
+        raise WorkflowError("MVP report must be an object.")
+    cases = data.get("cases")
+    if not isinstance(cases, list) or any(not isinstance(case, dict) for case in cases):
+        raise WorkflowError("MVP report must contain scenario results.")
+    case_ids = [case.get("id") for case in cases]
+    if (data.get("buildId") != build_id or data.get("mode") != "live"
+            or not isinstance(data.get("model"), str) or not data["model"].strip()
+            or any(not isinstance(case_id, str) for case_id in case_ids)
+            or len(case_ids) != len(set(case_ids)) or not MVP_CASES.issubset(set(case_ids))
+            or any(case.get("status") != "PASSED" or case.get("mocked") is not False for case in cases)):
+        raise WorkflowError("MVP verification needs current-build, live-model results for every required case.")
+
+
 class Repository:
     def __init__(self, root):
         self.root = Path(root).resolve()
@@ -73,6 +92,109 @@ class Repository:
         for role in ("commerce", "agent", "voc"):
             text = self.git("show", "origin/main:docs/status/" + role + ".md", check=False)
             print("\n" + text, flush=True)
+        self.team_status(fetch=False)
+
+    def completion_fingerprint(self, ref):
+        # Status-only commits must not invalidate the other two people's attestations.
+        # Everything else, including contracts, goal criteria and tests, is included.
+        entries = self.run(["git", "ls-tree", "-r", "-z", "--full-tree", ref], capture=True).stdout
+        digest = hashlib.sha256()
+        for entry in entries.split("\0"):
+            if entry and not entry.split("\t", 1)[1].startswith("docs/status/"):
+                digest.update(entry.encode() + b"\0")
+        return digest.hexdigest()
+
+    def completion_problem(self, record, role, tip, fingerprint):
+        if not isinstance(record, dict) or record.get("schemaVersion") != 1:
+            return "INVALID: unsupported completion record"
+        if record.get("role") != role or record.get("owner") != TEAM_ROLES[role]:
+            return "INVALID: role/owner mismatch"
+        if record.get("status") == "IN_PROGRESS":
+            return "IN_PROGRESS"
+        if record.get("status") != "DONE":
+            return "INVALID: expected IN_PROGRESS or DONE"
+        commit = record.get("verifiedCommit")
+        if not isinstance(commit, str) or not re.fullmatch(r"[0-9a-f]{40}", commit):
+            return "INVALID: missing verified commit"
+        ancestor = self.run(["git", "merge-base", "--is-ancestor", commit, tip], capture=True, check=False)
+        if ancestor.returncode:
+            return "INVALID: verified commit is not in remote main history"
+        if record.get("contentSha256") != fingerprint:
+            return "STALE: implementation or completion criteria changed; verify again"
+        if self.completion_fingerprint(commit) != fingerprint:
+            return "INVALID: verified commit does not contain the reported content"
+        try:
+            stamp = datetime.fromisoformat(record.get("verifiedAt", ""))
+            if stamp.tzinfo is None:
+                return "INVALID: verification time must include a timezone"
+            verification = record.get("verification")
+            if not isinstance(verification, dict) or verification.get("command") != "./scripts/dev verify-mvp":
+                return "INVALID: missing MVP verification"
+            build_id = verification.get("buildId")
+            if not isinstance(build_id, str) or not re.fullmatch(commit[:12] + r"-[0-9a-f]{12}", build_id):
+                return "INVALID: verification build does not match the verified commit"
+            validate_mvp_result(verification, build_id)
+        except (TypeError, ValueError, WorkflowError) as error:
+            return "INVALID: " + str(error)
+        return None
+
+    def team_status(self, fetch=True):
+        if fetch:
+            self.git("fetch", "origin", "main")
+        # Read every record from one immutable remote commit, never local unpushed files.
+        tip = self.git("rev-parse", "origin/main")
+        fingerprint = self.completion_fingerprint(tip)
+        complete = True
+        print("Team completion on origin/main:", tip[:12], flush=True)
+        for role, owner in TEAM_ROLES.items():
+            raw = self.git("show", tip + ":docs/status/" + role + ".json", check=False)
+            try:
+                problem = self.completion_problem(json.loads(raw), role, tip, fingerprint) if raw else "MISSING"
+            except (ValueError, WorkflowError) as error:
+                problem = "INVALID: " + str(error)
+            complete = complete and problem is None
+            print("  " + role + " (" + owner + "): " + (problem or "DONE"), flush=True)
+        print("ALL_DONE" if complete else "TEAM_INCOMPLETE: keep the role goal active.", flush=True)
+        return complete
+
+    def team_check(self):
+        self.require_clean_main()
+        complete = self.team_status()
+        if self.git("rev-parse", "HEAD") != self.git("rev-parse", "origin/main"):
+            raise WorkflowError("Sync main and publish any local commits before ending the goal.")
+        if not complete:
+            raise WorkflowError("All three owners must publish valid DONE records for the same current content.")
+
+    def role_done(self, role):
+        self.sync()
+        commit = self.git("rev-parse", "HEAD")
+        if commit != self.git("rev-parse", "origin/main"):
+            raise WorkflowError("Publish implementation commits before recording role completion.")
+        data = self.verify_mvp()
+        self.require_clean_main()
+        if self.git("rev-parse", "HEAD") != commit:
+            raise WorkflowError("HEAD changed during verification; verify again.")
+        verification = {key: data[key] for key in ("buildId", "mode", "model")}
+        verification["command"] = "./scripts/dev verify-mvp"
+        # Only a sanitized result summary is shared. Raw logs, prompts and DB rows stay local.
+        verification["cases"] = [{key: case[key] for key in ("id", "status", "mocked")} for case in data["cases"]]
+        record = {"schemaVersion": 1, "role": role, "owner": TEAM_ROLES[role], "status": "DONE",
+                  "verifiedCommit": commit, "contentSha256": self.completion_fingerprint(commit),
+                  "verifiedAt": datetime.now(timezone.utc).isoformat(), "verification": verification}
+        self.write_role_record(role, record)
+        print("Commit and publish your completion record, then run scripts/dev team-check. Your goal remains active until ALL_DONE.", flush=True)
+
+    def role_reopen(self, role):
+        self.write_role_record(role, {"schemaVersion": 1, "role": role, "owner": TEAM_ROLES[role],
+                                      "status": "IN_PROGRESS", "verifiedCommit": None, "contentSha256": None,
+                                      "verifiedAt": None, "verification": None})
+        print("Completion withdrawn locally; record the reason in your status Markdown and publish.", flush=True)
+
+    def write_role_record(self, role, record):
+        path = self.root / "docs/status" / (role + ".json")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n")
+        print("Updated", str(path.relative_to(self.root)), flush=True)
 
     def setup(self):
         target = self.root / ".env"
@@ -256,22 +378,20 @@ class Repository:
         self.run(["./gradlew", "--no-daemon", ":scenario-runner:run",
                   "--args=--report runtime/scenarios.json"])
         data = json.loads(path.read_text())
-        required = {"VOC-%02d" % number for number in range(1, 8)} | {"NORMAL", "NEEDS_INPUT", "IDEMPOTENCY", "RECOVERY"}
-        cases = data.get("cases", [])
-        case_ids = [case.get("id") for case in cases]
-        if (data.get("buildId") != report["buildId"] or data.get("mode") != "live"
-                or not data.get("model") or len(case_ids) != len(set(case_ids))
-                or not required.issubset(set(case_ids))
-                or any(case.get("status") != "PASSED" or case.get("mocked") is not False for case in cases)):
-            raise WorkflowError("MVP verification needs current-build, live-model results for every required case.")
+        validate_mvp_result(data, report["buildId"])
         print("PASS: current-build MVP scenarios (see runtime/scenarios.json).", flush=True)
+        return data
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=["setup", "up", "down", "smoke", "check", "verify",
-                                          "verify-mvp", "sync", "publish", "status", "watch", "snapshot"])
+                                          "verify-mvp", "sync", "publish", "status", "watch", "snapshot",
+                                          "team-status", "team-check", "role-done", "role-reopen"])
+    parser.add_argument("role", nargs="?", choices=list(TEAM_ROLES))
     args = parser.parse_args()
+    if (args.command in ("role-done", "role-reopen")) != (args.role is not None):
+        parser.error("Supply a role only for role-done or role-reopen.")
     repo = Repository(Path(__file__).resolve().parents[1])
     try:
         if args.command == "down":
@@ -282,6 +402,8 @@ def main():
             while True:
                 repo.remote_status()
                 time.sleep(60)
+        elif args.command in ("role-done", "role-reopen"):
+            getattr(repo, args.command.replace("-", "_"))(args.role)
         else:
             getattr(repo, args.command.replace("-", "_"))()
     except (WorkflowError, OSError, ValueError, subprocess.CalledProcessError) as error:

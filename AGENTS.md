@@ -6,7 +6,7 @@
 
 ## 먼저 읽을 것
 
-1. docs/autonomous-development.md와 docs/local-development.md
+1. docs/autonomous-development.md, docs/team-completion.md와 docs/local-development.md
 2. docs/roles/README.md, 현재 역할의 구현 문서와 docs/goals 문서
 3. docs/integration-contract.md, docs/commerce-interface.md, docs/business-policy.md
 4. docs/status의 세 담당자 파일
@@ -17,9 +17,9 @@ commerce = 이상효, agent = 한재홍, voc = 김아름이다.
 
 ## 소유 범위
 
-- commerce: commerce-app/core/infra, fixtures/commerce, 업무 정책, docs/status/commerce.md
-- agent: agent-app/core/infra, docs/status/agent.md
-- voc: voc-app/core/infra, web, scenario-runner, docs/status/voc.md
+- commerce: commerce-app/core/infra, fixtures/commerce, 업무 정책, docs/status/commerce.md와 commerce.json
+- agent: agent-app/core/infra, docs/status/agent.md와 agent.json
+- voc: voc-app/core/infra, web, scenario-runner, docs/status/voc.md와 voc.json
 - 공통 Gradle·Compose·scripts·CI·인터페이스: 기본 유지 담당은 voc. 변경 시 소비자 구현·문서·검증을 함께 맞춘다.
 - 모든 역할은 모든 소스·테스트·계약을 읽고 전체 앱을 실행한다.
   다른 담당 경로의 변경이 필요하면 자신의 상태 파일에 대상·필드·실패 명령·필요한 변경을 기록한다.
@@ -39,7 +39,9 @@ commerce = 이상효, agent = 한재홍, voc = 김아름이다.
    동시 push로 원격이 바뀌면 통합하고 재검증한다. 보통 15~30분마다 공유 가능한 단위를 만든다.
 6. 충돌 시 양쪽 변경과 계약을 읽어 해결하고 rebase를 완료한 뒤 publish를 다시 실행한다.
    강제 push, 공유 이력 재작성, reset --hard, 사용자 변경 삭제로 해결하지 않는다.
-7. 역할의 다음 완료 조건으로 계속 진행한다. 계획·골격·예제만 만든 상태에서 goal을 완료하지 않는다.
+7. 역할의 다음 완료 조건으로 계속 진행한다. 자기 기능이 끝나면 role-done <role>로 실제 MVP 검증 후
+   자기 완료 기록만 커밋·publish한다. 세 담당자의 완료가 모두 모일 때까지 goal을 유지한다.
+   먼저 끝난 역할은 약 60초마다 원격 변경·요청을 확인하고 필요한 연동·재검증을 계속한다.
 
 ## 실행과 완료 판정
 
@@ -47,9 +49,17 @@ commerce = 이상효, agent = 한재홍, voc = 김아름이다.
 - scripts/dev check: 자동화 도구 테스트·문서 검증·전체 Gradle check·존재하는 web 빌드.
 - scripts/dev verify: check + 3개 앱 기동 + 실제 DB·HTTP·근거 볼륨 연결 검증.
 - scripts/dev verify-mvp: 위 검증과 실제 모델을 사용하는 7개 VOC 및 정상·정보 부족·재전송·복구 검증.
+- scripts/dev role-done <role>: 최신 공유 코드의 실제 MVP 검증 후 자기 docs/status/<role>.json에 DONE 작성.
+- scripts/dev team-status: 원격 main의 세 완료 기록과 현재 코드에 대한 유효성 확인.
+- scripts/dev team-check: 깨끗한 최신 main에서 세 담당자의 유효한 DONE이 모두 있을 때만 성공.
 - 기동 골격의 businessReady=false는 정상이다. 도메인 구현이 완료되기 전 true로 바꾸지 않는다.
-- 역할별 완료 조건과 현재 main의 실제 통합 검증을 모두 만족해야 해당 goal을 완료한다.
-  완료한 코드 커밋, 사용 모델, 검증 명령, 결과 파일을 상태 문서에 남긴다.
+- 모든 역할의 goal 종료 조건은 GitHub main에 이상효·한재홍·김아름의 유효한 DONE이 모두 존재하는 것이다.
+  자기 역할 완료만으로 goal을 complete로 처리하지 않는다. docs/team-completion.md에 따라
+  마지막 scripts/dev team-check가 종료 코드 0일 때만 goal을 완료한다.
+  역할 완료 기록에는 검증한 커밋·내용 해시·모델·시나리오 결과가 필요하며, 각 담당자의 위임받은 에이전트가 자기 기록만 작성한다.
+  docs/status/ 밖의 추적 내용이 바뀌면 기존 DONE은 STALE로 제외되므로 다시 검증한다.
+  코드가 그대로여도 실패·미해결 요청이 발견되면 role-reopen <role>로 자기 완료를 철회하고 이유와 함께 공유한다.
+  docs/status/에는 상태 기록만 두며 코드·검증 기준을 넣어 완료 판정을 우회하지 않는다.
 - 모델 키·GitHub 인증·외부 서버 권한이 없으면 독립 구현을 계속한다.
   남은 작업이 그 입력에만 막힌 경우 실제 사유를 남기고 goal 실행기의 blocked 규칙을 따른다.
   다른 PC를 이 세션이 실행·설정했다고 가정하지 않는다.

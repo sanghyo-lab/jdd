@@ -28,9 +28,9 @@ cd jdd
 
 | 담당자 | goal 문서 | Codex 입력 |
 | --- | --- | --- |
-| 이상효 | [commerce](commerce.md) | `/goal docs/goals/commerce.md를 읽고 이상효의 이커머스 담당 목표를 완료 조건까지 수행해. AGENTS.md에 따라 main을 동기화하고 검증한 변경을 계속 push해.` |
-| 김아름 | [voc](voc.md) | `/goal docs/goals/voc.md를 읽고 김아름의 VOC·연동 담당 목표를 완료 조건까지 수행해. AGENTS.md에 따라 main을 동기화하고 검증한 변경을 계속 push해.` |
-| 한재홍 | [agent](agent.md) | `/goal docs/goals/agent.md를 읽고 한재홍의 AI Agent 담당 목표를 완료 조건까지 수행해. AGENTS.md에 따라 main을 동기화하고 검증한 변경을 계속 push해.` |
+| 이상효 | [commerce](commerce.md) | `/goal docs/goals/commerce.md와 AGENTS.md를 읽고 이상효의 이커머스를 구현·검증하고 main에 계속 공유해. docs/team-completion.md에 따라 GitHub에서 세 담당자가 모두 유효한 DONE이고 team-check가 성공할 때까지 연동·검증·수정을 계속해.` |
+| 김아름 | [voc](voc.md) | `/goal docs/goals/voc.md와 AGENTS.md를 읽고 김아름의 VOC·연동을 구현·검증하고 main에 계속 공유해. docs/team-completion.md에 따라 GitHub에서 세 담당자가 모두 유효한 DONE이고 team-check가 성공할 때까지 연동·검증·수정을 계속해.` |
+| 한재홍 | [agent](agent.md) | `/goal docs/goals/agent.md와 AGENTS.md를 읽고 한재홍의 AI Agent를 구현·검증하고 main에 계속 공유해. docs/team-completion.md에 따라 GitHub에서 세 담당자가 모두 유효한 DONE이고 team-check가 성공할 때까지 연동·검증·수정을 계속해.` |
 
 해당 환경에 slash 명령이 없지만 goal 도구가 있다면 같은 문구를 “이 목표를 goal로 생성하고 수행해”로 전달한다.
 Codex의 goal 기능은 검증 가능한 목표를 여러 턴에 걸쳐 수행하는 용도다. goal 기능이 보이지 않는 CLI에서는 `codex features enable goals`로 활성화할 수 있다. [OpenAI 공식 goal 안내](https://learn.chatgpt.com/use-cases/follow-goals)
@@ -56,7 +56,17 @@ PC와 실행 세션이 계속 동작하고 외부 의존성이 준비돼 있어�
 ## 4. 진행 확인
 
 - 각 에이전트는 다른 두 담당자의 소스·계약·[상태 문서](../status/commerce.md)를 원격 main에서 확인한다.
-- `./scripts/dev status`로 최신 커밋과 세 상태 파일을 함께 읽는다.
+- `./scripts/dev status`로 최신 커밋과 세 상태 파일, 원격 완료 판정을 함께 읽는다.
+- `./scripts/dev team-status`로 GitHub main의 담당별 DONE 유효성을 확인한다.
 - `./scripts/dev watch`는 60초마다 fetch하고 상태를 출력한다. 작업 파일은 변경하지 않는다.
 - 실제 반영은 깨끗한 커밋 경계에서 `./scripts/dev sync`, 공유는 `./scripts/dev publish`로 한다.
 - 상세 반복·완료 기준은 [자동 개발 협업 규칙](../autonomous-development.md)을 따른다.
+
+## 5. 세 담당자가 모두 완료할 때 종료
+
+각자의 기능 완료 후 `./scripts/dev role-done <role>`로 실제 MVP를 검증하고 자기 JSON을 커밋·publish한다.
+자기 DONE을 올린 뒤에도 goal은 유지한다. 다른 담당자의 요청과 main 변경을 확인하며 연동·검증·수정을 계속한다.
+최종적으로 깨끗한 최신 main에서 `./scripts/dev team-check`가 성공할 때만 goal을 완료한다.
+세 DONE은 같은 저장소 내용을 검증해야 하며, 소스·계약·검증 기준 변경으로 오래된 완료는 무효가 된다.
+진행·완료 상태 파일만 바뀌면 다른 담당자의 완료를 무효화하지 않는다.
+기록 형식·재검증·철회 절차는 [세 담당자 완료 기준](../team-completion.md)에 있다.

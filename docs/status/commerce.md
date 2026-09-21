@@ -4,6 +4,7 @@
 - 담당자: 이상효 (역할 B)
 - GitHub 계정: `sanghyo-lab`
 - 작업 브랜치: `main`
+- 완료 선언: [commerce.json](commerce.json)의 IN_PROGRESS. 실제 검증 후 자기 DONE을 공유하고 [세 담당자 완료 기준](../team-completion.md)이 충족될 때까지 goal을 유지한다.
 - 시작 지침: [commerce goal](../goals/commerce.md), [공통 실행](../local-development.md)
 - 작업 Issue·공유 커밋: 시작 후 기입
 - 담당 경로: `commerce-app/`, `commerce-core/`, `commerce-infra/`, `fixtures/commerce/`

@@ -4,6 +4,7 @@
 - 담당자: 김아름 (역할 C)
 - GitHub 계정: 공유받은 뒤 기입
 - 작업 브랜치: `main`
+- 완료 선언: [voc.json](voc.json)의 IN_PROGRESS. 실제 검증 후 자기 DONE을 공유하고 [세 담당자 완료 기준](../team-completion.md)이 충족될 때까지 goal을 유지한다.
 - 시작 지침: [voc goal](../goals/voc.md), [공통 실행](../local-development.md)
 - 작업 Issue·공유 커밋: 시작 후 기입
 - 담당 경로: `voc-app/`, `voc-core/`, `voc-infra/`, `web/`, `scenario-runner/`
