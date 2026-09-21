@@ -52,7 +52,7 @@ class InvestigationRunnerTest {
     @Test void runsToolStoresEvidenceThenReturnsReportAndRepeatedHttpReadsDoNotCallModel() throws Exception {
         var claim = start();
         var runner = runner(request -> {
-            assertThat(request.prompt().version()).isEqualTo("investigation-system-v1");
+            assertThat(request.prompt().version()).isEqualTo("investigation-system-v2");
             assertThat(request.prompt().sha256()).hasSize(64);
             assertThat(request.prompt().text()).contains("같은 조사에 실제 저장한 관측", "requiresHumanAction");
             if (request.iteration() == 1) return toolReply("read-1", "getInventoryContext", "{}");
@@ -87,9 +87,10 @@ class InvestigationRunnerTest {
         runner(request -> {
             if (request.iteration() == 1) return new Reply("{invalid json", List.of());
             assertThat(request.history().getLast().kind()).isEqualTo(MessageKind.FEEDBACK);
-            return reportReply(emptyReport());
+            return reportReply(new AnalysisReport("1.0", "대상을 식별할 입력이 필요합니다.", List.of(), List.of(), List.of(), List.of(),
+                    List.of(new MissingInformation("context.orderId", "어떤 주문인지 확인할 수 없습니다."))));
         }, tools(false), 8, 24).run(claim);
-        assertThat(view(claim).status()).isEqualTo(Status.COMPLETED);
+        assertThat(view(claim).status()).isEqualTo(Status.NEEDS_INPUT);
         assertThat(modelCalls).hasValue(2);
         assertThat(toolCalls).hasValue(0);
     }
@@ -101,6 +102,16 @@ class InvestigationRunnerTest {
         runner(request -> reportReply(invented), tools(false), 8, 24).run(claim);
         assertThat(view(claim).error().code()).isEqualTo("REPORT_VALIDATION_FAILED");
         assertThat(view(claim).report()).isNull();
+        assertThat(modelCalls).hasValue(2);
+    }
+
+    @Test void anEmptyUnsubstantiatedConclusionCannotBePublishedAsCompleted() {
+        var claim = start();
+        runner(request -> reportReply(emptyReport()), tools(false), 8, 24).run(claim);
+        assertThat(view(claim).status()).isEqualTo(Status.FAILED);
+        assertThat(view(claim).error().code()).isEqualTo("REPORT_VALIDATION_FAILED");
+        assertThat(view(claim).report()).isNull();
+        assertThat(view(claim).evidence()).isEmpty();
         assertThat(modelCalls).hasValue(2);
     }
 

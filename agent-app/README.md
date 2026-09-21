@@ -44,6 +44,8 @@ GET /api/investigations/{investigationId}/evidence/{evidenceId}
 근거 배치 저장이 실패하면 같은 트랜잭션의 원문·요약을 모두 롤백한다. 커밋된 근거만 모델에 전달하도록 반환한다.
 보고서는 같은 조사에 저장된 근거, 관측한 소스 경로, 필수 필드와 사람이 수행할 조치를 검증한다.
 missingInformation에 따라 COMPLETED/NEEDS_INPUT을 서버에서 결정한다.
+완료 보고서에는 저장한 근거를 인용한 사실이 최소 하나 필요하다. 정보 부족 보고서는 사실을 만들지 않고 필요한 입력을 요청할 수 있다.
+이는 무근거 완료를 막는 구조 검사이며 자연어 주장의 정확성과 원인 품질 평가를 대신하지 않는다.
 
 중단·시간 초과는 근거를 보존한 FAILED이며, 종료 후 이전 실행 토큰으로 들어온 응답은 반영하지 않는다.
 PostgreSQL advisory lock을 가진 실행기 하나만 시작 복구·작업 접수를 수행한다.
@@ -51,7 +53,7 @@ PostgreSQL advisory lock을 가진 실행기 하나만 시작 복구·작업 접
 이 저장 계층의 합성 검증을 실제 VOC 조사·모델 품질 검증으로 간주하지 않는다.
 
 `InvestigationRunner`가 도구 반복을 소유한다. 모델 요청→서버 인자 검증→실제 도구 호출→근거 커밋→후속 모델 요청→보고서 검사 순서다.
-시스템 프롬프트는 `agent-infra/src/main/resources/prompts/investigation-system-v1.md`를 로딩하고 버전·SHA-256과 함께 모델 port에 전달한다.
+시스템 프롬프트는 `agent-infra/src/main/resources/prompts/investigation-system-v2.md`를 로딩하고 버전·SHA-256과 함께 모델 port에 전달한다. 기존 v1 리소스는 과거 실행 식별용으로 보존한다.
 기본 모델 호출은 비활성 구현이며 로컬 HTTP 모의 서버에서 실제 요청 프롬프트 전달을 확인했다.
 
 | 실행 설정 | 기본값 | 용도 |

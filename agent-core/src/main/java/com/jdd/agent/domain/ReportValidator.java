@@ -63,6 +63,8 @@ public final class ReportValidator {
         }
         if (report.missingInformation() == null) errors.add("missingInformation is required");
         else {
+            if (report.missingInformation().isEmpty() && report.facts() != null && report.facts().isEmpty())
+                errors.add("A completed report requires at least one fact citing stored evidence; request missing user input instead of inventing observations");
             var missingFields = new HashSet<String>();
             for (var missing : report.missingInformation()) {
                 if (missing == null) { errors.add("missingInformation contains null"); continue; }
