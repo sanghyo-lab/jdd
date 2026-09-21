@@ -1,7 +1,8 @@
 # Agent 조사 API와 영속 실행 상태
 
 현재 구현 범위는 조사 API·영속 비동기 실행·도구 반복·근거 저장·보고서 검증·비용 제어다.
-실제 OpenAI 어댑터와 커머스 조회 도구는 아직 연결하지 않았다.
+커머스 조회 도구를 연결했고 Spring AI OpenAI 전송 계층을 로컬 HTTP 모의 서버로 검증했다.
+OpenAI 실행 환경 설정은 다음 단위이며 실제 제공자 호출·모델 품질은 미검증이다.
 기본 모델은 DISABLED다. 접수 후 실행기가 `FAILED / LLM_CONFIGURATION_ERROR`를 저장하며 유료 호출은 하지 않는다.
 실행기를 명시적으로 끄면 요청은 QUEUED에 남는다. 모델·도구 반복은 합성 도구/모의 모델로 검증했다.
 `businessReady=false`를 유지한다. 완료된 AI 분석처럼 표시하지 않는다.
@@ -29,7 +30,7 @@ GET /api/investigations/{investigationId}/evidence/{evidenceId}
 - 같은 키로 문의·버전·context·이전 조사 ID를 바꾸면 `409 REQUEST_KEY_CONFLICT`다.
 - context 생략/null/빈 객체와 context 내 null은 동일하게 취급한다. JSON 키 순서와 같은 시각의 UTC offset 표현도 중복 비교에 영향을 주지 않는다.
 - 추가 조사는 새 키와 같은 티켓의 `previousInvestigationId`로 접수한다. 없는 조사나 다른 티켓의 이전 조사는 `404 NOT_FOUND`다.
-- 근거는 조사 ID와 근거 ID를 함께 조회한다. 소속이 다르거나 없는 근거는 `404 NOT_FOUND`다. 실제 커머스 근거 조회 도구는 연결 중이다.
+- 근거는 조사 ID와 근거 ID를 함께 조회한다. 소속이 다르거나 없는 근거는 `404 NOT_FOUND`다. 저장된 원문 조회는 모델을 호출하지 않는다.
 - v1에 없는 입력 필드, 잘못된 시각, 정수가 아닌 ticketVersion, 공백 문의, 10,000자를 넘는 문의는 `400 INVALID_REQUEST`다.
 - 입력·조회 결과는 `agent.investigations`, 관측 원문은 `agent.investigation_evidence`에 저장한다. 요청 키의 DB 유일 제약으로 동시 접수도 한 조사만 생성한다.
 - 단일 SQL 접수는 즉시 커밋된다. 백그라운드 실행기는 저장된 입력을 읽어 브라우저 연결과 독립적으로 실행한다.
@@ -51,7 +52,7 @@ PostgreSQL advisory lock을 가진 실행기 하나만 시작 복구·작업 접
 
 `InvestigationRunner`가 도구 반복을 소유한다. 모델 요청→서버 인자 검증→실제 도구 호출→근거 커밋→후속 모델 요청→보고서 검사 순서다.
 시스템 프롬프트는 `agent-infra/src/main/resources/prompts/investigation-system-v1.md`를 로딩하고 버전·SHA-256과 함께 모델 port에 전달한다.
-현재 모델 호출은 비활성 구현이며 테스트가 주입한 모의 모델에서 실제 프롬프트 전달을 확인했다.
+기본 모델 호출은 비활성 구현이며 로컬 HTTP 모의 서버에서 실제 요청 프롬프트 전달을 확인했다.
 
 | 실행 설정 | 기본값 | 용도 |
 | --- | --- | --- |
@@ -68,8 +69,8 @@ PostgreSQL advisory lock을 가진 실행기 하나만 시작 복구·작업 접
 ## 모델 호출 허용과 비용 장부
 
 `PaidModelGate`는 기본 금지이며 데모 모드·명시적 유료 허용·승인 범위·만료 시각·모델 허용 목록을 모두 검사한다.
-현재 실제 OpenAI 클라이언트·환경 설정 연결은 구현 중이다. 이 계층이 있다는 이유로 유료 호출을 시작하지 않는다.
-모의 검증에서는 실제 네트워크가 없는 함수를 호출해 허용/차단과 실패 처리를 확인한다.
+OpenAI 클라이언트를 구현했고 실행 환경 설정 연결은 구현 중이다. 이 계층이 있다는 이유로 유료 호출을 시작하지 않는다.
+모의 검증은 메모리 함수와 IPv4 loopback HTTP 서버만 사용한다.
 
 - `agent.demo_budget`의 단일 누적 예산은 로컬에 배정한 금액($30 이하)·범위·동시 호출·조사당 호출 수를 고정한다. 재시작·새 조사·다른 범위 이름으로 초기화하거나 확대하는 API는 없다.
 - `agent.model_calls`는 실제 HTTP 시도마다 하나의 ID, 요청/실제 모델·가격 버전·prompt 지문·도구 스키마·시각·usage를 저장한다. 재시도·전환도 새 시도로 예약해야 하며 이 계층은 자동 재시도하지 않는다.
@@ -82,6 +83,31 @@ PostgreSQL advisory lock을 가진 실행기 하나만 시작 복구·작업 접
 현재 테스트 가격·모델명은 합성 값이다. [OpenAI 가격](https://developers.openai.com/api/docs/pricing)과
 [캐시 비용 계산](https://developers.openai.com/api/docs/guides/prompt-caching)을 실제 데모 설정 시 재확인한다.
 여러 PC의 예산 배분 또는 공유 장부·계정 전체 잔액 확인은 이 로컬 장부가 대신하지 않는다.
+
+### OpenAI 전송 계층
+
+`OpenAiInvestigationModel`은 Spring AI 2.0.1의 ChatModel을 매 반복 한 번 호출한다.
+모델에는 버전 시스템 프롬프트, v1 입력, 엄격한 여덟 도구 정의, 보고서 JSON 스키마와
+이전 도구 요청/서버 저장 근거만 전달한다. Spring AI가 자체 도구 실행이나 반복을 소유하지 않는다.
+실제 endpoint는 `https://api.openai.com/v1/chat/completions`로 고정하며 ngrok 주소를 받지 않는다.
+`localMock` 팩토리는 명시한 `http://127.0.0.1:<port>/v1`만 허용한다.
+
+- HTTP 전송 경계에서 영속 예약 → DISPATCHED → 단일 전송 → native usage 정산을 수행한다.
+  SDK 재시도와 실제 전송 클라이언트의 연결 재시도·리다이렉트를 모두 끈다.
+  Spring AI client builder의 자동 연결 복구를 우회하도록 terminal interceptor에서 전송을 소유한다.
+- 요청 본문 크기와 tokenizer 추정값을 제한한다. 추정값을 실제 입력 usage로 저장하지 않는다.
+  최대 비용에는 별도로 구성한 공식 모델 입력 상한·출력 한도·장문 요금 전체를 예약한다.
+- service tier는 `default`, store와 parallel tool calls는 false다. 실제 모델·tier·요금과 usage가
+  확인되지 않으면 관측한 값은 보존하면서 UNKNOWN 예약을 유지하고 후속 유료 호출을 차단한다.
+- 캐시 쓰기·reasoning을 포함한 native 응답 usage를 직접 읽는다. total이 있으면 input+output과
+  대조하고 잘못된 수치·구간·합계는 확정하지 않는다. 누락을 0으로 채우지 않는다.
+- 인증·429·시간 초과는 자동 재시도하지 않는다. 잘못된 보고서 응답도 관측된 비용은 보존한다.
+  외부 오류 원문·키·모델 요청 본문을 오류 응답이나 앱 로그로 출력하지 않는다.
+
+검증 명령은 `./gradlew :agent-app:test --tests com.jdd.agent.OpenAiTransportTest`다.
+이 테스트는 H2 장부와 로컬 합성 HTTP만 사용하며 실제 OpenAI 접근·모델 품질을 검증하지 않는다.
+[Spring AI ChatModel](https://docs.spring.io/spring-ai/reference/api/chat/openai-chat.html)과
+[usage 처리](https://docs.spring.io/spring-ai/reference/api/usage-handling.html)를 적용했다.
 
 ## 검증
 

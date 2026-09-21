@@ -26,7 +26,11 @@ public interface ModelCallLedger {
         }
         public BigDecimal maximumCost() { return pricing.maximumCost(inputTokenLimit, outputTokenLimit); }
     }
-    record Receipt(String providerRequestId, String actualModel, ModelUsage usage, String outcome, Instant finishedAt) {
+    record Receipt(String providerRequestId, String actualModel, ModelUsage usage, String outcome, Instant finishedAt,
+                   String actualServiceTier, Boolean tariffVerified) {
+        public Receipt(String providerRequestId, String actualModel, ModelUsage usage, String outcome, Instant finishedAt) {
+            this(providerRequestId, actualModel, usage, outcome, finishedAt, null, null);
+        }
         public Receipt {
             if (outcome == null || outcome.isBlank() || finishedAt == null) throw new IllegalArgumentException("Incomplete receipt");
         }

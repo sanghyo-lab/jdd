@@ -4,4 +4,5 @@ dependencies {
     implementation 'org.springframework:spring-jdbc'
     implementation 'org.springframework:spring-context'
     implementation 'tools.jackson.core:jackson-databind'
+    implementation "org.springframework.ai:spring-ai-openai:${springAiVersion}"
 }

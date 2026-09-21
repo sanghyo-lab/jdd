@@ -171,3 +171,12 @@
 - 모델 가격에 입력 길이 경계와 입력/출력 배수를 추가했다. 경계를 넘으면 일반 입력·캐시 읽기·쓰기와 출력 전체에 해당 배수를 적용한다. 예약은 최대 입력 분류와 출력의 최악 비용을 사용하고 실제 정산은 관측 usage 길이로 요금을 선택한다. 기존 단일 구간 가격과 저장 JSON은 호환한다.
 - `:agent-core:test`의 가격 7개 및 기존 core 검증, `ModelCallLedgerTest`의 모의 장부 10개가 통과했다. 합성 가격으로 경계 바로 아래/같음/초과와 캐시·reasoning 중복 제외를 확인했으며 실제 모델 비용 측정은 아니다. 원문 `runtime/submission/agent-20260921/pricing-context-tests.log`.
 - OpenAI 연동에서는 추정 tokenizer 값으로 최대 비용을 보장했다고 주장하지 않고, 공식 모델 context 한도와 제한한 출력 상한을 예약하는 방법을 적용한다. 이는 초기 보수적 예약 설계이며 실제 후보 품질·비용/지연 비교는 아직 미수행이다.
+
+## 2026-09-21 — OpenAI 전송과 실제 응답 단위 계측
+
+- 장문 예약 단위는 `0d65d77`로 전체 check·3앱 재기동·PostgreSQL/HTTP smoke 후 공유했다. 원문 `pricing-context-publish.log`. 원격 `c2bdb4e`까지 VOC 티켓·정밀도 수정·논의 답변 전체를 검토했다.
+- Spring AI 2.0.1 ChatModel에 시스템 프롬프트·엄격한 도구·보고서 스키마·저장 근거 이력을 연결했다. HTTP 전송 직전 영속 예약/전송 표시, 실제 응답의 모델·tier·입력/출력/캐시/쓰기/reasoning과 비용 정산을 구현했다. 요청 추정 토큰과 실제 usage를 구분한다.
+- 숨은 재시도를 막기 위해 SDK retries=0과 별도 OkHttp 단일 전송을 적용했다. Spring AI builder가 직접 OkHttp builder라는 최초 가정은 컴파일에서 실패했고 실제 2.0.1 소스를 읽어 terminal interceptor 방식으로 수정했다. 최초 실패 `openai-transport-compile.log`/`openai-transport-tests.log`도 보존한다.
+- 로컬 HTTP 모의 전송 14개와 H2 장부 10개 통과(`openai-transport-final.log`). 인증·429·시간 초과·리다이렉트·본문 상한·불일치 usage·미등록 모델·변경 tier·형식 실패를 확인했다. 비용 장부 10개를 실제 별도 PostgreSQL에서도 다시 통과했다(`openai-ledger-postgres.log`). 모의 가격·응답 검증이며 실제 OpenAI 호출은 0회다.
+- [DISC-20260921-voc-001](../discussions/DISC-20260921-voc-001-runner-metadata.md)의 현재 필수 완료 메타데이터 유지에 수락 답변을 `1b5adc8`로 공유했다. [정책 사본 제안](../discussions/DISC-20260921-agent-002-policy-snapshot.md)은 김아름이 공통 생성기 구현을 맡았고 Agent 소비자를 다음 단위에서 연결한다.
+- 실행 환경 활성화는 다음 단위다. 기본 DISABLED·businessReady=false와 DONE 보류를 유지한다. 실제 모델·웹·ngrok·전체 VOC 품질은 미검증이다.

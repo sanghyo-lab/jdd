@@ -78,7 +78,8 @@ public class JdbcModelCallLedger implements ModelCallLedger {
                 return existing;
             }
             if (existing.state() == State.UNKNOWN && receipt.equals(existing.receipt())) return existing;
-            Optional<BigDecimal> observed = existing.request().pricing().model().equals(receipt.actualModel())
+            Optional<BigDecimal> observed = !Boolean.FALSE.equals(receipt.tariffVerified())
+                    && existing.request().pricing().model().equals(receipt.actualModel())
                     ? existing.request().pricing().observedCost(receipt.usage()) : Optional.empty();
             String state = observed.isPresent() ? State.CONFIRMED.name() : State.UNKNOWN.name();
             // Actual usage must still be recorded if it exceeds the estimate. Subsequent calls then fail closed.
