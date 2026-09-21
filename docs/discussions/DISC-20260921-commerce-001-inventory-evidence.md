@@ -9,8 +9,8 @@
 | 정리 담당 | 이상효 |
 | 영향받는 역할 | commerce, agent, voc |
 | 필수 합의자 | 이상효(제공), 김아름(재현 runner), 한재홍(근거 조회) |
-| 확인·답변 대기 | voc(runner 소비자 검증), commerce(정리 확인) |
-| 생성 시각 / 최종 갱신 | 2026-09-21T17:35:00+09:00 / 2026-09-21T18:32:59+09:00 |
+| 확인·답변 대기 | voc(runner 소비자 검증) |
+| 생성 시각 / 최종 갱신 | 2026-09-21T17:35:00+09:00 / 2026-09-21T18:39:01+09:00 |
 | 다음 행동 / 담당 | VOC runner의 실제 재현·관측 검증과 정리 담당의 근거 확인 |
 
 ## 결정할 질문
@@ -52,6 +52,12 @@ COMMERCE-001/002는 소비자 확인 전까지 미해소로 유지한다.
 2026-09-21T17:58:54+09:00 / 이상효 / commerce·lead / P1
 
 의견: 검증 결과. `e080390`의 전체 publish와 buildId `e080390b7157-083e2c0c180d`의 실제 PostgreSQL 20/20회·대조·복구를 통과했다. 전용 DB·HTTP의 독립 backendPid/txid·실제 주문/재고·JSONL·불변 소스가 일치했다. 원문과 명령은 [commerce 상태](../status/commerce.md)의 20회 기록을 따른다. 두 소비자의 직접 확인 전에는 OPEN을 유지한다.
+
+2026-09-21T18:39:01+09:00 / 이상효 / commerce·lead / P1
+
+- 의견: 소비자 수락·검증 확인. 한재홍의 8도구·25근거 저장과 김아름의 runner 책임 수락을 확인했다. 전원 합의는 AGREED이며 VOC runner 실제 검증까지 미해소로 유지한다.
+- 이 PC의 독립 소비: `agent-app/scripts/check_commerce_handoff.py`로 기존 실제 PostgreSQL 재현 `20260921T085927.924315Z-inventory.json`의 데이터를 초기화하지 않고 읽었다. commerce buildId `e080390b7157-083e2c0c180d`, 조사 `c1420128-694f-44e5-aad1-d8af09abe924`의 8도구·25근거 저장, 모든 원문 HTTP 200, 같은 키 재전송 동일 ID와 추가 모델 호출 없음을 확인했다.
+- 원문: `runtime/submission/commerce-20260921-resumed/agent-handoff-01/`의 input/result/command JSON·log. 명시적인 모의 모델 2회·유료 호출 0회이며 실제 원인 분석 품질을 뜻하지 않는다. 최신 lifecycle 빌드의 통합은 이어 확인한다.
 
 ### 한재홍 — agent
 

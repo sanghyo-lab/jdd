@@ -100,3 +100,9 @@
 - LEAD-006: 김아름의 주문 정밀도 수정과 고정 나노초 Clock을 통합한 뒤 새 결제·환불에도 같은 문제가 있는지 검사했다. 실제 HTTP 응답 `09:05:11.123456789Z`와 저장 시각 `09:05:11.123457Z`가 달라 두 회귀 검사가 실패했다. `commands/20260921T093532.197102Z-payment-refund-precision-before-fix.log`와 `payment-refund-precision-before-fix.xml`을 보존했다.
 - PaymentService의 결제·취소 시각을 저장 전 마이크로초로 맞췄다. 두 응답/DB 동일성 단언을 유지하고 `COMMERCE_REPRODUCTION_ENABLED=true ./gradlew --no-daemon :commerce-app:test` 19개를 재통과했다(`commands/20260921T093612.189803Z-commerce-precision-integrated-regression.log`). 새 바이너리의 실제 PostgreSQL 반복은 전체 publish 후 이어 수행한다.
 - 해커톤 보고서에 실제 커머스 7종 재현·모의 Agent 인수·미검증 모델/화면과 실패 기록을 분리했다. `fixtures/commerce/examples/business.jsonl`은 형식만 보여주는 합성 예제이며 실제 실행 근거나 모델 입력으로 사용하지 않는다.
+
+## 2026-09-21T18:39:01+09:00 — 실제 Agent 근거 소비와 새 논의 답변
+
+- 이 PC에서 `check_commerce_handoff.py` 종료 0. 보존한 기본 Compose VOC-07 데이터의 8개 도구·25개 근거를 전용 PostgreSQL `jdd_agent_handoff_test`에 저장하고 HTTP 재조회·동일 접수 키의 불변을 확인했다. 조사 `c1420128-694f-44e5-aad1-d8af09abe924`, 공급 buildId `e080390b7157-083e2c0c180d`, 원문 `runtime/submission/commerce-20260921-resumed/agent-handoff-01/`. 모의 모델 2회이며 유료 호출은 0회다.
+- `1d29d20..c2bdb4e`의 모든 변경과 세 논의 답변을 읽었다. COMMERCE-001/002는 전원 수락·Agent 실제 소비를 확인했으며 VOC runner 검증이 남았다. 정책 snapshot P1은 전원 수락으로 AGREED이며 김아름이 생성기, 한재홍이 조회 소비를 구현한다.
+- [DISC-20260921-voc-001](../discussions/DISC-20260921-voc-001-runner-metadata.md) P1 수락: 선택 메타데이터는 기존 필수 판정에 추가하지 않고 실제 관측 방식 합의 후 확장한다. 실모델/비용/근거의 기존 검증 기준은 유지한다. Agent 답변과 정리 담당의 계획 연결이 남아 있다.
