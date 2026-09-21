@@ -23,6 +23,7 @@ class AgentApplicationTest {
         assertThat(result).containsEntry("service", "agent-app")
                 .containsEntry("schema", "agent")
                 .containsEntry("buildId", "test-build")
-                .containsEntry("businessReady", false);
+                .containsEntry("businessReady", false)
+                .containsEntry("llm", Map.of("runtime", "test", "provider", "mock", "configuredModel", "mock"));
     }
 }

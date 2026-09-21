@@ -6,6 +6,10 @@ AI 경로는 **local/Codex OAuth · deployed/OpenAI API key · test/mock**으로
 기본 Compose는 네트워크 없는 실패 mock이며, 실제 조사 결과를 만들지 않는다. 설정 누락/오타는 시작 오류다.
 `businessReady=false`를 유지하며 실제 모델 품질·VOC UI·공개 데모 검증은 별도다.
 
+`GET /internal/runtime`의 `llm`은 기동 시 선택한 `runtime`, `provider`, `configuredModel`만 제공한다.
+모델 선택과 같은 Spring Environment에서 읽은 설정이며 인증 성공·실제 응답 모델·사용량이 아니다.
+인증 파일 경로·키·토큰은 조회하거나 반환하지 않는다. 명시 MVP 실행기는 이 관측과 실제 어댑터 모드·빌드를 대조한다.
+
 ## 실행과 접수
 
 저장소 루트에서 Java 21과 Docker를 준비하고 실행한다.

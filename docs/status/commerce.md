@@ -21,6 +21,14 @@
 
 
 
+
+## 2026-09-21T21:42:53+09:00 — LEAD-018 내부 설정 관측 연결·14개 검사
+
+- 사전 공유한 Agent RuntimeController만 보완해 기존 필드를 유지하며 llm(runtime/provider/configuredModel)을 추가했다. 모델 팩토리와 같은 Spring Environment에서 기동 시 값을 고정하며 현재 어댑터의 모델명만 읽는다. mock/unknown은 다른 모델 설정을 읽지 않고 인증 경로·토큰·키를 조회/응답하지 않는다. businessReady=false와 실제 응답 모델/usage의 구분을 유지했다.
+- 변경 전 Spring 앱 검사는 llm 필드 누락으로 1개 실패했다. 변경 후 앱·설정 관측·기존 HTTP 접수 계약 14개가 모두 통과·실패/건너뜀 0이었다. 로컬/배포의 다른 모델 설정·자격증명 미조회, 기동 후 설정 관측 불변, mock/unknown의 준비 상태 보존을 검증했다. API/OAuth 모델 호출은 0회다.
+- 원문: runtime-observation-before/result.xml와 commands/20260921T124038.615349Z-runtime-observation-before.log(종료 1/14.750초), runtime-observation-after의 XML/result와 commands/20260921T124140.916011Z-runtime-observation-after.log(종료 0/15.745초). 기준 경로는 runtime/submission/commerce-20260921-resumed다.
+- 전체 publish 뒤 실제 컨테이너의 내부 필드와 MVP 거절 경계도 확인한다. 한재홍의 제공자 확인·김아름의 소비 인수·실제 모델 검증이 없어 LEAD-018과 DISC-commerce-002는 미해소다. 모델 전송·인증·VOC worker/화면은 중복 편집하지 않았고 타인의 DONE을 작성하지 않았다.
+
 ## 2026-09-21T21:40:14+09:00 — MVP 실행기 공유와 실제 거절 확인·내부 관측 보완 범위
 
 - 공통 실행기는 `24da847`로 전체 publish 종료 0/153.221초 후 main에 공유했다. Python 65개 통과, 전체 Gradle check·세 앱 재기동·실제 PostgreSQL/HTTP/근거 연결 통과. 기본 Java 집계는 158개 중 149개 통과·9개 조건부 제외·실패/오류 0이며 변경 없는 검사에는 Gradle 캐시가 적용됐다. buildId `24da8470f8dd-a999e0d5d3a0`, Agent MOCK이다.

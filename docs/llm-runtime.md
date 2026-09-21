@@ -73,7 +73,8 @@ Agent worker·실제 어댑터 모드와 선택한 runtime/provider/설정 모�
 
 Agent 내부 관측은 `llm: {runtime, provider, configuredModel}`로 연결한다([DISC-commerce-002](discussions/DISC-20260921-commerce-002-live-mvp-runtime.md)).
 이 필드는 선택된 설정이며 실제 응답 모델·사용량은 아니다. runner의 기존 `model`은 실제 모델 응답/장부로 확인해야 한다.
-현재 제공자 관측 필드 인수·runner·실제 모델 검증이 남아 있어 이 명령으로 DONE을 기록할 준비가 완료된 것은 아니다.
+내부 관측 필드는 RuntimeController가 모델 선택에 사용한 같은 Spring Environment에서 기동 시 읽는다. 인증 경로/키/토큰을 읽거나 반환하지 않는다.
+제공자/소비자의 관측 필드 인수·runner·실제 모델 검증이 남아 있어 이 명령으로 DONE을 기록할 준비가 완료된 것은 아니다.
 
 자동 check 자식은 test/mock, runner 자식은 앱의 로컬 포트·선택한 실행 정보만 받아 동작한다. OAuth 파일·토큰·API 키·DB 암호를 자식 환경에 전달하지 않는다.
 runner는 서비스 HTTP를 호출하며 직접 모델에 연결하거나 CLI 로그인을 실행하지 않는다. Windows 네이티브에서는 위 명령을
