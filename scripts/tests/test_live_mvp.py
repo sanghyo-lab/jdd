@@ -1,5 +1,7 @@
 """Networkless workflow tests. Synthetic reports stay in temporary repositories, never project DONE."""
 import copy
+from contextlib import contextmanager
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -37,6 +39,10 @@ class PreparedRepository(Repository):
         self.after_run = lambda: None
         self.runner_failure = False
         self.write_result = True
+        self.preparation_failure = False
+        self.after_preparation = lambda: None
+        self.preparation_settings = lambda values: values
+        self.preparation_closed = 0
 
     def read_environment(self): return dict(self.environment)
     def build_identity(self): return self.commit, self.content
@@ -46,6 +52,21 @@ class PreparedRepository(Repository):
     def check(self, env=None):
         self.checks.append(env)
         self.after_check()
+    @contextmanager
+    def prepare_mvp(self, directory):
+        try:
+            if self.preparation_failure:
+                raise WorkflowError('synthetic preparation failure')
+            manifest = directory / 'prepared-cases.json'
+            manifest.write_text('{"synthetic":"preparation boundary test only"}\n')
+            values = {'JDD_SCENARIO_MANIFEST': str(manifest.resolve()),
+                      'JDD_SCENARIO_MANIFEST_SHA256': hashlib.sha256(manifest.read_bytes()).hexdigest(),
+                      'JDD_SCENARIO_COORDINATOR': 'http://127.0.0.1:19999',
+                      'JDD_SCENARIO_CAPABILITY': 'synthetic-single-use-capability-only'}
+            self.after_preparation()
+            yield types.SimpleNamespace(runner_environment=self.preparation_settings(values))
+        finally:
+            self.preparation_closed += 1
     def run(self, args, **kwargs):
         self.commands.append((args, kwargs))
         assert ':scenario-runner:run' in args, args
@@ -97,6 +118,9 @@ class LiveMvpTests(unittest.TestCase):
         args, kwargs = self.repo.commands[0]
         self.assertEqual(args[0], 'gradlew.bat' if os.name == 'nt' else './gradlew')
         self.assert_no_model_secrets(kwargs['env'])
+        self.assertEqual(self.repo.preparation_closed, 1)
+        self.assertTrue(Path(kwargs['env']['JDD_SCENARIO_MANIFEST']).is_file())
+        self.assertNotIn('JDD_SCENARIO_CAPABILITY', self.repo.checks[0])
         self.assertEqual(json.loads(self.latest.read_text()), self.repo.result)
         archived = list((self.repo.root / 'runtime/mvp').glob('*/previous-scenarios.json'))
         self.assertEqual(len(archived), 1)
@@ -138,6 +162,38 @@ class LiveMvpTests(unittest.TestCase):
         with self.assertRaisesRegex(WorkflowError, 'synthetic runner failure'): self.repo.verify_mvp()
         self.assertEqual(self.latest.read_bytes(), self.previous)
         self.assertEqual(len(list((self.repo.root / 'runtime/mvp').glob('*/scenarios.json'))), 1)
+        self.assertEqual(self.repo.preparation_closed, 1)
+        failure = next((self.repo.root / 'runtime/mvp').glob('*/workflow-failure.json')).read_text()
+        self.assertNotIn('synthetic-single-use-capability-only', failure)
+
+    def test_preparation_failure_never_starts_a_model_or_replaces_previous_report(self):
+        self.repo.preparation_failure = True
+        with self.assertRaisesRegex(WorkflowError, 'preparation failure'):
+            self.repo.verify_mvp()
+        self.assertEqual(self.repo.commands, [])
+        self.assertEqual(self.repo.preparation_closed, 1)
+        self.assertEqual(self.latest.read_bytes(), self.previous)
+
+    def test_configuration_changes_during_preparation_stop_before_runner(self):
+        self.repo.after_preparation = lambda: self.repo.observation['services']['agent'].update(investigationModel='MOCK')
+        with self.assertRaises(WorkflowError): self.repo.verify_mvp()
+        self.assertEqual(self.repo.commands, [])
+        self.assertEqual(self.repo.preparation_closed, 1)
+        self.assertEqual(self.latest.read_bytes(), self.previous)
+
+    def test_preparation_cannot_inject_secrets_or_external_recovery_destinations(self):
+        mutations = [lambda values: dict(values, OPENAI_API_KEY='must-not-leak'),
+                     lambda values: dict(values, JDD_SCENARIO_COORDINATOR='https://example.org'),
+                     lambda values: dict(values, JDD_SCENARIO_COORDINATOR='http://127.0.0.1:65536'),
+                     lambda values: dict(values, JDD_SCENARIO_MANIFEST_SHA256='a' * 64),
+                     lambda values: dict(values, JDD_SCENARIO_MANIFEST=str(self.latest.resolve()))]
+        for mutation in mutations:
+            with self.subTest(mutation=mutations.index(mutation)):
+                self.repo.preparation_settings = mutation
+                with self.assertRaises(WorkflowError): self.repo.verify_mvp()
+                self.assertEqual(self.repo.commands, [])
+                self.assertEqual(self.latest.read_bytes(), self.previous)
+        self.assertEqual(self.repo.preparation_closed, len(mutations))
 
     def test_missing_malformed_or_mocked_output_cannot_reuse_a_previous_success(self):
         for kind in ('missing', 'malformed', 'mocked'):

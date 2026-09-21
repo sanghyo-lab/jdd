@@ -4,7 +4,9 @@ PostgreSQL에 티켓·분석 요청·입력 스냅샷을 저장하고 티켓별 
 업무 상태와 버전을 관리하며 같은 버전의 동시 수정은 한 건만 성공한다.
 분석 요청은 저장 후 202와 PENDING을 반환한다. 서버 작업기가 저장된 입력을 Agent에 전달하고
 조사 상태·리포트·근거 목록을 갱신한다. 근거 원문은 티켓 소속 확인 후 Agent에서 중계한다.
-화면·runner·실제 모델 MVP 검증이 남아 businessReady=false를 유지한다.
+`/internal/runtime`의 businessReady는 도메인 저장소가 기동했고 실제 전달 worker가 연결됐는지를 나타낸다.
+worker를 끄면 false다. 이 값은 Agent 인증·모델 품질·화면·전체 MVP 검증 완료를 뜻하지 않는다.
+상대 서비스·근거 준비는 smoke, 실제 모델과 전체 업무 결과는 별도 verify-mvp에서 확인한다.
 
 ## 사용
 

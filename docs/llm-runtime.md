@@ -80,6 +80,18 @@ Agent 내부 관측은 `llm: {runtime, provider, configuredModel}`로 연결한�
 runner는 서비스 HTTP를 호출하며 직접 모델에 연결하거나 CLI 로그인을 실행하지 않는다. Windows 네이티브에서는 위 명령을
 `python scripts/jdd.py ...` 또는 `python scripts/llm ...`으로 실행하며 runner의 Gradle wrapper도 Windows에 맞게 선택한다.
 
+명시적인 실제 검증에서만 부모 실행기가 `scenario-runner/scripts/prepare.py`로 새로운 합성 접두어의
+커머스 자료를 준비한다. `COMMERCE_REPRODUCTION_ENABLED=true`인 별도 데모 DB가 필요하다.
+준비 helper는 모델을 호출하지 않으며 DB/Compose 권한을 runner와 분리한다. runner에는 이번 실행의
+manifest 경로·SHA256와 임시 loopback coordinator의 일회 VOC 재시작 권한만 전달한다.
+정답·DB snapshot은 검증기에서만 대조하고 Agent에는 문의·context만 전달한다. 준비 후에도 코드·실행
+환경을 다시 확인하며, 실패하면 기존 성공 파일을 덮어쓰지 않고 원문을 새 실행 폴더에 남긴다.
+coordinator는 runner 성공·실패 뒤 모두 종료한다. 일반 check/up/publish에는 이 경로를 연결하지 않는다.
+
+businessReady는 해당 앱의 도메인 실행 경로 준비 표시다. VOC의 실제 전달 worker가 꺼져 있거나
+Agent가 mock/worker 비활성 상태이면 실제 조사 준비가 아니다. 이 표시 자체는 로그인 성공이나
+보고서 품질 판정이 아니며 최종 완료에는 실제 모델 관측·근거·모든 시나리오 결과가 별도로 필요하다.
+
 배포 검증은 배포 호스트에서 미리 준비한 deployed/openai_api와 확정한 scope·모델·예산·만료 아래에서만 명시 실행한다.
 로컬에서 프로모션 API를 검증하는 대체 경로가 아니다. 모델 변경/재기동이나 동시 소스 갱신이 필요하면 진행 중 조사가 끝난 뒤 새 빌드를 준비한다.
 일반 publish는 mock으로 되돌리므로 다음 live 검증 전에 다시 준비해야 한다.

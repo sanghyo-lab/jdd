@@ -22,6 +22,7 @@ class VocApplicationTest {
         assertThat(result).containsEntry("service", "voc-app")
                 .containsEntry("schema", "voc")
                 .containsEntry("buildId", "test-build")
+                .containsEntry("workerEnabled", false)
                 .containsEntry("businessReady", false);
     }
 }

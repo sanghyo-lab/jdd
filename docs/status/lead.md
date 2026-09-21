@@ -16,6 +16,17 @@
 
 
 
+## 2026-09-22T07:34:53+09:00 — 위임 범위 정정·VOC 필수 연결과 Agent 담당자 요청
+
+- 사용자 최신 지시 “aiagent는 다른분이하고있다”에 따라 `agent_completion`의 추가 구현/push를 중단했다. 한재홍의 기존 Agent 작업을 유지하고 이상효 위임 범위는 VOC 화면·shop·runner·리더 통합 검증이다. 이미 검증한 인용 수정은 독립 clone의 미공유 commit `15c804c`에 보존해 담당자에게 인계하며 리더가 대신 공유하지 않는다. 세 역할 DONE·최종 승인은 계속 IN_PROGRESS다.
+- AGENT-LEAD-CITATION-021: 한재홍에게 `ReportValidator`의 prevention.targetPaths가 해당 prevention.evidenceIds 안의 CODE 근거와 직접 연결되는지 인수를 요청한다. 현재 전체 조사에서 경로를 조회하기만 하면 다른 항목의 인용으로도 통과한다. 위임 검사에서 회귀 2개 수정 전 실패/수정 후 agent-core 15개 통과했으며 원문과 미공유 수정은 `runtime/collaboration/agent-completion/runtime/submission/agent-completion/`에 있다. 담당자 구현·공유·직접 확인을 기다린다.
+- RUNNER-AGENT-OBS-001: runner의 실제 모델 검증을 위해 `GET /internal/investigations/{id}/model-observations`를 요청한다. 조사 소속 callId/requestedModel/actualModel/provider/outcome/usage(nullable)/createdAt/elapsedMillis(nullable)와 현재 runtime/provider를 OAuth·API 영속 장부에서 읽고, 인증·프롬프트·원문은 응답하지 않는다. API 예약의 미확정 상태와 미관측 usage를 그대로 보존한다. web에는 중계하지 않는다. 제공되지 않으면 runner는 live 성공을 기록할 수 없다.
+- AGENT-LEAD-READINESS-001: Agent RuntimeController의 businessReady=false 상수 때문에 실제 조사 경로도 verify-mvp 전에 차단된다. 도메인 구성·실제 어댑터·worker 준비를 나타내는 조건으로 판정하고 mock/worker 비활성의 false를 유지해 달라. 인증 성공·모델 품질·DONE을 뜻하지 않으며 실제 검증은 runner가 별도로 확인한다. Agent 수정은 한재홍에게 맡긴다.
+- LEAD-021(web): 공개 relay는 `refresh=true`만 출처 검사했지만 Spring은 TRUE/1/yes/on도 true로 변환한다. 계약의 true/false만 허용하도록 backend.mjs를 고쳤다. 수정 전 새 회귀 포함 14개 중 1실패, 수정 후 14통과·제외0. 원문 commands/20260921T223107.732928Z-web-refresh-origin-before.log와 223121.335722Z-web-refresh-origin-after.log. UI 담당과 두 경로 소유를 조율했다.
+- LEAD-022(voc): 실제 티켓/전달/조회 도메인이 구현된 VOC의 준비 상태를 실제 AnalysisWorker bean 연결과 DB 조회로 표시한다. worker 비활성은 false, 활성은 true이며 품질 검증과 분리한다. 기존 비활성 검사와 신규 실제 HTTP/H2 준비성 2개 통과/종료0·14.296초, commands/20260921T223319.716715Z-voc-runtime-readiness.log. 전체 publish/실제 PostgreSQL 재기동은 이어 확인한다.
+- RUNNER-PREP-001 연결: 부모만 새 합성 자료·DB/Compose를 준비하고 runner에는 이번 manifest의 경로/SHA와 일회 loopback VOC 재시작 권한 4개만 전달한다. 준비 후 코드/runtime 재확인·임의 환경/외부 주소/손상 manifest 거절·성공/실패 뒤 coordinator 종료·이전 결과 보존의 모의 workflow 11개 통과/종료0·0.401초다. 원문 commands/20260921T223017.006521Z-mvp-preparation-boundary.log. 실제 helper/runner 공유와 실제 모델 검증은 남아 있다.
+- 이 PC의 공식 프로젝트 전용 CLI 로그인은 시작해 사용자 브라우저 인증·모델 ID 입력을 기다린다. 개발용 인증은 읽거나 복제하지 않았고 모델 호출은 0이다. 로그인 원문은 비공유 0600 경로에 두며 토큰을 Git/제출 로그에 포함하지 않는다.
+
 ## 2026-09-22T07:26:37+09:00 — 사용자 위임에 따른 남은 Agent·VOC·runner 병렬 구현
 
 - 사용자가 “서브에이전트로 나머지 전부 마무리해줘 에이전트 voc도”라고 명시하여 이상효의 리더 수정 권한 아래 세 독립 main clone 작업을 시작했다. 기존 다른 PC 작업자의 이름으로 답변·DONE을 대필하지 않는다. 각 결과는 위임 작업으로 식별하고 리더가 직접 통합 검증한다.

@@ -3,6 +3,7 @@
 import argparse
 from datetime import datetime, timezone
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -67,6 +68,30 @@ def mvp_child_environment(env, selection=None):
     else:
         child.update(APP_RUNTIME=selection["runtime"], LLM_PROVIDER=selection["provider"], JDD_MVP_LIVE="true")
         child["CODEX_MODEL" if selection["runtime"] == "local" else "OPENAI_MODEL"] = selection["configuredModel"]
+    return child
+
+
+def prepared_runner_environment(env, selection, prepared, directory):
+    """Only a fresh manifest and a single local restart capability cross this boundary."""
+    values = prepared.runner_environment
+    required = {"JDD_SCENARIO_MANIFEST", "JDD_SCENARIO_MANIFEST_SHA256",
+                "JDD_SCENARIO_COORDINATOR", "JDD_SCENARIO_CAPABILITY"}
+    if (not isinstance(values, dict) or set(values) != required
+            or any(not isinstance(value, str) or not value for value in values.values())):
+        raise WorkflowError("Scenario preparation returned unexpected runner settings.")
+    path = Path(values["JDD_SCENARIO_MANIFEST"])
+    expected = (directory / "prepared-cases.json").resolve()
+    if not path.is_absolute() or path.is_symlink() or path.resolve() != expected or not path.is_file():
+        raise WorkflowError("Scenario manifest must belong to this new verification run.")
+    digest = values["JDD_SCENARIO_MANIFEST_SHA256"]
+    if not re.fullmatch(r"[a-f0-9]{64}", digest) or hashlib.sha256(path.read_bytes()).hexdigest() != digest:
+        raise WorkflowError("Scenario preparation manifest checksum does not match.")
+    match = re.fullmatch(r"http://127\.0\.0\.1:([0-9]{1,5})", values["JDD_SCENARIO_COORDINATOR"])
+    if (not match or not 1 <= int(match.group(1)) <= 65535
+            or not re.fullmatch(r"[A-Za-z0-9_-]{32,128}", values["JDD_SCENARIO_CAPABILITY"])):
+        raise WorkflowError("Scenario recovery requires a bounded loopback capability.")
+    child = mvp_child_environment(env, selection)
+    child.update(values)
     return child
 
 
@@ -525,6 +550,15 @@ class Repository:
             print("main advanced during verification; integrating and revalidating.", flush=True)
         raise WorkflowError("main changed during 3 publish attempts. Changes remain committed locally; retry publish.")
 
+    def prepare_mvp(self, directory):
+        path = self.root / "scenario-runner/scripts/prepare.py"
+        if not path.is_file():
+            raise WorkflowError("The real scenario preparation helper is not implemented.")
+        spec = importlib.util.spec_from_file_location("jdd_scenario_preparation", path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module.PreparedRun(self, directory)
+
     def verify_mvp(self):
         env = self.read_environment()
         selection = live_mvp_selection(env)
@@ -544,9 +578,24 @@ class Repository:
             shutil.copyfile(latest, directory / "previous-scenarios.json")
         path = directory / "scenarios.json"
         wrapper = "gradlew.bat" if os.name == "nt" else "./gradlew"
-        self.run([wrapper, "--no-daemon", ":scenario-runner:run",
-                  "--args=--report " + path.relative_to(self.root).as_posix()],
-                 env=mvp_child_environment(env, selection))
+        try:
+            with self.prepare_mvp(directory) as prepared:
+                child = prepared_runner_environment(env, selection, prepared, directory)
+                if self.build_identity() != identity:
+                    raise WorkflowError("Sources changed during preparation; no scenario was started.")
+                ready = self.smoke()
+                (directory / "prepared-cases-runtime.json").write_text(
+                    json.dumps(ready, indent=2) + "\n", encoding="utf-8")
+                validate_prepared_mvp(ready, identity, selection)
+                self.run([wrapper, "--no-daemon", ":scenario-runner:run",
+                          "--args=--report " + path.relative_to(self.root).as_posix()], env=child)
+        except BaseException as error:
+            # Do not serialize commands, capability values, credentials or arbitrary exception text.
+            (directory / "workflow-failure.json").write_text(json.dumps({
+                "status": "FAILED", "failureType": type(error).__name__,
+                "recordedAt": datetime.now(timezone.utc).isoformat()
+            }, indent=2) + "\n", encoding="utf-8")
+            raise
         data = json.loads(path.read_text(encoding="utf-8"))
         validate_mvp_result(data, before["buildId"])
         after = self.smoke()

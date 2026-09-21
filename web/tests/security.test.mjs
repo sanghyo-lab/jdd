@@ -85,6 +85,12 @@ test("manual refresh requires browser origin proof, ordinary cached GET stays re
   async url => { assert.equal(url, env.VOC_API_BASE_URL + "/api/" + parts.join("/") + "?refresh=true"); return Response.json({ investigation: null }); });
   assert.equal(result.status, 200);
 });
+test("alternate boolean refresh spellings cannot schedule work without origin proof", async () => {
+  const parts = ["tickets", "t-1", "analyses", "a-1"];
+  for (const value of ["TRUE", "True", "1", "yes", "on", " true "]) {
+    await denied(request(parts.join("/") + "?refresh=" + encodeURIComponent(value)), parts, 400);
+  }
+});
 test("relay strips client credentials and only sends configured service token, preserves contract and retry hints", async () => {
   let calls = 0;
   const result = await relay(request("tickets", "POST", { origin: env.WEB_ORIGIN, "content-type": "application/json",

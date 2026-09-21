@@ -27,6 +27,10 @@ export function destination(parts, method, query) {
   for (const [key, value] of query) {
     if (method !== "GET" || !allowed.includes(key) || seen.has(key) || value.length > 200)
       throw new WebError(400, "INVALID_REQUEST", "조회 조건을 확인해 주세요.");
+    // Spring also accepts TRUE, 1, yes and on as true. Restrict the public contract
+    // so alternate spellings cannot bypass the scheduling request's origin guard.
+    if (key === "refresh" && value !== "true" && value !== "false")
+      throw new WebError(400, "INVALID_REQUEST", "조회 조건을 확인해 주세요.");
     seen.add(key);
   }
   const selected = service === "commerce" ? parts.slice(1) : parts;
