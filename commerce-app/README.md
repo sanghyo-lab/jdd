@@ -39,6 +39,11 @@ python3 fixtures/commerce/reproduce_inventory.py --runs 20
 [VOC-05](../fixtures/commerce/VOC-05/README.md)의 일시 환불 오류 제어는 opt-in 내부 API로 지정 주문·키에 한 번만 적용하고 실행 후 해제한다.
 제어 구현·평가 데이터는 Agent 소스 스냅샷에 없다. 실제 DB·로그·소스 재현은 AI가 원인을 조사한 결과와 별도다.
 
+각 reset.sql은 해당 합성 접두어만 초기화한다. 한 주문이 다른 접두어의 상품·쿠폰을 함께 참조하면
+삭제 전에 전체 초기화를 거절한다. 이 경우 새로운 접두어로 재현하고 혼합 주문은 보존한다.
+`python3 fixtures/commerce/check_fixture_isolation.py`로 일곱 초기화 스크립트의 혼합 주문 거절,
+외부 쿠폰 의존 거절과 정상 초기화의 이웃 데이터 보존을 실제 HTTP·PostgreSQL에서 확인할 수 있다.
+
 결제·취소 동시 요청과 같은 빌드의 재시작 보존은 아래 두 단계로 확인한다. `--report`는 이전 실행과 다른 새 경로를 지정한다.
 
 ```bash

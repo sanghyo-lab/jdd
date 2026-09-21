@@ -144,6 +144,22 @@
       "description": "Unsupported HTTP methods were converted to 500 INTERNAL_ERROR by CommerceErrors.",
       "resolution": "9a4b688 explicitly returns 405 for unsupported method and 415 for unsupported media type with the standard DTO.",
       "verification": "Actual HTTP before/after JSON under runtime/submission/commerce-reproductions/unsupported-method-*.json shows 500 then 405; HTTP/H2 regression covers both 405 and 415."
+    },
+    {
+      "id": "LEAD-004",
+      "owner": "commerce",
+      "status": "VERIFIED",
+      "description": "Resetting one fixture deleted another product reservation when an HTTP order contained products from both prefixes.",
+      "resolution": "All seven reset.sql files refuse cross-prefix product, coupon or movement dependencies before deletion; coupon deletion uses its own ID prefix.",
+      "verification": "Actual HTTP/PostgreSQL failure mixed-order-reset-before-fix.json and nine passing cases 20260921T092608.025691Z-fixture-isolation.json under runtime/submission/commerce-reproductions. Initial psql exit-code regression 20260921T092454.093100Z-fixture-isolation.json retained."
+    },
+    {
+      "id": "LEAD-005",
+      "owner": "commerce",
+      "status": "VERIFIED",
+      "description": "Opt-in reproduction environment leaked into disabled-mode HTTP tests and failed publish.",
+      "resolution": "Explicit jdd.reproduction-enabled=false in both commerce test contexts preserves the two 404 assertions independently of host environment.",
+      "verification": "COMMERCE_REPRODUCTION_ENABLED=true :commerce-app:test passed 19 tests; commands/20260921T092412.221394Z-reproduction-mode-test-isolation.log. Failed publish and JUnit XML retained; full publish retry pending."
     }
   ]
 }

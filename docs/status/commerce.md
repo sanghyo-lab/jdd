@@ -12,8 +12,8 @@
 - 준비된 자료: [구현 범위](../roles/lee-sanghyo-commerce.md), [커머스 계약](../commerce-interface.md), [업무 정책](../business-policy.md), [7개 시나리오](../voc-scenarios.md)
 - 다음 작업: 기본 Compose 전체 업무 재검증, 소비자 연동·화면·Agent 근거 확인, 독립 리더 검토와 실제 모델 검증 범위 준비
 - 필요한 입력: 한재홍의 조회 연결 확인, 김아름의 재현 실행 연동 확인
-- 검증 결과: 준비 PC에서 전체 Gradle check와 세 앱의 Docker 기동·smoke 통과. 실제 PostgreSQL 기본 마이그레이션과 조사 계정 SELECT 확인. VOC-07의 실제 HTTP·DB 첫 재현과 대조·복구를 추가 검증했다. 나머지 업무와 20회 반복은 진행 중이다.
-- 연동 요청: 담당 goal 시작 후 v1 커머스 DDL·API·업무 로그 구현 결과를 제공한다.
+- 검증 결과: 실제 PostgreSQL에서 일곱 업무 재현·반복·로그/실행 소스·SELECT 권한과 재시작 복구를 확인했다. 기본 Compose의 최신 업무 재검증과 실제 소비자·모델·화면 통합은 남아 있다. 아래 기록의 buildId별 결과를 구분한다.
+- 연동 요청: COMMERCE-001/002로 v1 DDL·API·업무 로그·재현 자료를 제공하고 소비자 접수·검증을 추적한다.
 
 작업 단위가 끝날 때 제공 가능한 기능, 변경한 계약, 실제 검증 명령·결과, 다음 작업을 갱신한다. 실패와 막힌 이유도 함께 기록한다.
 
@@ -80,3 +80,11 @@
 - 재고 회귀: 같은 커밋 빌드에서 `reproduce_inventory.py --runs 20` 종료 0, 20/20회·독립 연결/트랜잭션·정상/롤백/복구 대조를 재확인했다. 결과 `20260921T091900.980389Z-inventory.json`이다. 정상 주문의 충분한 재고와 시나리오 간 독립 접두어를 사용했다.
 - 프로세스 복구: `check_recovery.py`가 결제·취소에 각각 4개 동시 HTTP 요청을 보내 승인/환불/반환 1회를 확인했다. 실제 커머스 PID 74508 종료 후 새 JVM에서 같은 키 응답과 새 키의 중복 방지·DB 불변을 검증했다(`lifecycle-recovery-20260921.json`, prepare/verify와 두 서버 원문 로그). 결제 후 취소된 주문의 결제 재전송은 저장된 최초 응답을 반환한다.
 - 업무 구현·독립 검증을 근거로 commerce의 businessReady를 true로 전환한다. 실제 모델 결과·UI·팀 DONE을 뜻하지 않는다. 7개 결함 외 발견한 초기화 권한/HTTP 오류 분류는 수정·재검증했고 소비자 요청은 계속 추적한다.
+
+## 2026-09-21 — 혼합 주문의 초기화 격리와 검증 환경 수정
+
+- LEAD-004: 서로 다른 합성 접두어의 상품을 한 주문에 담고 한쪽을 초기화하면 다른 상품의 예약 이력도 삭제되는 것을 실제 HTTP·DB에서 재현했다(`mixed-order-reset-before-fix.json`). 일곱 reset.sql 모두 삭제 전에 상품·쿠폰·이력의 외부 접두어 의존을 검사하고, 발견하면 트랜잭션 전체를 롤백하며 실패 종료한다. 고객 ID로 쿠폰 삭제 범위를 넓히지 않는다.
+- `COMMERCE_PORT=18080 POSTGRES_DB=jdd_commerce_it_20260921 python3 fixtures/commerce/check_fixture_isolation.py` 종료 0. 일곱 혼합 상품 주문·외부 쿠폰·정상 초기화/이웃 보존 9개 모두 통과했다. 원문 `runtime/submission/commerce-reproductions/20260921T092608.025691Z-fixture-isolation.json`, 실행 앱 buildId `c09694cde1cd-643370744894`, 초기화 스크립트는 이번 수정이다.
+- 첫 거절 구현의 psql `\\quit 3`은 실패 코드를 반환하지 않아 검증이 실패했다(`20260921T092454.093100Z-fixture-isolation.json`). ROLLBACK 뒤 명시적 SQL 예외로 수정하고 위 9개를 재검증했다. 실패 원문을 보존한다.
+- LEAD-005: `COMMERCE_REPRODUCTION_ENABLED=true scripts/dev publish`에서 기본 비노출 테스트가 호스트 환경변수를 상속하여 19개 중 1개 실패했다. 테스트에 비활성 설정을 명시하고 두 제어 API의 404 검사는 유지했다. 같은 환경변수로 `:commerce-app:test` 19개 통과(`commands/20260921T092412.221394Z-reproduction-mode-test-isolation.log`). 최초 publish 실패 로그와 JUnit XML도 보존했고 전체 publish는 다시 수행한다.
+- 모델 호출 0회이며 이 단위는 역할 DONE·리더 승인이 아니다.

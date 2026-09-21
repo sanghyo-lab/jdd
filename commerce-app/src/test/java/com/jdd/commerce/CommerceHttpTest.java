@@ -31,6 +31,7 @@ import tools.jackson.databind.json.JsonMapper;
 import static org.assertj.core.api.Assertions.*;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
+    "jdd.reproduction-enabled=false",
     "spring.datasource.url=jdbc:h2:mem:commerce-http;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1",
     "spring.datasource.username=sa", "spring.datasource.password=", "spring.flyway.create-schemas=true",
     "jdd.build-id=http-test", "jdd.commerce-log-root=build/test-evidence", "jdd.log-publish-delay-ms=60000"
@@ -153,7 +154,7 @@ class CommerceHttpTest {
             jdbc.execute("ALTER TABLE commerce.inventory_movements DROP CONSTRAINT reject_test_reservation");
         }
     }
-    @Test void reproductionControlsAreAbsentByDefault() throws Exception {
+    @Test void reproductionControlsAreAbsentWhenDisabled() throws Exception {
         assertThat(request("POST", "/internal/reproduction/inventory-barrier", "{}").statusCode()).isEqualTo(404);
         assertThat(request("POST", "/internal/reproduction/refund-failure", "{}").statusCode()).isEqualTo(404);
     }
