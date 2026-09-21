@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -22,11 +23,25 @@ import static com.jdd.agent.infra.SourceEvidenceTools.*;
 /** Bounded JSONL scans; incomplete writes and scan limits are never reported as complete absence. */
 public final class LogEvidenceTools {
     private static final int MAX_BUILDS = 32, MAX_FILES = 32, SCAN_BYTES = 4 * 1024 * 1024, LINE_BYTES = 64 * 1024;
+    private static final int DISCOVERY_ENTRIES = 4096;
     private final Path root;
     private final JsonMapper json;
     private final Clock clock;
     private record Scan(List<Observation> observations, boolean partial, int duplicates, int files) {}
-    private record Listing(List<Path> paths, boolean partial) {}
+    private record LogFile(Path path, FileTime modified) {}
+    private record LogBuild(String buildId, List<LogFile> files) {}
+    private record Discovery(List<LogBuild> builds, boolean partial) {}
+    private static final Comparator<LogFile> RECENT_FILE = Comparator.comparing(LogFile::modified).reversed()
+            .thenComparing(file -> file.path().toString());
+    private static final class DiscoveryBudget {
+        int remaining = DISCOVERY_ENTRIES;
+        boolean partial;
+        boolean take() {
+            if (remaining == 0) { partial = true; return false; }
+            remaining--;
+            return true;
+        }
+    }
 
     public LogEvidenceTools(Path root, JsonMapper json, Clock clock) {
         this.root = root.toAbsolutePath().normalize(); this.json = json; this.clock = clock;
@@ -45,29 +60,26 @@ public final class LogEvidenceTools {
         var observations = new ArrayList<>(scan.observations());
         if (scan.partial()) observations.replaceAll(SourceEvidenceTools::partial);
         String scope = input.buildId() == null ? "로컬 보관 build 디렉터리" : "buildId=" + input.buildId();
-        return new Outcome(observations, scope + "의 JSONL 상관조건 AND 조회: " + observations.size() + "줄, 파일 " + scan.files()
+        return new Outcome(observations, scope + "의 JSONL 상관조건 AND 조회 (로그 파일 수정 시각 내림차순으로 빌드·파일 선택): " + observations.size() + "줄, 파일 " + scan.files()
                 + "개, 로컬 조회 " + attempts + "회. 동일 eventId 재출력 " + scan.duplicates() + "줄은 원문을 보존했으며 별도 업무 처리로 세지 마세요. "
                 + (scan.partial() ? "검색/결과 한도 또는 미완성 마지막 줄로 일부 결과입니다. 로그가 없다고 단정하지 마세요."
                 : "읽은 시점의 완성된 줄을 검색했습니다. outbox 지연 가능성이 있어 빈 결과는 장애 부재를 입증하지 않습니다."));
     }
 
     private Scan scan(SearchLogs input) {
-        Listing builds = input.buildId() == null ? list(root, true, MAX_BUILDS)
-                : new Listing(List.of(safePath(root, input.buildId())), false);
+        Discovery builds = discover(input.buildId());
         boolean partial = builds.partial();
         int remaining = SCAN_BYTES, files = 0, duplicates = 0;
         var observations = new ArrayList<Observation>();
         var eventIds = new HashMap<String, JsonNode>();
-        outer: for (Path directory : builds.paths()) {
-            if (!Files.isDirectory(directory, LinkOption.NOFOLLOW_LINKS)) throw unavailable();
-            String buildId = directory.getFileName().toString();
-            if (!buildId.matches("[A-Za-z0-9][A-Za-z0-9._-]{0,127}") || buildId.contains("..")) throw unavailable();
-            Listing logs = list(directory, false, MAX_FILES);
-            partial |= logs.partial();
-            for (Path path : logs.paths()) {
-                if (++files > MAX_FILES || remaining == 0) { partial = true; break outer; }
+        outer: for (LogBuild build : builds.builds()) {
+            String buildId = build.buildId();
+            for (LogFile file : build.files()) {
+                Path path = file.path();
+                if (files == MAX_FILES || remaining == 0) { partial = true; break outer; }
+                files++;
                 byte[] bytes;
-                try (var stream = Files.newInputStream(path)) { bytes = stream.readNBytes(remaining + 1); }
+                try (var stream = Files.newInputStream(path, LinkOption.NOFOLLOW_LINKS)) { bytes = stream.readNBytes(remaining + 1); }
                 catch (IOException error) { throw unavailable(); }
                 boolean clipped = bytes.length > remaining;
                 int readable = Math.min(remaining, bytes.length);
@@ -104,22 +116,48 @@ public final class LogEvidenceTools {
         return new Scan(observations, partial, duplicates, files);
     }
 
-    private static Listing list(Path directory, boolean directories, int limit) {
-        if (!Files.isDirectory(directory, LinkOption.NOFOLLOW_LINKS) || Files.isSymbolicLink(directory)) throw unavailable();
-        var result = new ArrayList<Path>();
-        boolean partial = false;
+    private Discovery discover(String buildId) {
+        var budget = new DiscoveryBudget();
+        var builds = new ArrayList<LogBuild>();
+        if (buildId != null) addBuild(safePath(root, buildId), builds, budget);
+        else {
+            requireDirectory(root);
+            try (var entries = Files.newDirectoryStream(root)) {
+                for (Path candidate : entries) {
+                    if (!budget.take()) break;
+                    if (Files.isSymbolicLink(candidate)) throw unavailable();
+                    if (Files.isDirectory(candidate, LinkOption.NOFOLLOW_LINKS))
+                        addBuild(safePath(root, candidate.getFileName().toString()), builds, budget);
+                }
+            } catch (IOException error) { throw unavailable(); }
+        }
+        builds.sort(Comparator.comparing((LogBuild build) -> build.files().getFirst().modified()).reversed()
+                .thenComparing(LogBuild::buildId));
+        if (builds.size() > MAX_BUILDS) budget.partial = true;
+        return new Discovery(List.copyOf(builds.subList(0, Math.min(MAX_BUILDS, builds.size()))), budget.partial);
+    }
+
+    private static void addBuild(Path directory, List<LogBuild> builds, DiscoveryBudget budget) {
+        requireDirectory(directory);
+        String buildId = directory.getFileName().toString();
+        if (!buildId.matches("[A-Za-z0-9][A-Za-z0-9._-]{0,127}") || buildId.contains("..")) throw unavailable();
+        var files = new ArrayList<LogFile>();
         try (var stream = Files.newDirectoryStream(directory)) {
             for (Path candidate : stream) {
+                if (!budget.take()) break;
                 if (Files.isSymbolicLink(candidate)) throw unavailable();
-                if (directories ? !Files.isDirectory(candidate, LinkOption.NOFOLLOW_LINKS)
-                        : !candidate.getFileName().toString().endsWith(".jsonl")) continue;
-                if (!directories && !Files.isRegularFile(candidate, LinkOption.NOFOLLOW_LINKS)) throw unavailable();
-                if (result.size() == limit) { partial = true; break; }
-                result.add(safePath(directory, candidate.getFileName().toString()));
+                if (!candidate.getFileName().toString().endsWith(".jsonl")) continue;
+                if (!Files.isRegularFile(candidate, LinkOption.NOFOLLOW_LINKS)) throw unavailable();
+                Path path = safePath(directory, candidate.getFileName().toString());
+                files.add(new LogFile(path, Files.getLastModifiedTime(path, LinkOption.NOFOLLOW_LINKS)));
             }
         } catch (IOException error) { throw unavailable(); }
-        result.sort(Comparator.comparing(Path::toString));
-        return new Listing(result, partial);
+        files.sort(RECENT_FILE);
+        if (files.size() > MAX_FILES) budget.partial = true;
+        if (!files.isEmpty()) builds.add(new LogBuild(buildId, List.copyOf(files.subList(0, Math.min(MAX_FILES, files.size())))));
+    }
+    private static void requireDirectory(Path directory) {
+        if (!Files.isDirectory(directory, LinkOption.NOFOLLOW_LINKS) || Files.isSymbolicLink(directory)) throw unavailable();
     }
     private static void validate(JsonNode line, String buildId) {
         if (!line.isObject() || !"1.0".equals(line.path("schemaVersion").asText())
