@@ -16,6 +16,14 @@
 
 
 
+## 2026-09-21T21:50:20+09:00 — 내부 runtime 공유·실제 경계 확인과 복구 fixture 정리
+
+- `ab89c30`의 전체 publish는 종료 0/184.686초였다. Python 65개·전체 Gradle check·세 앱 재빌드/재기동·PostgreSQL/HTTP/근거 연결이 통과했다. 현재 XML 집계는 161개 중 152개 통과·9개 조건부 제외·실패/오류 0이다. buildId는 `ab89c30f609b-c3676007d767`이며 실제 Agent 내부 llm은 test/mock/mock, businessReady=false다.
+- 실제 공유 CLI의 live 설정 누락·준비되지 않은 mock 실행 거절 두 경우를 다시 확인했다. 양쪽 종료 1이고 세 컨테이너·runtime·기존 MVP 자료 존재 여부가 그대로였으며 API/OAuth 호출 행은 0이다. 검사기 종료 0/1.886초, `mvp-no-activation-published-02/result.json`, `runtime-observation-publication.json`, `commands/20260921T124717.595864Z-published-runtime-observation-boundary.log`에 원문을 보존했다. 기본 검사·모의/실패 경계이며 실제 AI 품질 성공이 아니다.
+- 앞서 리더가 만든 VOC 복구 검증용 티켓 1개와 미전달 분석 2개만 정리했다. PostgreSQL 트랜잭션에서 전체 행을 보존된 성공 원문과 대조하고 잠근 뒤 삭제했다. 다른 데이터는 건드리지 않았고 해당 ID 잔여 0을 확인했다. 원문 증거는 그대로 유지한다. `voc-container-recovery-fixture-cleanup.json`, `commands/20260921T124716.992994Z-voc-recovery-fixture-cleanup.log`, 종료 0/0.478초다. 이후 실제 worker 활성화 때 임시 입력이 조사되는 것을 막기 위한 정리다.
+- 깨끗하고 동기화된 ab89c30의 team-check는 종료 1이며 세 역할·리더 모두 IN_PROGRESS였다. `commands/20260921T124718.149276Z-team-check-after-runtime-observation.log`. 한재홍의 792a0ec 로그인 성공은 해당 담당자 PC의 직접 결과다. 이 PC의 프로젝트 auth 파일은 아직 없고 모델 입력도 없어 여기의 실제 로그인/모델 성공으로 옮겨 적지 않는다.
+- 제출 원문 기준 경로는 runtime/submission/commerce-20260921-resumed다. 한재홍의 runtime/접수 수용량 인수, 김아름의 실행기/worker/runner 소비 결과를 계속 요청한다. LEAD-018·필수 논의·전체 실제 MVP는 미해소다. 리더는 현재 담당자 구현과 겹치지 않는 Agent 보고서/근거 처리를 읽어 독립 검토하고, 수정이 필요하면 대상·이유를 먼저 공유한다.
+
 ## 2026-09-21T21:42:53+09:00 — LEAD-018 내부 설정 관측 연결·14개 검사
 
 - 사전 공유한 Agent RuntimeController만 보완해 기존 필드를 유지하며 llm(runtime/provider/configuredModel)을 추가했다. 모델 팩토리와 같은 Spring Environment에서 기동 시 값을 고정하며 현재 어댑터의 모델명만 읽는다. mock/unknown은 다른 모델 설정을 읽지 않고 인증 경로·토큰·키를 조회/응답하지 않는다. businessReady=false와 실제 응답 모델/usage의 구분을 유지했다.
