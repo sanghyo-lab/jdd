@@ -179,3 +179,12 @@
 - VOC-LEAD-020/LEAD020: e237c35의 전체 future 기한·4MiB 수신 바이트 제한·초과 취소·interrupt 보존과 새 전송 검사 5개를 직접 읽었다. 이 PC의 네이티브 Java 21·기존 격리 PostgreSQL 17.6에서 `gradlew.bat :voc-app:test --tests 'com.jdd.voc.*HttpContractTest' --tests 'com.jdd.voc.AgentHttpTransportTest' --rerun-tasks` 종료 0/57초다. XML 4개·29개 검사 통과·실패/오류/제외 0을 확인했다.
 - 동일 키/429/일반 전달 재시도·조회 실패의 마지막 캐시 보존·lease/재시작과 티켓/분석 저장 24개, 실제 HTTP 본문 지연/UTF-8 크기/끝나지 않는 chunked/정확한 경계/중단 5개를 함께 검증했다. 실제 VOC HTTP/JDBC와 명시적인 합성 Agent HTTP다. 앱 DB·모델 호출은 없고 다른 PC의 runtime 복구 결과를 본인 실행으로 기록하지 않는다.
 - 원문 runtime/verification/web-transport-postgresql.log와 web-transport-postgresql-results/의 XML. 기존 사용자 DB/파일과 앞선 실패 원문은 보존했다. 수신 제한 수정과 소비 회귀를 직접 인수하며 리더의 최종 승인/DONE은 대신 작성하지 않는다. 실제 모델·분석 화면·shop·서버 간 인증·runner·공개 URL은 계속 구현/검증 대상이다.
+
+
+## 2026-09-21T22:54:00+09:00 — 티켓 웹 단위 main 공유·동시 답변 통합
+
+- 웹 소스 `495dbccb537024ded9cd666b0182c0b3b0f631e4`의 전체 publish가 종료 0으로 완료됐고 fetch한 GitHub origin/main에 포함됨을 확인했다. 검증 도중 새 원격 722c39f가 추가돼 양쪽 소스를 보존해 rebase한 뒤 전체 게이트를 재검증했다. 일반 push로 공유했으며 강제 push·사용자 변경 삭제는 없었다.
+- 최종 Python 자동화 검사 67개 통과, 현재 커밋에서 새로 내보낸 Java XML 27개 suite/183개 검사 중 성공 174·조건부 제외 9·실패/오류 0이다. web 13개 검사·production build/TypeScript와 3개 앱 기동·실제 DB/HTTP·SELECT 전용·근거 마운트 smoke도 통과했다. 원문 runtime/verification/web-publish.log와 latest-linux-gradle-check.json에 실제 testedCommit·결과 경로를 기록했다.
+- main push의 GitHub Actions 실행 35608317909가 실제 생성됐으며 현재 진행 중이다. 로컬 publish 성공과 원격 CI 최종 성공을 구분한다. [CI 실행](https://github.com/sanghyo-lab/jdd/actions/runs/35608317909)의 최종 결과를 이어 확인한다.
+- 동시 작성된 DISC-commerce-002에서 한재홍의 관측/P1 직접 인수와 김아름의 Windows 8/8 인수 기록을 모두 보존해 통합했다. 세 필수 합의자가 수락한 P1은 AGREED이며 runner/실제 모델 검증은 미해소다. agent002의 제공자 RESOLVED와 agent005의 최신 인수도 보존했다. 논의는 총 8건/미해소 6건/해소 2건이다.
+- 다음 구현 단위는 분석 요청·이력/진행·실패 안내·리포트와 근거 화면이다. shop·서버 간 인증·runner·현재 빌드의 실제 모델 검증·허용된 공개 배포도 남아 IN_PROGRESS/Goal active를 유지한다. 실제 모델·전체 MVP·다른 담당자의 완료를 주장하지 않는다.
