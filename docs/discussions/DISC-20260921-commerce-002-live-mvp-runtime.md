@@ -3,15 +3,15 @@
 | 항목 | 내용 |
 | --- | --- |
 | ID | DISC-20260921-commerce-002 |
-| 상태 | DISCUSSING |
+| 상태 | AGREED |
 | 제안 버전 | P2 |
 | 작성자 / 역할 | 이상효 / commerce·lead |
 | 정리 담당 | 이상효 |
 | 영향받는 역할 | commerce·lead, agent, voc |
 | 필수 합의자 | 이상효(리더), 한재홍(모델 실행), 김아름(공통 실행·runner) |
-| 확인·답변 대기 | 김아름 P2 관측/worker 준비 상태 인수·각 PC의 runner 실제 모델 검증 |
-| 생성 시각 / 최종 갱신 | 2026-09-21T21:17:00+09:00 / 2026-09-22T08:06:04+09:00 |
-| 다음 행동 / 담당 | 리더 P2 수락·실제 mock 준비 상태 인수, VOC 답변과 준비된 실제 모델 runtime 검증 |
+| 확인·답변 대기 | 김아름의 실제 준비 상태 소비·각 PC의 최신 실제 모델 runner 검증 |
+| 생성 시각 / 최종 갱신 | 2026-09-21T21:17:00+09:00 / 2026-09-22T08:29:13+09:00 |
+| 다음 행동 / 담당 | 김아름은 최신 공유 구현·mock 준비 상태를 로컬 인수하고 별도 준비된 실제 모델 검증으로 연결 |
 
 ## 결정할 질문
 
@@ -132,7 +132,7 @@
 
 ## 결정·실행·검증
 
-세 작업자의 P1 직접 수락·Windows 네이티브 검사 이력은 유지한다. 최신 P2는 Agent 제공 및 리더 인수가 끝났지만 김아름의 명시 답변과 각 PC의 실제 모델 runner 검증이 남아 DISCUSSING이다. 소스/흐름 검사나 mock 기동을 실제 MVP 성공으로 계산하지 않는다. 건별 해소 기준을 모두 확인하기 전에는 RESOLVED로 바꾸지 않는다.
+세 작업자의 P1 직접 수락·Windows 네이티브 검사 이력은 유지한다. 최신 P2도 김아름의 명시 수락으로 AGREED다. 김아름의 실제 준비 상태 소비와 각 PC의 최신 실제 모델 runner 검증은 남아 미해소다. 소스/흐름 검사나 mock 기동을 실제 MVP 성공으로 계산하지 않는다. 건별 해소 기준을 모두 확인하기 전에는 RESOLVED로 바꾸지 않는다.
 
 ## 해소 또는 재개 이력
 
@@ -172,3 +172,9 @@
 - 의견: 수락. workerReady는 소유권 획득·시작 복구 완료이고 businessReady는 DB·worker 준비·실제 어댑터 조합임을 제공 코드와 검사에서 확인했다. 인증 성공·계정 권한·실제 응답 모델·보고서 품질을 이 값으로 대신하지 않는다.
 - 리더가 `a9691bc`·`754528c`를 통합한 `86a0466`의 전체 publish와 실제 세 앱/DB/HTTP 연결을 통과했다. 실행 중 Agent는 workerEnabled=true·workerReady=true, test/mock/mock·businessReady=false다. 같은 기존 조사의 반복 내부 관측 GET과 없는 조사404, API/OAuth0·조사13행 불변도 확인했다. 별도 PostgreSQL의 관측 HTTP 검사3개는 새 실행으로 통과했으며 상세는 [P1 장부 인수](DISC-20260922-commerce-001-model-observations.md)에 있다.
 - 일반 publish의 실제 모델 호출은0이다. 리더 PC의 OAuth 로그인은 준비됐지만 모델 ID 답변과 전체 실제 검증은 남아 있다. 한재홍의 다른 PC 진행 중 verify-mvp를 이 PC의 성공으로 계산하지 않는다. 김아름의 P2 직접 답변과 실제 runner 결과까지 확인한 뒤 해소 여부를 판단한다.
+
+### 2026-09-22T08:29:13+09:00 — 김아름 / voc / P2 직접 수락
+
+- 의견: 수락. workerReady는 소유권 획득·시작 복구 완료, businessReady는 DB·worker·실제 어댑터/명시 runtime/provider 준비라는 의미를 인수한다. 인증·응답 모델·보고서 품질은 별도 검증하며 true를 모델 성공으로 쓰지 않는다. 조사별 장부/LOG의 소비 수락은 DISC-20260922-commerce-001 P1에 직접 기록했다.
+- 현재 Windows에서 공통 실행기의 test_live_mvp.py 11개를 실행해 모두 통과·실패/제외0이다. 준비 helper 경계·자식 환경·OS wrapper·준비된 runtime 보존을 검사했으며 원문은 `runtime/verification/leader-handoff-live-mvp-windows.log`다. 이전 8개 검증과 구분하며 실제 모델을 호출하지 않았다.
+- 최신 공유된 runner/부모 helper를 인계받고 이 PC의 실제 stack 소비를 이어간다. 일반 publish는 test/mock을 유지하고, 최신 빌드의 실제 모델 준비와 명시 검증을 별도로 수행한다. P2 합의는 완료됐지만 각 PC의 실제 검증과 해소 기준이 남아 AGREED로 유지한다.

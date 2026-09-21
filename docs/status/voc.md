@@ -1,6 +1,6 @@
 # 김아름 — VOC 티켓·AI 연동 작업 상태
 
-- 상태: 티켓·분석 저장과 Agent 전달/조회·근거 중계를 main에 공유했다. 실제 Agent 429·재시작 후 전달/조회 복구·설정 오류 분리를 검증했으며 로그인·티켓 웹 화면의 로컬 검증을 마쳤고 분석 화면·shop·runner는 진행 중이다.
+- 상태: 티켓·분석 저장과 Agent 전달/조회·근거 중계를 공유했다. 리더가 공유한 분석 화면·shop·실제 runner를 인계받아 이 PC의 소비 검증과 후속 보완을 진행한다.
 - 담당자: 김아름 (역할 C)
 - GitHub 계정: `AhReumKim-ar`
 - 작업 브랜치: `main`
@@ -9,12 +9,21 @@
 - 공유 커밋: 티켓 `d8246e9`, 주문 시각 정밀도 `1d29d20`, 분석 저장 `4de1a98`, 영속 전달/조회/근거 `f5064c8`, Windows 인수 요청 `4d412ec`
 - 담당 경로: `voc-app/`, `voc-core/`, `voc-infra/`, `web/`, `scenario-runner/`
 - 준비된 자료: [구현 범위](../roles/kim-areum-voc.md), [VOC·Agent 계약](../integration-contract.md), [커머스 계약](../commerce-interface.md), [프론트 설계](../frontend-deployment.md)
-- 다음 작업: web 분석 요청·진행/리포트/근거·shop, 서버 간 인증 연동, 이후 VOC-07 순차 runner 구현
+- 다음 작업: VOC-LEAD-HANDOFF-001의 최신 구현 검증, P1 모델 장부/LOG·P2 준비 상태 소비, 최신 실제 모델의 VOC-07 및 전체 runner·화면 인수
 - 제공받은 입력: Agent 조사 API·실행기·8개 조회 도구, commerce VOC-07/02/03 재현 자료. 실제 모델 검증 허용 범위·배포 환경은 별도다.
-- 검증 결과: 티켓·분석 HTTP/H2와 실제 PostgreSQL 계약, 전체 Gradle check, 세 앱 Docker 기동·smoke와 앱 재생성 후 티켓·분석 입력/이력/동일 키 보존 통과. 티켓 웹은 실제 브라우저로 검증했고 분석 화면·VOC runner·실제 모델은 미검증.
-- 연동 요청: 아래 논의의 P1 수락과 공통 생성기 책임을 기록했다. scenario-runner는 아직 미구현을 알리는 실패 종료 골격이다.
+- 검증 결과: 기존 backend·티켓 화면 직접 검증은 아래 기록에 보존한다. 리더가 공유한 최신 분석 화면·shop·runner의 전체 로컬 실행과 실제 모델 검증은 별도 인수 중이며 다른 PC의 성공으로 대신하지 않는다.
+- 연동 요청: 아래 인계와 두 논의의 최신 제안을 수락했다. 실제 HTTP runner 구현은 공유됐으며 현재 모델 품질·전체 시나리오·소비 검증이 남아 있다.
 
 작업 단위가 끝날 때 제공 가능한 기능, 변경한 계약, 실제 검증 명령·결과, 다음 작업을 갱신한다. 실패와 막힌 이유도 함께 기록한다.
+
+## 2026-09-22T08:29:13+09:00 — VOC-LEAD-HANDOFF-001 접수와 공유 절차 재개
+
+- 김아름/voc가 [리더 인계](lead.md)의 `8b23657`을 직접 확인하고 접수한다. 분석 요청·이력·리포트/4종 근거, shop, 실제 HTTP runner와 부모 준비/복구 helper는 `d642878`·`86a0466`·`18288a3`에 이미 공유됐다. 해당 구현을 기준으로 소비 검증과 필요한 보완을 이어가며 같은 기능을 다시 구현하지 않는다.
+- 이전 로컬 `30e4644`와 게시 clone의 `80b9f06`은 검증 도중 중단돼 원격 공유되지 않았다. 두 패치를 `runtime/verification/preserved-analysis-20260922/`에 보존하고 겹치는 구현의 일괄 재적용을 보류했다. 미반영 복구 기능은 최신 구현과 대조해 필요한 차이만 후속 단위로 옮긴다. 원격 공유 이력과 사용자 파일은 변경하지 않았다.
+- 깨끗한 추적 파일/인덱스와 진행 중 Git 작업을 확인한 뒤 root main을 `9393334`에서 `8b23657`로 fast-forward했다. 사용자 미추적 `docs/ralphthon-readiness.md`의 SHA-256 불변을 확인했다. Docker 24.0.7 응답도 확인했으나 최신 앱 기동·모델 성공을 의미하지 않는다.
+- [모델 관측/LOG P1](../discussions/DISC-20260922-commerce-001-model-observations.md)과 [준비 상태 P2](../discussions/DISC-20260921-commerce-002-live-mvp-runtime.md)를 직접 수락했다. Windows의 `python -m unittest discover -s scripts/tests -p test_live_mvp.py -v`는 현재 구현에서 11/11 통과·실패/제외0이다. 원문은 `runtime/verification/leader-handoff-live-mvp-windows.log`이며 모델을 호출하지 않은 실행 경계 검사다.
+- Agent 기록의 VOC-01 통과·VOC-02 인용 실패, 이후 PENDING과 v6 재조사 품질 실패를 확인했다. `9393334`의 서버 검증 보완 이후 실제 개선은 미검증으로 유지하며 완료 기준을 낮추지 않는다. 리더의 다른 PC 화면·142근거 비교와 본인 실행 결과를 구분한다.
+- 공유 순서: 이 인계/합의 문서 단위는 문서 검증 후 즉시 일반 push한다. 이후 최신 게시 clone에서 전체 check·세 앱 기동/연결을 검증한다. 코드 보완은 한 단위씩 검증·커밋·publish하고 원격 포함까지 확인한다. 세 역할/리더 JSON은 IN_PROGRESS를 유지한다.
 
 ## 2026-09-21 — 건별 논의와 답변 공유 체계
 
