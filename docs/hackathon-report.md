@@ -47,7 +47,7 @@ JDD는 자연어 문의를 입력받아 관련 주문과 결제·쿠폰·재고 
 
 버전과 의존성은 저장소의 빌드 파일·Wrapper·Compose에 고정되어 있다. 기술 선택만으로 업무·실제 모델·화면 완료를 주장하지 않는다.
 
-[현재 실행 정책](llm-runtime.md)은 로컬 개발·영상 데모를 프로젝트 전용 Codex OAuth로, 배포를 OpenAI API로 구분한다. 일반 up/check/publish는 test/mock이며 실제 모델을 호출하지 않는다. $50 API 프로모션은 배포 전용이고 기존 누적 $30 상한을 자동 증액하지 않는다. 리더 PC의 OAuth/API 실제 모델 호출은 0회다.
+[현재 실행 정책](llm-runtime.md)은 로컬 개발·영상 데모를 프로젝트 전용 Codex OAuth로, 배포를 OpenAI API로 구분한다. 일반 up/check/publish는 test/mock이며 실제 모델을 호출하지 않는다. $50 API 프로모션은 배포 전용이고 기존 누적 $30 상한을 자동 증액하지 않는다. 리더 PC는 프로젝트 전용 OAuth 로그인을 완료했지만 실제 사용할 모델 ID 확인과 검증이 남아 있고, OAuth/API 실제 모델 호출은 0회다.
 
 한재홍 PC의 gpt-5.6-luna 개발 시도는 VOC-07 3건·NORMAL 5건으로 저장 완료 3건/실패 5건이다. OAuth 44회 중 usage 관측 43회·미관측 1회이며 전체 사용량은 null로 보존했다. 완료된 NORMAL 두 건도 직접 인용 품질 통과로 계산하지 않는다. 코드·프롬프트를 바꾸며 실행한 시도이므로 독립 비교 평가나 성공률로 환산하지 않는다. 세부 결과는 [Agent 상태](status/agent.md)의 23:15·00:11·00:17 기록에 있다.
 
@@ -181,6 +181,19 @@ Agent 담당자의 별도 배포 API 최소 문의 한 건은 NEEDS_INPUT과 추
 | 이상효 PC·실제 모델 | OAuth/API 0회, 미검증 | 기동·mock·합성 HTTP 검증을 모델 품질 성공으로 계산하지 않음 |
 
 티켓 화면의 올바른 암호 로그인은 실제 HTTP와 세션 복원으로 확인한 범위이며 브라우저 폼의 성공 제출 검증으로 확대하지 않는다. 다른 PC의 원문은 그 PC에 보존되어 있고 공유된 [Agent 상태](status/agent.md)에서 검토 결과와 경로를 확인한다. 새 조사·리포트·근거·주문 화면과 runner는 아직 공유·통합 중이다.
+
+2026-09-22 이상효 위임 작업은 아래 단위까지 검증했다. web `594f753`과 runner `2c81adf`·`a023d75`는 리더가 통합 중이며, 이 표는 최종 통합 publish 성공이나 실제 모델 완료 기록이 아니다.
+
+| 대상 | 실행 결과 | 검증 한계·원문 |
+| --- | --- | --- |
+| 분석 화면 | 실제 VOC·PostgreSQL·mock Agent의 FAILED 흐름을 PC 1440×1000·모바일 390×844에서 6개 통과 | 실제 모델 0회; `runtime/collaboration/voc-web-completion/runtime/submission/browser-actual-analysis-02/` |
+| 보고서·근거 화면 | 합성 upstream HTTP로 리포트·4종 근거·오류·재전송 16개 통과 | 합성 결과이며 실제 모델 품질과 구분; 같은 제출 폴더의 `browser-fixture-analysis-01/` |
+| 주문 화면 | 실제 상품·주문·쿠폰·결제·취소·환불 PC/모바일 8개 통과; PostgreSQL 주문/결제/환불 각 1건·업무 로그 7개·재고 10 반환·실행 소스 해시 일치 | build `81fc1c41bd04-028f6e9a6796`; `browser-actual-shop-02/` |
+| runner 준비·복구 | 8개 독립 합성 접두어·9문의 준비, VOC-07의 서로 다른 PostgreSQL 연결/트랜잭션과 재고 -1, 실제 VOC 중지/시작 후 DB snapshot 8개 불변 | build `2c81adf9ed62-2e1514c167c4`; `runtime/collaboration/scenario-completion/runtime/verification/scenario-20260922/actual-e7aefe83f208/verification.json`; 조사·OAuth·API 전후 0건 |
+
+웹의 접근성 label 실패와 주문 화면의 쿠폰 표시 지연을 발견해 수정했다. 변경 전 실패·화면·DB 원문을 보존했고 의도한 VOC-06의 USED 쿠폰 상태는 그대로 표시한다. 위임 web의 Node 24 단위 검사 18개·production build와 runner의 networkless/loopback 검사를 통과했으나 실제 모델 11개 사례 완료를 뜻하지 않는다. 현재 필요한 Agent 연동은 실제 모델 관측 API와 준비 상태 판정이며 기존 담당자가 진행한다.
+
+별도로 리더의 `81fc1c4` 전체 publish는 280.006초/종료 0이었다. Python 70개, Java 193개 중 184개 통과·9개 조건부 제외·실패 0, web 14개와 세 앱의 실제 PostgreSQL·HTTP·근거 smoke를 확인했다. buildId는 `81fc1c41bd04-028f6e9a6796`이며 후속 web/runner 통합 검증과 구분한다.
 
 이상효 PC에서도 `0ba2862`의 공통 소비 검사로 같은 buildId의 VOC-01~07을 실제 8종 도구로 읽었다.
 총 300근거 저장·원문 HTTP 재조회·동일 접수 키·새로고침, 01~06의 DB 333필드와 업무 로그 원문 비교가 통과했다.
