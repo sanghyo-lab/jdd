@@ -1,5 +1,13 @@
 # 한재홍 — AI Agent 작업 상태
 
+## 2026-09-22T08:37:00+09:00 — v7 실제 최종 검수·VOC 직접 합의 인수
+
+- `27a7040` 전체 publish 종료0. Java222개 중213통과/9조건부제외·실패0, Python70/runner부모6/web19·production build·세 앱 실제 PostgreSQL/HTTP/근거 연결을 확인했다. 원문 `followup-final-review-publish.log/json`, XML집계 `followup-final-review-publish-tests.json`이며 일반 publish의 실제 모델 호출0이다.
+- local/codex_oauth/gpt-5.6-luna의 실제 화면 새 분석 `aaea9216-338a-4992-8b41-3e608214c548`/조사 `e9be5f20-2d07-4996-ac51-bc3940a125a7`가 8도구/47근거로 COMPLETED다. Agent build `27a704061a99-be6079ea0557`, 보존 업무 근거 build754528c다. 4번째 응답의 DATA 누락은 서버가 거절했고 5번째 초안은 비공개 상태로 최종 검수를 요청해 6번째 결과만 반환했다. 새로고침/모바일390에서 같은 ID, 진행 중 report없음과 완료/원문 연결을 확인했다.
+- 원문 직접 대조: 여섯 사실은 상품/쿠폰/실제 거절/정책/명시 조건의 빈 주문 조회를 각각 인용한다. 원인의 자체 DATA·LOG·CODE·POLICY 연결을 확인했고 빈 조회로 중단 단계까지 단정하던 문장은 사라졌다. CODE는 잘림 표시가 있는 검색 구간으로 보이는 경계식만 판단하며 전체 함수 검토 성공으로 확대하지 않는다. 해당 건 조치가 코드 수정 중심으로 예방과 겹쳐 운영자 재시도 안내의 구체성은 후속 품질 검수에 남긴다. 한 집중 사례의 인용 개선이지 일곱 건 전체 품질/반복 효율 통과가 아니다.
+- OAuth6회 입력106,489·출력5,367·reasoning1,248(출력 일부), cached/cache write0·모델137,738ms다. 최종 검수1회 자체는 입력25,088·출력1,382·reasoning160·26,233ms다. 기존 실패와 보정 비용을 포함하며 지연·효율 개선을 단정하지 않는다. 스택 누적67행/미관측usage1/API0/진행0을 DB·내부GET로 대조했다. 원문 `followup-oauth-voc02-04/`, `followup-voc02-04-diagnostics.log`, `followup-voc02-v7-review.json`, `followup-observations-after-voc02-04.log/json`을 보존한다.
+- `85f70a3` 김아름의 VOC-LEAD-HANDOFF-001 접수, P1 장부/LOG 및 P2 준비 상태 직접 수락을 인수했다. 두 논의는 AGREED/실제 소비 검증 대기이며 타인의 검증·DONE을 대신하지 않는다. 최신 통합 코드의 전체 실제 runner를 다음 단위로 실행한다. 다른 세션의 영상 산출물/별도 앱·브라우저는 보존한다.
+
 ## 2026-09-22T08:28:00+09:00 — 범위를 넘는 사실 판단 보존·한도 내 최종 검수
 
 - `9393334` 실제 화면의 VOC-02 새 분석 `46467684-592a-4fc8-b934-e5ed8aaf9b2a`/조사 `a10bf310-d29e-4ac5-87dd-5c4f8b136ed6`는 COMPLETED/22근거이나 의미적 검수는 실패다. 원인 자체의 DATA/LOG/CODE/POLICY 인용과 조치는 개선됐지만 F6가 빈 주문 조회 두 개만으로 쿠폰 단계 중단까지 단정했다. 원문과 `followup-voc02-03-review.json`을 보존한다. Agent build9393334/보존 커머스 근거754528c인 집중 재조사이며 최신 전체 MVP가 아니다.
@@ -15,6 +23,7 @@
 - 앞선 제작 지침 `e0d44c2`의 전체 publish는 종료0으로 공유됐다. Python70·Java219 중210통과/9조건부 제외·실패0, web 검사/production build, 세 앱 PostgreSQL/HTTP/근거 smoke 통과다. 모의 검사와 실제 연결 검사이며 서비스 모델·음성 API 호출은0이다. 이 간략화는 후속 문서 변경으로 별도 공유 검증한다.
 - 시나리오별 기대값·입력 분리·촬영 전 진위 검수는 유지했다. 실제 PPT·녹화·음성 샘플을 제작하거나 완성됐다고 표시하지 않았다.
 - 간략화는 동시 원격 `d4ab5b0`·`8b23657`을 보존해 통합·재검증하고 `3add054`로 전체 publish 종료0·main 공유를 확인했다. Python70·문서50/504링크/8JSON·web 검사/production build·Gradle check·세 앱 실제 연결이 통과했다. 변경 없는 Gradle 검사는 이전 통과 결과를 재사용했으며 Java XML 합계219/실패0/제외9다. 검증 Agent는 test/mock이고 모델/TTS 호출0이다. 원문은 분리 검증 clone의 `runtime/demo-prompt-publish-02.log`, `demo-prompt-publish-03.log`, 이 PC의 `runtime/demo-video-prompt-result.json`에 보존했다.
+
 
 
 ## 2026-09-22T08:20:05+09:00 — 7개 VOC 시연 영상 제작 프롬프트 준비
