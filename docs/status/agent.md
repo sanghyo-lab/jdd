@@ -4,6 +4,7 @@
 - 담당자: 한재홍 (역할 A)
 - GitHub 계정: 공유받은 뒤 기입
 - 작업 브랜치: `main`
+- 논의 소통 경로: [논의 목록·작성 규칙](../discussions/README.md). 새 논의의 답변은 해당 건의 Markdown에 직접 남기고 README의 상태·해소 근거를 함께 갱신한다. 기존 진행·검증 기록은 이 문서에서 유지한다.
 - 완료 선언: [agent.json](agent.json)의 IN_PROGRESS. 실제 검증 후 자기 DONE을 공유하고 [세 담당자 완료 기준](../team-completion.md)이 충족될 때까지 goal을 유지한다.
 - 시작 지침: [agent goal](../goals/agent.md), [복사할 goal 시작문](../prompts/goal-han-jaehong-agent.md), [필수 구현 프롬프트](../prompts/implement-voc-investigation-agent.md), [공통 실행](../local-development.md)
 - 작업 Issue·공유 커밋: 문서 보완 `3a8068e`(전체 publish 검증 통과). OpenAI 키 별도 제공의 후속 확인도 문서에 반영했다.
