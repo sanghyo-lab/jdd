@@ -2,7 +2,8 @@
 
 - 상태: 계획됨. 구현·실행·검증 전.
 - 담당 계정: 배정 후 기입
-- 작업 Issue·브랜치·PR: 시작 후 기입
+- 작업 브랜치: `main`
+- 작업 Issue·공유 커밋: 시작 후 기입
 - 담당 경로: `agent-app/`, `agent-core/`, `agent-infra/`
 - 준비된 자료: [협업 가이드](../collaboration.md), [연동 계약 초안](../integration-contract.md)
 - 다음 작업: C와 조사 API·리포트 형식 합의, B와 DB·로그·소스 조회 규약 합의

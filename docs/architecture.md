@@ -240,7 +240,7 @@ include 'scenario-runner'
 | B — 이커머스 | `commerce-app`, `commerce-core`, `commerce-infra` | 7개 장애 조건·초기 데이터·로그, 쿠폰·재고를 포함한 전체 업무 처리 |
 | C — VOC·AI 연동 | `voc-app`, `voc-core`, `voc-infra`, `web`, `scenario-runner` | 티켓별 분석 연결, 7개 전체 흐름, 동시 요청 재현 실행·결과 취합 |
 
-각 역할은 자신의 모듈에서 구현하고, B가 업무 스키마·로그·소스 규약을 제공하면 A가 조회 구현을 맞춘다. A가 조사·보고서 HTTP 계약을 제공하면 C가 티켓·화면에 연결한다. 공통 설정과 통합 순서, GitHub Issue·PR·상태 기록은 [협업 가이드](collaboration.md)를 따른다.
+각 역할은 자신의 모듈에서 구현하고, B가 업무 스키마·로그·소스 규약을 제공하면 A가 조회 구현을 맞춘다. A가 조사·보고서 HTTP 계약을 제공하면 C가 티켓·화면에 연결한다. 각자 별도 clone의 `main`에서 작업한다. 공통 설정과 동기화 순서, GitHub Issue·커밋·상태 기록은 [협업 가이드](collaboration.md)를 따른다.
 
 1. 공통 시작: 모듈 의존성, 추적 식별자, 주요 테이블, 도구 입출력, 보고서 구조를 맞춘다.
 2. 첫날 오전: 세 앱과 PostgreSQL을 실행하고, 최소 주문 API와 모델의 실제 도구 호출을 각각 확인한다. VOC와 프론트는 합의한 응답 형식으로 티켓·연동을 구현한다.

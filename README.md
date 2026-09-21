@@ -5,6 +5,7 @@
 - 해커톤: 3명, 2일
 - 주 기술: Java, Spring Boot
 - 3인 분담: AI Agent / 이커머스 / VOC 티켓 관리·AI 연동
+- GitHub 작업 방식: 각자 별도 clone의 `main`에서 개발하고, 검증한 변경을 커밋·push해 공유
 - 구조 제안: Gradle 백엔드 모듈 10개, 커머스·조사·VOC의 세 실행 단위
 - 프론트 제안: `web`의 Next.js·React·TypeScript, Vercel 배포
 - 조사 대상: 주문·결제·쿠폰·취소·재고에 관한 7개 문의 시나리오

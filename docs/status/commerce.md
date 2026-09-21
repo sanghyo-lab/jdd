@@ -2,7 +2,8 @@
 
 - 상태: 계획됨. 구현·실행·검증 전.
 - 담당 계정: 배정 후 기입
-- 작업 Issue·브랜치·PR: 시작 후 기입
+- 작업 브랜치: `main`
+- 작업 Issue·공유 커밋: 시작 후 기입
 - 담당 경로: `commerce-app/`, `commerce-core/`, `commerce-infra/`
 - 준비된 자료: [업무 정책](../business-policy.md), [7개 시나리오](../voc-scenarios.md)
 - 다음 작업: DDL·추적 식별자·로그 예제 제공, 최소 주문·재고 흐름 구현

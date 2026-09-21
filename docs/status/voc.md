@@ -2,7 +2,8 @@
 
 - 상태: 계획됨. 구현·실행·검증 전.
 - 담당 계정: 배정 후 기입
-- 작업 Issue·브랜치·PR: 시작 후 기입
+- 작업 브랜치: `main`
+- 작업 Issue·공유 커밋: 시작 후 기입
 - 담당 경로: `voc-app/`, `voc-core/`, `voc-infra/`, `web/`, `scenario-runner/`
 - 준비된 자료: [연동 계약 초안](../integration-contract.md), [프론트 설계](../frontend-deployment.md)
 - 다음 작업: 공통 실행 틀 취합, A와 API 계약 합의, 티켓·분석 요청 기록 구현
