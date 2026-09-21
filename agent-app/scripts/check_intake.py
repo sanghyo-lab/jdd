@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Verify intake against a running Agent. Uses synthetic input; never invokes a model."""
+"""Verify synthetic intake only after confirming the running Agent has its model disabled."""
 import argparse
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 import json
 from pathlib import Path
+import time
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 from uuid import uuid4
@@ -42,6 +43,9 @@ def main():
     parser.add_argument("--report", type=Path, default=Path("runtime/agent-intake.json"))
     parser.add_argument("--verify-existing", action="store_true", help="Recheck the saved report after an Agent restart")
     args = parser.parse_args()
+    with urlopen(args.base_url.rstrip("/") + "/internal/runtime", timeout=10) as response:
+        runtime = json.load(response)
+    require(runtime.get("investigationModel") == "DISABLED", "Refusing intake checks unless model mode is DISABLED")
     if args.verify_existing:
         data = json.loads(args.report.read_text())
         verify_saved(args.base_url, data)
@@ -61,8 +65,16 @@ def main():
 
     status, view = request(args.base_url, "/" + investigation_id)
     require(status == 200 and view["schemaVersion"] == "1.0", "Investigation view failed")
-    require(view["status"] == "QUEUED" and view["report"] is None and view["error"] is None,
-            "Intake-only implementation must retain QUEUED state")
+    if runtime.get("workerEnabled"):
+        deadline = time.monotonic() + 10
+        while view["status"] in ("QUEUED", "RUNNING") and time.monotonic() < deadline:
+            time.sleep(0.1)
+            status, view = request(args.base_url, "/" + investigation_id)
+        require(view["status"] == "FAILED" and view["error"]["code"] == "LLM_CONFIGURATION_ERROR",
+                "Disabled model must fail explicitly without a paid call")
+    else:
+        require(view["status"] == "QUEUED" and view["error"] is None, "Disabled worker must retain QUEUED")
+    require(view["report"] is None, "Disabled model must not produce a report")
     require(view["progress"] == [] and view["evidence"] == [], "Intake must not invent evidence")
     status, normalized = request(args.base_url, "", {**payload, "context": {"orderId": None}})
     require(status == 202 and normalized["investigationId"] == investigation_id, "Null normalization failed")
@@ -77,7 +89,7 @@ def main():
         status, invalid = request(args.base_url, "", {**payload, **malformed})
         require(status == 400 and invalid["code"] == "INVALID_REQUEST", "Invalid JSON scalar type was accepted")
 
-    data = {"checkedAt": datetime.now(timezone.utc).isoformat(), "mode": "intake-only",
+    data = {"checkedAt": datetime.now(timezone.utc).isoformat(), "mode": "model-disabled",
             "input": payload, "investigationId": investigation_id, "createdAt": view["createdAt"],
             "checks": ["concurrent-intake", "persisted-view", "null-normalization", "input-conflict",
                        "missing-evidence", "schema-validation", "strict-json-scalar-types"]}

@@ -1,8 +1,9 @@
 # Agent 조사 API와 영속 실행 상태
 
-현재 구현 범위는 v1 조사 접수·입력 스냅샷 저장·조사/근거 조회와 실행 상태 저장 계층이다.
-백그라운드 실행기·모델·조회 도구는 아직 연결하지 않았다.
-접수한 요청은 `QUEUED`에 머무르며 `progress: []`, `evidence: []`, `report: null`, `error: null`을 반환한다.
+현재 구현 범위는 조사 API·영속 비동기 실행·도구 반복·근거 저장·보고서 검증·비용 제어다.
+실제 OpenAI 어댑터와 커머스 조회 도구는 아직 연결하지 않았다.
+기본 모델은 DISABLED다. 접수 후 실행기가 `FAILED / LLM_CONFIGURATION_ERROR`를 저장하며 유료 호출은 하지 않는다.
+실행기를 명시적으로 끄면 요청은 QUEUED에 남는다. 모델·도구 반복은 합성 도구/모의 모델로 검증했다.
 `businessReady=false`를 유지한다. 완료된 AI 분석처럼 표시하지 않는다.
 
 ## 실행과 접수
@@ -28,10 +29,10 @@ GET /api/investigations/{investigationId}/evidence/{evidenceId}
 - 같은 키로 문의·버전·context·이전 조사 ID를 바꾸면 `409 REQUEST_KEY_CONFLICT`다.
 - context 생략/null/빈 객체와 context 내 null은 동일하게 취급한다. JSON 키 순서와 같은 시각의 UTC offset 표현도 중복 비교에 영향을 주지 않는다.
 - 추가 조사는 새 키와 같은 티켓의 `previousInvestigationId`로 접수한다. 없는 조사나 다른 티켓의 이전 조사는 `404 NOT_FOUND`다.
-- 근거는 조사 ID와 근거 ID를 함께 조회한다. 소속이 다르거나 없는 근거는 `404 NOT_FOUND`다. 아직 실제 근거를 생성하는 작업 실행기는 없다.
+- 근거는 조사 ID와 근거 ID를 함께 조회한다. 소속이 다르거나 없는 근거는 `404 NOT_FOUND`다. 실제 커머스 근거 조회 도구는 연결 중이다.
 - v1에 없는 입력 필드, 잘못된 시각, 정수가 아닌 ticketVersion, 공백 문의, 10,000자를 넘는 문의는 `400 INVALID_REQUEST`다.
 - 입력·조회 결과는 `agent.investigations`, 관측 원문은 `agent.investigation_evidence`에 저장한다. 요청 키의 DB 유일 제약으로 동시 접수도 한 조사만 생성한다.
-- 단일 SQL 접수는 즉시 커밋된다. 이후 작업 실행기는 이 저장된 입력을 읽어 비동기로 실행하도록 연결할 예정이다.
+- 단일 SQL 접수는 즉시 커밋된다. 백그라운드 실행기는 저장된 입력을 읽어 브라우저 연결과 독립적으로 실행한다.
 
 필드 상세는 [v1 계약](../docs/integration-contract.md)을 따른다.
 
@@ -44,8 +45,25 @@ GET /api/investigations/{investigationId}/evidence/{evidenceId}
 missingInformation에 따라 COMPLETED/NEEDS_INPUT을 서버에서 결정한다.
 
 중단·시간 초과는 근거를 보존한 FAILED이며, 종료 후 이전 실행 토큰으로 들어온 응답은 반영하지 않는다.
-`recoverInterrupted`는 단일 실행 소유자가 시작할 때만 호출해야 한다. 실행 소유권·스케줄러 연결은 다음 구현 범위다.
+PostgreSQL advisory lock을 가진 실행기 하나만 시작 복구·작업 접수를 수행한다.
+재시작 시 QUEUED는 이어 처리하고 RUNNING은 INTERRUPTED로 정리한다. 미정산 모델 예약은 UNKNOWN으로 남긴다.
 이 저장 계층의 합성 검증을 실제 VOC 조사·모델 품질 검증으로 간주하지 않는다.
+
+`InvestigationRunner`가 도구 반복을 소유한다. 모델 요청→서버 인자 검증→실제 도구 호출→근거 커밋→후속 모델 요청→보고서 검사 순서다.
+시스템 프롬프트는 `agent-infra/src/main/resources/prompts/investigation-system-v1.md`를 로딩하고 버전·SHA-256과 함께 모델 port에 전달한다.
+현재 모델 호출은 비활성 구현이며 테스트가 주입한 모의 모델에서 실제 프롬프트 전달을 확인했다.
+
+| 실행 설정 | 기본값 | 용도 |
+| --- | --- | --- |
+| JDD_AGENT_WORKER_ENABLED | true | 접수 이후 비동기 실행. 비활성 모델은 설정 오류로 종료 |
+| JDD_AGENT_WORKER_CONCURRENCY | 2 | 소형 로컬 DB 풀에서 실행 수 제한 |
+| JDD_AGENT_WORKER_MAXIMUM_RUNTIME | PT3M | 조사 전체 시한과 늦은 결과 차단 |
+| JDD_AGENT_LIMITS_MODEL_CALLS | 8 | 도구 후속 요청·보고서 수정 포함 |
+| JDD_AGENT_LIMITS_TOOL_CALLS | 24 | 조회 반복 상한 |
+| JDD_AGENT_LIMITS_REPORT_REPAIRS | 1 | 형식·근거 오류 수정 기회 |
+| JDD_AGENT_LIMITS_ARGUMENT_REPAIRS | 1 | 잘못된 도구/인자 수정 기회 |
+
+위 수치는 초기 실행 상한이며 실제 모델 지연·품질로 조정해야 한다. 처리량 측정 결과가 아니다.
 
 ## 모델 호출 허용과 비용 장부
 
@@ -77,7 +95,7 @@ python3 agent-app/scripts/check_intake.py
 입력 정규화·중복·충돌·동시 접수·이전 조사 연결·근거 소속·입력 오류를 확인한다.
 근거 테스트의 원문은 테스트가 DB에 넣은 합성 데이터이며 모델 분석 결과가 아니다.
 Docker 스택에서는 실제 PostgreSQL 접수·재조회·재시작 보존을 별도로 확인한다.
-`check_intake.py`는 실행 중인 Agent에 합성 요청을 보내고 `runtime/agent-intake.json`을 기록한다.
+`check_intake.py`는 `/internal/runtime`에서 모델 DISABLED를 확인한 경우에만 합성 요청을 보내고 `runtime/agent-intake.json`을 기록한다.
 Agent를 재시작한 뒤 `python3 agent-app/scripts/check_intake.py --verify-existing`으로
 동일 요청 ID·생성 시각의 보존을 확인한다. 포트를 바꿨으면 `--base-url`로 지정한다.
 
@@ -99,3 +117,15 @@ Agent를 재시작한 뒤 `python3 agent-app/scripts/check_intake.py --verify-ex
 ```bash
 ./gradlew :agent-app:test --tests com.jdd.agent.ModelCallLedgerTest --rerun-tasks
 ```
+
+`InvestigationRunnerTest`는 모의 모델의 도구 요청·저장 후 후속 요청·보고서/인자 수정 한도·실패·반복 HTTP 조회를 검증한다.
+실제 프로세스 복구와 실행 소유권은 기존 Compose DB에 전용 `jdd_agent_worker_test`를 생성해 검증한다.
+이 스크립트는 임시 Agent JVM을 시작/종료하고 합성 RUNNING 스냅샷을 주입한다. 서비스 DB는 초기화하지 않는다.
+
+```bash
+./gradlew :agent-app:bootJar
+python3 agent-app/scripts/check_worker.py --compose-dir /path/to/verification-clone --project verification-project
+```
+
+DB 설정은 지정한 clone의 `.env`에서 읽는다. 임시 JVM에는 DB·Java·로컬 포트 설정만 전달하며 모델 키를 전달하지 않는다.
+검증한 네트워크 호출은 로컬 HTTP/PostgreSQL이다. 실제 OpenAI·ngrok·VOC 업무 검증은 별도다.

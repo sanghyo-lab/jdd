@@ -1,0 +1,195 @@
+package com.jdd.agent;
+
+import com.jdd.agent.domain.*;
+import com.jdd.agent.domain.Investigation.*;
+import com.jdd.agent.domain.InvestigationExecutionRepository.*;
+import com.jdd.agent.domain.InvestigationModel.*;
+import com.jdd.agent.infra.InvestigationPromptLoader;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.jdbc.core.JdbcTemplate;
+import tools.jackson.databind.json.JsonMapper;
+import static org.assertj.core.api.Assertions.*;
+
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
+    "jdd.agent.worker.enabled=false",
+    "spring.datasource.url=jdbc:h2:mem:runner;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1",
+    "spring.datasource.username=sa", "spring.datasource.password=", "spring.flyway.create-schemas=true"
+})
+class InvestigationRunnerTest {
+    @Autowired InvestigationRepository repository;
+    @Autowired InvestigationExecutionRepository executions;
+    @Autowired JsonMapper json;
+    @Autowired JdbcTemplate jdbc;
+    @LocalServerPort int port;
+    private final Instant now = Instant.parse("2026-09-21T00:00:00Z");
+    private final Clock clock = Clock.fixed(now, ZoneOffset.UTC);
+    private final HttpClient http = HttpClient.newHttpClient();
+    private final AtomicInteger modelCalls = new AtomicInteger();
+    private final AtomicInteger toolCalls = new AtomicInteger();
+
+    @BeforeEach void clearSyntheticRows() {
+        jdbc.update("DELETE FROM agent.investigation_evidence");
+        jdbc.update("DELETE FROM agent.investigations");
+    }
+
+    @Test void runsToolStoresEvidenceThenReturnsReportAndRepeatedHttpReadsDoNotCallModel() throws Exception {
+        var claim = start();
+        var runner = runner(request -> {
+            assertThat(request.prompt().version()).isEqualTo("investigation-system-v1");
+            assertThat(request.prompt().sha256()).hasSize(64);
+            assertThat(request.prompt().text()).contains("같은 조사에 실제 저장한 관측", "requiresHumanAction");
+            if (request.iteration() == 1) return toolReply("read-1", "getInventoryContext", "{}");
+            var last = request.history().getLast();
+            assertThat(last.kind()).isEqualTo(MessageKind.TOOL);
+            var evidence = last.observations().getFirst();
+            assertThat(repository.findEvidence(claim.investigationId(), evidence.evidenceId())).contains(evidence);
+            assertThat(view(claim).progress().getFirst().status()).isEqualTo(ToolStatus.SUCCEEDED);
+            return reportReply(new AnalysisReport("1.0", "합성 관측을 확인했습니다.",
+                    List.of(new Fact("f1", "수량 관측", List.of(evidence.evidenceId()))), List.of(), List.of(), List.of(), List.of()));
+        }, tools(false), 8, 24);
+        runner.run(claim);
+        assertThat(view(claim).status()).isEqualTo(Status.COMPLETED);
+        assertThat(modelCalls).hasValue(2);
+        assertThat(toolCalls).hasValue(1);
+        for (int index = 0; index < 3; index++) {
+            var result = get("/" + claim.investigationId());
+            assertThat(result.statusCode()).isEqualTo(200);
+            assertThat(json.readTree(result.body()).get("status").asText()).isEqualTo("COMPLETED");
+        }
+        String evidenceId = view(claim).evidence().getFirst().evidenceId();
+        assertThat(get("/" + claim.investigationId() + "/evidence/" + evidenceId).statusCode()).isEqualTo(200);
+        var resend = http.send(HttpRequest.newBuilder(URI.create(base())).header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(json.writeValueAsString(claim.stored().input()))).build(), HttpResponse.BodyHandlers.ofString());
+        assertThat(resend.statusCode()).isEqualTo(202);
+        assertThat(json.readTree(resend.body()).get("investigationId").asText()).isEqualTo(claim.investigationId());
+        assertThat(modelCalls).hasValue(2);
+    }
+
+    @Test void repairsAReportOnceUsingValidationFeedback() {
+        var claim = start();
+        runner(request -> {
+            if (request.iteration() == 1) return new Reply("{invalid json", List.of());
+            assertThat(request.history().getLast().kind()).isEqualTo(MessageKind.FEEDBACK);
+            return reportReply(emptyReport());
+        }, tools(false), 8, 24).run(claim);
+        assertThat(view(claim).status()).isEqualTo(Status.COMPLETED);
+        assertThat(modelCalls).hasValue(2);
+        assertThat(toolCalls).hasValue(0);
+    }
+
+    @Test void rejectsRepeatedInventedEvidenceWithoutPublishingReport() {
+        var claim = start();
+        var invented = new AnalysisReport("1.0", "잘못된 합성 보고서", List.of(new Fact("f1", "없는 관측", List.of("invented"))),
+                List.of(), List.of(), List.of(), List.of());
+        runner(request -> reportReply(invented), tools(false), 8, 24).run(claim);
+        assertThat(view(claim).error().code()).isEqualTo("REPORT_VALIDATION_FAILED");
+        assertThat(view(claim).report()).isNull();
+        assertThat(modelCalls).hasValue(2);
+    }
+
+    @Test void unknownToolsGetBoundedFeedbackAndNeverExecute() {
+        var claim = start();
+        runner(request -> toolReply("bad-" + request.iteration(), "executeShell", "{}"), tools(false), 8, 24).run(claim);
+        assertThat(view(claim).error().code()).isEqualTo("TOOL_EXECUTION_FAILED");
+        assertThat(modelCalls).hasValue(2);
+        assertThat(toolCalls).hasValue(0);
+        assertThat(view(claim).progress()).isEmpty();
+    }
+
+    @Test void necessaryToolFailurePreservesPreviousObservations() {
+        var claim = start();
+        runner(request -> toolReply("read-" + request.iteration(), "getInventoryContext", "{}"), tools(true), 8, 24).run(claim);
+        assertThat(view(claim).status()).isEqualTo(Status.FAILED);
+        assertThat(view(claim).error().code()).isEqualTo("TOOL_EXECUTION_FAILED");
+        assertThat(view(claim).evidence()).hasSize(1);
+        assertThat(view(claim).progress()).extracting(ToolExecution::status).containsExactlyInAnyOrder(ToolStatus.SUCCEEDED, ToolStatus.FAILED);
+    }
+
+    @Test void lateModelResponseCannotOverwriteTimeout() {
+        var claim = start();
+        runner(request -> {
+            executions.expire(claim.deadline());
+            return reportReply(emptyReport());
+        }, tools(false), 8, 24).run(claim);
+        assertThat(view(claim).error().code()).isEqualTo("INVESTIGATION_TIMEOUT");
+        assertThat(view(claim).report()).isNull();
+        assertThat(modelCalls).hasValue(1);
+    }
+
+    @Test void modelAndToolLoopsHaveIndependentBounds() {
+        var claim = start();
+        runner(request -> toolReply("read-" + request.iteration(), "getInventoryContext", "{}"), tools(false), 2, 24).run(claim);
+        assertThat(view(claim).error().code()).isEqualTo("INVESTIGATION_BUDGET_EXCEEDED");
+        assertThat(modelCalls).hasValue(2);
+        assertThat(toolCalls).hasValue(2);
+        var next = start();
+        runner(request -> toolReply("read-" + request.iteration(), "getInventoryContext", "{}"), tools(false), 8, 1).run(next);
+        assertThat(view(next).error().code()).isEqualTo("INVESTIGATION_BUDGET_EXCEEDED");
+        assertThat(view(next).progress()).hasSize(1);
+    }
+
+    @Test void agreedModelFailuresAppearInStoredHttpResults() throws Exception {
+        Map<PaidModelGate.Rejection, String> expected = Map.of(
+                PaidModelGate.Rejection.CONFIGURATION, "LLM_CONFIGURATION_ERROR",
+                PaidModelGate.Rejection.TRANSPORT, "LLM_UNAVAILABLE",
+                PaidModelGate.Rejection.BUDGET_OR_LIMIT, "INVESTIGATION_BUDGET_EXCEEDED");
+        for (var reason : PaidModelGate.Rejection.values()) {
+            var claim = start();
+            runner(request -> { throw new PaidModelGate.Rejected(reason); }, tools(false), 8, 24).run(claim);
+            var response = get("/" + claim.investigationId());
+            assertThat(response.statusCode()).isEqualTo(200);
+            var body = json.readTree(response.body());
+            assertThat(body.get("status").asText()).isEqualTo("FAILED");
+            assertThat(body.get("report").isNull()).isTrue();
+            assertThat(body.get("error").get("code").asText()).isEqualTo(expected.get(reason));
+            assertThat(body.get("error").get("retryable").asBoolean()).isEqualTo(reason == PaidModelGate.Rejection.TRANSPORT);
+        }
+    }
+
+    private InvestigationRunner runner(Function<Request, Reply> function, InvestigationTools tools, int modelLimit, int toolLimit) {
+        InvestigationModel model = request -> { modelCalls.incrementAndGet(); return function.apply(request); };
+        return new InvestigationRunner(repository, executions, model, tools, InvestigationPromptLoader.load(),
+                value -> json.readValue(value, AnalysisReport.class), new InvestigationRunner.Limits(modelLimit, toolLimit, 1, 1), clock);
+    }
+    private InvestigationTools tools(boolean failSecond) {
+        return new InvestigationTools() {
+            @Override public List<ToolDefinition> definitions() { return List.of(new ToolDefinition("getInventoryContext", "합성 조회 도구", "{}")); }
+            @Override public List<String> validate(ToolCall call) { return List.of(); }
+            @Override public List<Observation> execute(ToolCall call) {
+                if (toolCalls.incrementAndGet() == 2 && failSecond) throw new IllegalStateException("Synthetic storage failure");
+                return List.of(new Observation(EvidenceType.DATA, "합성 관측", now, Map.of("schema", "commerce", "table", "product_stock"),
+                        Map.of("columns", List.of("quantity"), "rows", List.of(List.of(1))), false));
+            }
+        };
+    }
+    private Claim start() {
+        new InvestigationService(repository, clock).submit(new InvestigationInput("1.0", UUID.randomUUID().toString(), 1,
+                "test", "합성 조사", null, null));
+        return executions.claimNext(now, Duration.ofMinutes(3)).orElseThrow();
+    }
+    private Investigation view(Claim claim) { return repository.find(claim.investigationId()).orElseThrow().investigation(); }
+    private Reply toolReply(String id, String name, String arguments) { return new Reply(null, List.of(new ToolCall(id, name, arguments))); }
+    private Reply reportReply(AnalysisReport report) { return new Reply(json.writeValueAsString(report), List.of()); }
+    private AnalysisReport emptyReport() { return new AnalysisReport("1.0", "합성 검증용 보고서", List.of(), List.of(), List.of(), List.of(), List.of()); }
+    private String base() { return "http://127.0.0.1:" + port + "/api/investigations"; }
+    private HttpResponse<String> get(String path) throws Exception {
+        return http.send(HttpRequest.newBuilder(URI.create(base() + path)).GET().build(), HttpResponse.BodyHandlers.ofString());
+    }
+}

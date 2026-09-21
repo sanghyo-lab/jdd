@@ -248,6 +248,14 @@ Agent는 조사에 속한 근거인지, VOC는 티켓에 연결된 조사인지 
 | 필요한 도구 실행 실패 | 조사 GET은 `200`, status=FAILED | `TOOL_EXECUTION_FAILED` |
 | 리포트 형식·근거 참조 검증 실패 | 조사 GET은 `200`, status=FAILED | `REPORT_VALIDATION_FAILED` |
 | Agent 재시작으로 중단된 조사 | 조사 GET은 `200`, status=FAILED | `INTERRUPTED` |
+| 모델 실행 비허용·필수 설정 누락·인증/모델 접근 거절 | 조사 GET은 `200`, status=FAILED | `LLM_CONFIGURATION_ERROR`, retryable=false |
+| 한도 내 처리 후 모델 일시 장애·연결/개별 응답 시간 초과 | 조사 GET은 `200`, status=FAILED | `LLM_UNAVAILABLE`, retryable=true |
+| 비용 예약 거절·조사 토큰/모델/도구 호출 한도 소진 | 조사 GET은 `200`, status=FAILED | `INVESTIGATION_BUDGET_EXCEEDED`, retryable=false |
+
+모델 오류는 [DISC-20260921-agent-001 P1](discussions/DISC-20260921-agent-001-llm-errors.md)의 합의를 적용한다.
+retryable=true는 자동 유료 재조사 허가가 아니다. 실패한 조사에 같은 키를 보내면 기존 실패를 반환하며,
+허용 범위를 확인한 사용자의 새 키 재조사도 Agent의 기존 누적 예산 검사를 거친다.
+설정·예산·서버 오류를 NEEDS_INPUT으로 바꾸지 않는다. VOC는 미지의 code도 일반 오류로 표시한다.
 
 VOC가 Agent 상태를 조회하지 못하면 마지막 확인 상태·시각과 syncError를 표시한다. 통신 실패만으로 Agent 실행 상태를 FAILED로 바꾸지 않는다. 분석 실패를 새 실행으로 재시도할 때에는 새 요청 키를 사용한다. 접수 여부가 불확실한 전달 실패는 같은 키로 재전송해 기존 조사를 먼저 확인한다.
 
