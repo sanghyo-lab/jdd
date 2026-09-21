@@ -1,5 +1,16 @@
 # 한재홍 — AI Agent 작업 상태
 
+## 2026-09-21T22:11:56+09:00 — 배포용 API 키로 Luna 실제 연결 검증 성공
+
+- 사용자의 “배포용 프로모션 API키를 사용해서 테스트” 지시에 따라 `OPENAI_MODEL=gpt-5.6-luna`로 실제 OpenAI Responses 호출을 1회 수행했다. OAuth는 사용하지 않았다. Git 제외 `.env`의 키를 실행 자식에만 주입했으며 키·프로모션 원문은 기록하지 않는다.
+- 검증 대상은 `06de540`/buildId `06de54012475-2392c70a8ed4`의 분리된 배포 설정 컨테이너다. 이 PC에서 `APP_RUNTIME=deployed`, `LLM_PROVIDER=openai_api`, 모델 `OPENAI`를 직접 확인했다. 외부 배포 서버·공개 URL·프로모션 잔액을 검사한 결과는 아니다.
+- 이번 최초 API 검증의 고유 scope는 `jdd-api-luna-ty4g71k2`, 배정 $1, 전체/조사당/동시 호출 상한 각각 1, 출력 상한 2,048, reasoning low다. profile 만료는 `2026-09-21T15:07:59.387488Z`다. 기존 장부가 없는 것을 읽기 전용으로 확인하고 이 한 번의 검증에 배정했다. 일반 개발·CI·publish나 반복 평가로 확대하지 않는다.
+- `scripts/dev up`·`scripts/dev smoke` 종료 0 후 배포 overlay를 적용했다. `scripts/llm smoke-deployed --base-url http://127.0.0.1:61852` 종료 0, HTTP 200, 요청·응답 모델 모두 `gpt-5.6-luna`다. 조사 `83055958-a246-4dd9-8820-181eb4ca62bd`는 `NEEDS_INPUT`으로 종료했고 주문 번호·발생 시각을 요청했다. 근거·사실·원인 후보를 만들어내지 않은 구조화 보고서를 저장·재조회했다.
+- 영속 API 장부는 호출 1건·CONFIRMED, 입력 2,620·출력 152·캐시 입력 0·cache write 2,617·reasoning 0토큰이다. cache write는 입력의 부분이며 중복 합산하지 않는다. 기록한 단가로 계산한 비용은 $0.00083725, 미확정 책임액·진행 예약은 0이다. 이 값은 제공자의 청구서나 프로모션 실제 차감 확인을 대신하지 않는다.
+- 원문은 `runtime/submission/agent-20260921/deployed-api-luna/`의 `summary.json`, `investigation-result.json`, `model-calls-before.json`, `model-calls-after.json`, 실행 결과에 보존했다. 분리 스택만 종료했고 `jdd-api-luna-ty4g71k2_postgres-data` 볼륨의 비용 장부는 유지했다. 기존 실행 스택은 그대로다. 새 DB/배정으로 호출 상한이나 누적 비용을 초기화하지 않는다.
+- [DISC-20260921-agent-004](../discussions/DISC-20260921-agent-004-demo-allocation.md)에 실제 사용·scope를 공유한다. 이후 팀 배포 배정에서 이번 비용/장부를 포함해야 하며 전체 $30 조건을 유지한다. 실제 VOC 도구 조사·7개 업무 품질·화면/ngrok·원격 배포는 이번 최소 연결 검사의 범위 밖이며 DONE을 작성하지 않았다.
+- 공유 검증: `python3 scripts/check_docs.py`(47개 문서·424개 링크·8개 JSON 예제), `git diff --check` 통과. 공유 diff에 실제 키가 없음을 확인했다. 상태·논의 3개 문서만 협업 문서 공유 절차로 커밋·일반 push하며 추가 모델 호출·앱 재기동은 수행하지 않는다.
+
 ## 2026-09-21 — API 키 로컬 보관 위치 정리
 
 - 사용자 문의에 따라 실제 키를 Git 제외된 `.env`로 이동하고 파일 권한을 0600으로 설정했다. `.env.example`은 원래의 비밀 없는 예제로 복원했으며 다른 환경 값은 보존했다.
@@ -18,7 +29,7 @@
 - 담당 경로: `agent-app/`, `agent-core/`, `agent-infra/`
 - 준비된 자료: [구현 범위](../roles/han-jaehong-agent.md), [VOC·Agent 계약](../integration-contract.md), [커머스 조회 계약](../commerce-interface.md)
 - 다음 작업: 새 정책 snapshot과 VOC 분석 전달·web·runner를 인수하고 승인된 실제 모델·ngrok 검증을 연결한다. 일곱 업무의 실제 근거 조회·저장·원문 재조회 검사는 통과했다. 일반 실행의 유료 차단을 유지한다.
-- 필요한 입력: 김아름의 분석/화면/runner 전달 및 공개 ngrok 설정. 이 PC의 프로젝트 전용 Codex 로그인과 gpt-5.6-luna의 최소 OAuth 구조화 응답 검증은 성공했다. 실제 VOC 조사 품질·전체 연동은 미검증이다. API 크레딧은 배포 전용이며 배포 시 profile 범위를 별도로 설정한다. 배포 API 호출은 아직 0회다.
+- 필요한 입력: 김아름의 분석/화면/runner 전달 및 공개 ngrok 설정. 이 PC의 프로젝트 전용 Codex 로그인과 gpt-5.6-luna의 최소 OAuth 구조화 응답 검증은 성공했다. 배포용 API 키도 분리된 deployed/openai_api 컨테이너에서 최소 호출 1회·NEEDS_INPUT을 검증했다. 실제 VOC 조사 품질·전체 연동·원격 배포는 미검증이다. 전체 배포 profile·팀 누적 배정은 이번 $1/1회 범위와 장부를 포함해 별도로 정리한다.
 - 검증 결과: 전체 Gradle check·세 앱 Docker·PostgreSQL/HTTP smoke, 실제 DB 동시성·권한·복구·비용 예약과 일곱 커머스 조사 300근거·333필드/로그 대조를 확인했다. 모의 모델과 실제 모델을 구분하며 실제 모델 품질·화면은 미검증.
 - 연동 요청: 정책 archive 소비자 구현 제공, DISC-20260921-agent-003의 선택 ID 공백 입력 경계 확인. 기본 Compose는 explicit test/mock이며 OAuth/API로 자동 활성화·fallback하지 않는다.
 

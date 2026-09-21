@@ -8,9 +8,9 @@
 | 작성자 / 정리 담당 | 한재홍 / agent |
 | 영향받는 역할 | agent, voc, commerce/lead |
 | 필수 합의자 | 한재홍, 김아름, 이상효 |
-| 확인·답변 대기 | 배포 API 대상·scope·모델·예산·만료, Agent/lead 후속 정리 |
-| 생성 시각 / 최종 갱신 | 2026-09-21T19:25:10+09:00 / 2026-09-21T21:16:00+09:00 |
-| 다음 행동 / 담당 | P2 세 역할 영향 확인 완료. Agent/lead 배포 범위 정리·VOC worker/UI 구현·실제 모델 검증 준비 |
+| 확인·답변 대기 | 전체 배포 API 범위·누적 배정, Agent/lead 후속 정리 |
+| 생성 시각 / 최종 갱신 | 2026-09-21T19:25:10+09:00 / 2026-09-21T22:11:56+09:00 |
+| 다음 행동 / 담당 | 사용자 지정 배포 API 최소 호출 1회 성공. Agent/lead가 이번 비용·장부를 포함해 전체 배포 범위 정리 |
 
 ## P2 — 사용자 변경 지시 적용
 
@@ -134,9 +134,20 @@
 - VOC-AGENT-EXPORT-001 실제 인수: 리더 수정 0c07ca9를 포함한 코드에서 `python agent-app/scripts/export_model_calls.py --compose-dir . --output ..\..\verification\voc-ledger-export-portable.json`이 추가 DOCKER_CONFIG 설정 없이 종료 0이다. 제한된 환경에서 선택한 명령은 `C:\Program Files\Docker\Docker\resources\bin\docker.EXE compose`다. 실제 PostgreSQL READ ONLY on / REPEATABLE READ, budget=null·calls=0이며 모델 호출은 없다. 원문 SHA-256은 8e76e2c14ee65f36a2b0af6bbe15f393e1a9aea1f1f90bae17020befa9d82b77이다. 이 자료는 해당 설치의 API 장부이며 OAuth 사용량·계정 잔액 확인이 아니다. 리더/Agent에게 소비자 인수를 전달하고 그들의 지적·완료 기록은 대신 수정하지 않는다.
 - 세 역할의 P2 영향 답변은 모였지만 배포 범위·실제 활성화 조건과 소비자/모델 검증이 남아 DISCUSSING을 유지한다. 기존 P1 답변과 실패 기록은 보존한다.
 
+### 한재홍 — 사용자 지정 배포 API 최소 검증
+
+2026-09-21T22:11:56+09:00 / 한재홍 / agent / P2
+
+- 사용자 최신 지시는 “배포용 프로모션 API키를 사용해서 테스트”다. 앞서 지정한 `gpt-5.6-luna`를 `OPENAI_MODEL`에 적용하고 OAuth와 별개인 배포 설정 컨테이너에서 실제 API 연결을 검증했다. 이 명시적 최소 검증 요청을 전체 배포·반복 평가·타 PC의 새 배분 승인으로 확대하지 않는다.
+- 대상은 이 PC의 분리된 `06de540`/buildId `06de54012475-2392c70a8ed4`, `deployed/openai_api`다. scope `jdd-api-luna-ty4g71k2`, 이번 최초 API 배정 $1, 전체/조사당/동시 호출 상한 각각 1, 출력 2,048, reasoning low, profile 만료 `2026-09-21T15:07:59.387488Z`다. 활성화 전 장부 호출 0·budget=null을 확인했으며 P1의 PC별 배분은 재사용하지 않았다.
+- `scripts/dev up`·`scripts/dev smoke`와 배포 overlay 기동 뒤 `scripts/llm smoke-deployed --base-url http://127.0.0.1:61852`가 종료 0이다. 실제 API 요청 1회·HTTP 200·요청/응답 모델 `gpt-5.6-luna`, 합성 문의는 `NEEDS_INPUT`과 주문 번호·발생 시각 요청으로 종료했다. 실제 업무 도구 조사·7개 VOC 품질·화면/공개 URL·원격 배포 검증은 아니다.
+- 영속 장부 CONFIRMED 1건, input 2,620/output 152/cache read 0/cache write 2,617/reasoning 0이며 cache write는 입력의 부분이다. 계산 비용은 $0.00083725, 미확정 책임액·예약 잔액은 0이다. 사용자 제공 프로모션의 적용 조직/프로젝트·현재 잔액·실제 차감은 조회하지 않았으므로 해당 키와 크레딧의 연결을 확정하지 않는다.
+- 호출 ID `32b23db6-c4fa-4f3e-9a64-d393d8313738`, 조사 ID `83055958-a246-4dd9-8820-181eb4ca62bd`, 원문 `runtime/submission/agent-20260921/deployed-api-luna/`를 보존했다. 분리 스택 종료 뒤에도 `jdd-api-luna-ty4g71k2_postgres-data` 볼륨의 장부를 보존한다. 기존 스택은 건드리지 않았고 새 DB/scope로 이번 호출 상한·누적 비용을 초기화하지 않는다.
+- Agent/lead 후속 요청: 팀 전체 $30 제한의 다음 배정·집계에 이번 $1 배정과 실제 장부를 포함한다. 더 넓은 배포 대상·scope·한도·만료와 소비자/실제 업무 검증은 아직 남았으므로 P2의 전체 해소 기준과 DISCUSSING을 유지한다. 다른 담당자의 수락·완료는 대신 작성하지 않는다.
+
 ## 결정·실행·검증
 
-P1의 직접 수락은 이력으로 보존한다. P2의 runtime/provider 구분과 영향은 세 역할이 직접 확인했다. 배포의 대상·scope·모델·예산·만료가 남아 DISCUSSING이다. VOC는 Windows exporter 소비를 실제 검증했으며 이 결과를 OAuth 로그인·실제 모델 품질·화면 또는 팀 완료로 계산하지 않는다. 실제 활성화 조건과 소비자 구현/검증이 남아 RESOLVED는 아니다. 알려진 단가/예약과 실제 사용량을 구분한다.
+P1의 직접 수락은 이력으로 보존한다. P2의 runtime/provider 구분과 영향은 세 역할이 직접 확인했다. 사용자가 지정한 배포용 키의 Luna 최소 검증은 $1/1회 한도에서 성공했으며 실제 계산 비용·장부를 공유했다. 전체 배포의 대상·scope·누적 배정·만료가 남아 DISCUSSING이다. VOC는 Windows exporter 소비를 실제 검증했으며 최소 모델 연결과 exporter 결과를 실제 VOC 품질·화면 또는 팀 완료로 계산하지 않는다. 원격 배포·소비자 구현/검증이 남아 RESOLVED는 아니다. 알려진 단가/예약과 실제 사용량·청구/프로모션 차감을 구분한다.
 
 ## 해소 또는 재개 이력
 
@@ -149,3 +160,5 @@ P1의 직접 수락은 이력으로 보존한다. P2의 runtime/provider 구분�
 2026-09-21T21:02:00+09:00 / 이상효: 56cadd5의 OAuth/배포 API 분리로 P1 적용 조건이 바뀌어 REOPENED. 후속안과 직접 답변 대기.
 
 2026-09-21T21:16:00+09:00 / 김아름: P2 영향 직접 수락·Windows exporter 인수 완료. 배포 범위가 남아 DISCUSSING 유지, 본문과 목록의 대기 항목 갱신.
+
+2026-09-21T22:11:56+09:00 / 한재홍: 사용자 지정 배포 API 최소 검증 성공·1회 비용/장부 보존을 공유. 전체 배포 배정·품질 검증이 남아 DISCUSSING 유지.
