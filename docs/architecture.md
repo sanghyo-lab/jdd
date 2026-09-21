@@ -4,11 +4,12 @@
 
 이 문서는 3명이 Java·Spring Boot로 이틀 동안 구현할 구조 제안이다. 현재 저장소에는 설계 문서가 있으며, 아래 디렉터리와 빌드 설정은 구현 대상이다.
 
-- 하나의 저장소에 백엔드 Gradle 모듈 7개와 프론트 프로젝트 `web`을 둔다. 백엔드 빌드 스크립트는 Groovy DSL을 기본안으로 한다.
-- 상시 실행하는 Spring Boot 애플리케이션은 `commerce-app`과 `agent-app` 두 개다.
+- 하나의 저장소에 백엔드 Gradle 모듈 10개와 프론트 프로젝트 `web`을 둔다. 백엔드 빌드 스크립트는 Groovy DSL을 기본안으로 한다.
+- 상시 실행하는 Spring Boot 애플리케이션은 `commerce-app`, `agent-app`, `voc-app` 세 개다. A는 AI, B는 커머스, C는 VOC 티켓과 AI 연동을 담당한다. [3인 협업 가이드](collaboration.md)
 - `web`은 Next.js·React·TypeScript를 사용하는 별도 프로젝트로 제안한다. Vercel에서 화면과 짧은 API 중계 요청을 처리하고, 분석 작업은 Spring Boot 백엔드에서 실행한다.
 - 커머스의 상품·주문·결제·쿠폰·재고·취소는 같은 애플리케이션과 DB 트랜잭션 안에서 처리한다.
 - 조사 에이전트는 커머스의 데이터, 로그, 실행 버전의 소스코드를 독립적으로 조회한다.
+- VOC 앱은 티켓·담당자·업무 처리 상태와 분석 요청 이력을 관리하고, HTTP로 에이전트에 조사를 요청한다. [연동 계약](integration-contract.md)
 - [7개 VOC 시나리오](voc-scenarios.md)를 공통 도구로 분석하며, 재고 초과 판매를 주요 시연 후보로 삼는다.
 - [업무 정책](business-policy.md)을 정상 동작의 기준으로 제공한다. 장애 원인과 평가 정답은 평가 자료로 관리한다.
 
@@ -28,10 +29,15 @@ jdd/
 ├── agent-app/                      # Spring Boot 실행, 분석 API·작업 실행
 ├── agent-core/                     # 조사 흐름·도구 정의·근거·보고서
 ├── agent-infra/                    # DB·로그·소스 조회, 분석 이력 저장
+├── voc-app/                        # Spring Boot 실행, 티켓·분석 요청 API
+├── voc-core/                       # 티켓 모델·처리 상태·AI 연동 유스케이스
+├── voc-infra/                      # 티켓 저장·Agent HTTP 클라이언트
 ├── scenario-runner/                # 데이터 준비·동시 요청·시나리오 검증
 ├── infra/                          # PostgreSQL 실행·스키마·계정 초기화 설정
 ├── runtime/                        # 실행 로그·소스 스냅샷·재현 산출물
 └── docs/
+    ├── collaboration.md
+    ├── integration-contract.md
     ├── architecture.md
     ├── frontend-deployment.md
     ├── business-policy.md
@@ -45,12 +51,15 @@ jdd/
 | `commerce-app` | Controller, 요청·응답 DTO, 설정과 Bean 조립 | `commerce-core`, `commerce-infra` | Spring Boot, 제안 포트 8080 |
 | `commerce-core` | 상품·주문·결제·쿠폰·재고·취소 모델, 업무 규칙, 유스케이스, 저장소·결제 인터페이스 | 없음 | Java 라이브러리 |
 | `commerce-infra` | JPA Entity와 Repository 구현, 재고 SQL, 모의 결제 시스템, DB 마이그레이션 | `commerce-core` | Java 라이브러리 |
-| `agent-app` | 문의 접수, 분석 상태·결과 API, 작업 실행기, 모델 제공자 설정 | `agent-core`, `agent-infra` | Spring Boot, 제안 포트 8081 |
+| `agent-app` | VOC가 요청한 조사 접수, 분석 상태·결과 API, 작업 실행기, 모델 제공자 설정 | `agent-core`, `agent-infra` | Spring Boot, 제안 포트 8081 |
 | `agent-core` | 조사 서비스, Spring AI 호출과 도구 정의, 근거 모델, 보고서, 조회·저장 인터페이스 | 없음 | Java 라이브러리 |
 | `agent-infra` | 커머스 조회 SQL, JSON 로그 검색, 소스 파일 읽기, 정책 조회, 분석 이력 저장 | `agent-core` | Java 라이브러리 |
+| `voc-app` | 티켓·담당자·처리 상태 API, 분석 요청 전달·상태 갱신 작업 실행 | `voc-core`, `voc-infra` | Spring Boot, 제안 포트 8082 |
+| `voc-core` | 티켓 모델, 분석 요청·티켓 연결, 업무 상태, Agent·저장 인터페이스 | 없음 | Java 라이브러리 |
+| `voc-infra` | 티켓·분석 요청 기록 저장, Agent HTTP 클라이언트, VOC 마이그레이션 | `voc-core` | Java 라이브러리 |
 | `scenario-runner` | 시나리오 데이터 준비, HTTP 요청 실행, 재고 동시 요청, 기대 결과와 분석 결과 비교 | 없음 | 필요할 때 실행하는 Java 도구·테스트 |
 
-프론트 `web`은 문의·답변·근거 화면과 최소 쇼핑몰 화면을 담당한다. Java 프로젝트 의존성 없이 두 백엔드의 HTTP API에 연결한다. 배포 시 Vercel 프로젝트의 Root Directory를 `web`으로 지정한다. [Vercel 모노레포 문서](https://vercel.com/docs/monorepos)
+프론트 `web`은 티켓·답변·근거 화면과 최소 쇼핑몰 화면을 담당한다. Java 프로젝트 의존성 없이 VOC·커머스의 HTTP API에 연결한다. Agent 호출은 VOC 서버가 수행한다. 배포 시 Vercel 프로젝트의 Root Directory를 `web`으로 지정한다. [Vercel 모노레포 문서](https://vercel.com/docs/monorepos)
 
 `core`는 업무와 유스케이스의 경계다. `commerce-core`의 유스케이스에는 Spring의 DI·트랜잭션 지원을 사용하고, `agent-core`에는 Spring AI를 사용한다. JPA Entity·SQL·파일 접근 구현은 각각의 `infra` 모듈에 둔다. 따라서 라이브러리 모듈도 필요한 Spring 의존성을 가질 수 있다.
 
@@ -66,10 +75,13 @@ flowchart LR
     AA[agent-app] --> AC[agent-core]
     AA --> AI[agent-infra]
     AI --> AC
+    VA[voc-app] --> VC[voc-core]
+    VA --> VI[voc-infra]
+    VI --> VC
 ```
 
-- `commerce-core`와 `agent-core`가 필요한 조회·저장 인터페이스를 정의하고, `infra`가 구현한다. `app`이 구현체를 주입해 실행한다.
-- 두 앱 사이의 연결은 조사 도구의 데이터 접근으로 표현한다. 에이전트 모듈은 커머스 모듈을 프로젝트 의존성으로 가져오지 않는다.
+- 각 영역의 `core`가 필요한 조회·저장·외부 호출 인터페이스를 정의하고, `infra`가 구현한다. `app`이 구현체를 주입해 실행한다.
+- Agent는 커머스를 조회 도구로 조사하고, VOC는 Agent를 HTTP로 호출한다. 세 영역 사이에는 Gradle 프로젝트 의존성을 두지 않는다.
 - 에이전트가 사용하는 주문·재고 조회 결과는 `agent-core`의 조사용 DTO다. 커머스 Entity를 공유하지 않으므로 문제가 있는 업무 로직을 실행하지 않고 저장된 사실을 조사할 수 있다.
 - DB 스키마와 조회 SQL은 서로 연결된 계약이다. 커머스 스키마를 변경하면 관련 조사 SQL과 검증 데이터도 함께 맞춘다.
 - `scenario-runner`는 HTTP 요청과 별도 준비용 DB 연결로 실행 중인 앱을 다룬다. 운영 앱의 런타임 의존성에 들어가지 않는다.
@@ -85,7 +97,9 @@ flowchart LR
     Build[실행 빌드] --> Sources[소스 스냅샷과 buildId]
 
     Developer[개발팀] --> Web
-    Web -->|분석 접수와 상태 조회| Agent[agent-app]
+    Web -->|티켓과 분석 요청| VOC[voc-app]
+    VOC -->|티켓·조사 연결 저장| VDB[(voc 스키마)]
+    VOC -->|HTTP 조사 접수·조회| Agent[agent-app]
     Agent --> Core[agent-core 조사 서비스]
     Core <-->|모델 요청과 응답| LLM[LLM]
     Core --> Adapters[agent-infra 조회 구현]
@@ -96,19 +110,20 @@ flowchart LR
     Adapters -->|조사 이력 저장| ADB[(agent 스키마)]
 ```
 
-해커톤에서는 PostgreSQL 인스턴스 하나에 `commerce`와 `agent` 스키마를 둔다.
+해커톤에서는 PostgreSQL 인스턴스 하나에 `commerce`, `agent`, `voc` 스키마를 둔다.
 
 | 연결 | 사용하는 애플리케이션 | 접근 대상 |
 | --- | --- | --- |
 | `commerceDataSource` | `commerce-app` | `commerce` 스키마의 업무 데이터 읽기·쓰기 |
 | `evidenceDataSource` | `agent-app` | `commerce` 스키마의 조사 대상 테이블 SELECT |
 | `agentDataSource` | `agent-app` | `agent` 스키마의 문의·진행 내역·결과 읽기·쓰기 |
+| `vocDataSource` | `voc-app` | `voc` 스키마의 티켓·담당자·분석 요청과 조사 연결 읽기·쓰기 |
 
-두 앱은 각자 자신의 마이그레이션을 실행한다. 에이전트의 두 DataSource와 JDBC 실행기는 이름으로 구분하며, 증거 조회용 연결에는 마이그레이션을 연결하지 않는다. 커머스 조치와 코드 수정은 보고서의 제안으로 제공한다.
+세 앱은 각자 자신의 마이그레이션을 실행한다. 에이전트의 두 DataSource와 JDBC 실행기는 이름으로 구분하며, 증거 조회용 연결에는 마이그레이션을 연결하지 않는다. VOC는 Agent의 DB를 직접 읽지 않고 API로 조사 상태와 결과를 조회한다. 커머스 조치와 코드 수정은 보고서의 제안으로 제공한다.
 
 화면은 `web`에서 제공한다. 개발팀의 문의·답변 화면을 우선 완성하고, 같은 프론트의 `/shop`에는 주문을 재현하는 최소 화면을 둔다. 상세 화면 범위와 API 연결은 [프론트와 배포 설계](frontend-deployment.md)에 정의한다.
 
-해커톤 배포 기본안은 Vercel의 프론트와 별도 백엔드 호스트의 Spring Boot 두 앱·PostgreSQL이다. 백엔드 호스트는 공유 로그 볼륨과 실행 버전의 소스 스냅샷을 에이전트에 제공한다. 실제 호스팅 서비스는 팀이 사용할 수 있는 서버에 맞춰 정한다.
+해커톤 배포 기본안은 Vercel의 프론트와 별도 백엔드 호스트의 Spring Boot 세 앱·PostgreSQL이다. 백엔드 호스트는 공유 로그 볼륨과 실행 버전의 소스 스냅샷을 에이전트에 제공한다. 실제 호스팅 서비스는 팀이 사용할 수 있는 서버에 맞춰 정한다.
 
 ## 5. 커머스 내부 구조
 
@@ -168,16 +183,22 @@ agent-infra/com.jdd.agent
 
 대표 조사 흐름:
 
-1. 개발자가 자연어 문의와 알고 있는 주문·상품 식별자, 발생 시각을 입력한다.
-2. `web`이 Spring Boot API에 요청을 전달한다. 백엔드는 조사 ID를 발급하고 내부 작업 실행기에 분석을 등록한 뒤 `202 Accepted`를 반환한다.
+1. 개발자가 자연어 문의와 알고 있는 주문·상품 식별자, 발생 시각을 입력해 VOC 티켓을 만든다.
+2. `web`이 VOC에 분석을 요청한다. VOC는 입력 스냅샷과 요청 키를 저장하고 `202 Accepted`와 분석 요청 ID를 반환한다. 서버 작업이 Agent에 요청을 전달하고 반환된 조사 ID를 연결한다.
 3. 모델이 필요한 조회 도구를 선택한다. 앱이 도구를 실행하고 결과와 출처를 저장한다.
 4. 추가 조사가 필요하면 다른 도구를 호출한다. 호출 횟수·전체 시간·조회 결과 크기를 설정으로 제한한다.
 5. 조사 결과를 구조화된 보고서로 저장한다. 근거가 부족하면 필요한 추가 정보와 함께 결과를 남긴다.
-6. `web` 화면은 상태·실행한 도구·확인된 근거·보고서를 표시한다. 첫 구현은 조사 ID로 상태 API를 주기적으로 조회한다. 새로고침해도 저장된 조사 ID의 진행 내역과 결과를 다시 조회한다.
+6. VOC 서버가 Agent 상태를 갱신하고, `web`은 티켓·분석 요청 ID로 VOC API를 주기적으로 조회해 도구 실행 내역·근거·보고서를 표시한다. 새로고침해도 같은 티켓의 이력을 다시 조회한다.
 
 실행 상태는 `QUEUED`, `RUNNING`, `COMPLETED`, `NEEDS_INPUT`, `FAILED`를 기본으로 한다. 도구 호출 실패·시간 초과와 증거 부족을 구분한다. `NEEDS_INPUT` 상태에는 추가 정보로 재조사하는 흐름을 연결한다.
 
 보고서에는 확인된 사실, 근거를 가진 원인 후보, 해당 문의에 대한 조치, 코드·정책의 재발 방지 제안, 남은 확인 사항을 담는다. UI의 진행 내역은 실제 수행한 도구 작업과 결과 요약으로 구성한다.
+
+### VOC 티켓과 AI 연동
+
+`voc-core`는 티켓과 분석 요청 기록을 관리하고, `voc-infra`의 HTTP 클라이언트가 Agent를 호출한다. 티켓 업무 상태는 `OPEN`, `IN_PROGRESS`, `RESOLVED`로 구분하고 AI 조사 상태와 따로 저장한다. AI의 `COMPLETED`는 분석 종료이며, 담당자가 실제 조치를 확인한 후 티켓을 해결 처리한다.
+
+티켓 하나에 여러 조사를 연결한다. 동일 요청의 통신 재시도에는 같은 요청 키를 사용하고, 추가 정보로 새 조사를 시작할 때에는 새 키와 이전 조사 ID를 전달한다. 각 조사의 입력과 결과를 보존한다. 접수 응답 유실, 중복 요청, 일시적인 상태 조회 실패의 동작은 [연동 계약](integration-contract.md)을 따른다.
 
 ## 7. 로그·소스·근거의 연결
 
@@ -200,11 +221,12 @@ rootProject.name = 'jdd'
 
 include 'commerce-app', 'commerce-core', 'commerce-infra'
 include 'agent-app', 'agent-core', 'agent-infra'
+include 'voc-app', 'voc-core', 'voc-infra'
 include 'scenario-runner'
 ```
 
 - Java 21을 기본 후보로 하고, Java Toolchain과 테스트 설정을 통일한다.
-- Spring Boot 플러그인은 두 `app` 모듈에 적용한다. 두 앱의 실행 파일은 `bootJar`로 만들고, 네 `core`·`infra` 모듈에는 `java-library`를 적용해 일반 JAR로 사용한다. `scenario-runner`에는 Java `application` 플러그인과 테스트 설정을 둔다. [Spring Boot 패키징 문서](https://docs.spring.io/spring-boot/gradle-plugin/packaging.html)
+- Spring Boot 플러그인은 세 `app` 모듈에 적용한다. 세 앱의 실행 파일은 `bootJar`로 만들고, 여섯 `core`·`infra` 모듈에는 `java-library`를 적용해 일반 JAR로 사용한다. `scenario-runner`에는 Java `application` 플러그인과 테스트 설정을 둔다. [Spring Boot 패키징 문서](https://docs.spring.io/spring-boot/gradle-plugin/packaging.html)
 - Spring Boot와 Spring AI의 호환 버전을 중앙에서 고정한다. 확인한 공식 문서에서 Spring AI 2.0.x는 Spring Boot 4.0.x·4.1.x를 지원한다. 정확한 패치 버전은 초기 빌드와 모델 호출을 검증하며 확정한다. [Spring AI 시작 문서](https://docs.spring.io/spring-ai/reference/getting-started.html)
 - `core`에는 유스케이스와 도구가 필요한 의존성을, `infra`에는 사용하는 저장·조회 기술 의존성을 선언한다.
 - 앱은 명시적인 설정 Import와 범위가 정해진 Component·Entity·Repository 스캔으로 필요한 구현체를 조립한다.
@@ -214,16 +236,16 @@ include 'scenario-runner'
 
 | 담당 | 주 작업 경계 | 시나리오 책임 |
 | --- | --- | --- |
-| A | 커머스의 상품·주문·재고·결제·취소 흐름, 업무 DB와 로그 | VOC-01·04, VOC-05·06 취소 처리, VOC-07 재고 처리 |
-| B | `agent-core`, 증거 조회 구현, 커머스 쿠폰 패키지 | VOC-02·03, 공통 분석과 근거 연결 |
-| C | `web` 문의·근거 화면과 Vercel 연결, 분석 API·이력 연결, `scenario-runner` | VOC-05·06 재현·검증, VOC-07 동시 요청 재현 |
+| A — AI Agent | `agent-app`, `agent-core`, `agent-infra` | 7개 공통 조사, 근거·원인·해결안 검증 |
+| B — 이커머스 | `commerce-app`, `commerce-core`, `commerce-infra` | 7개 장애 조건·초기 데이터·로그, 쿠폰·재고를 포함한 전체 업무 처리 |
+| C — VOC·AI 연동 | `voc-app`, `voc-core`, `voc-infra`, `web`, `scenario-runner` | 티켓별 분석 연결, 7개 전체 흐름, 동시 요청 재현 실행·결과 취합 |
 
-같은 모듈에서도 기능 패키지와 파일별로 담당을 나눈다. A가 업무 스키마와 조회에 필요한 필드를 정리하고 B가 조회 SQL을 맞춘다. B가 보고서·진행 이벤트 DTO를 정리하고 C가 API·화면·저장을 연결한다. 프론트 배포를 추가한 만큼 화면은 문의·근거와 최소 주문 흐름으로 한정하고, 첫날에 실제 백엔드 연결을 확인한다.
+각 역할은 자신의 모듈에서 구현하고, B가 업무 스키마·로그·소스 규약을 제공하면 A가 조회 구현을 맞춘다. A가 조사·보고서 HTTP 계약을 제공하면 C가 티켓·화면에 연결한다. 공통 설정과 통합 순서, GitHub Issue·PR·상태 기록은 [협업 가이드](collaboration.md)를 따른다.
 
 1. 공통 시작: 모듈 의존성, 추적 식별자, 주요 테이블, 도구 입출력, 보고서 구조를 맞춘다.
-2. 첫날 오전: 두 앱과 PostgreSQL을 실행하고, 최소 주문 API와 모델의 실제 도구 호출을 각각 확인한다. 프론트는 합의한 응답 형식으로 화면을 구현한다.
+2. 첫날 오전: 세 앱과 PostgreSQL을 실행하고, 최소 주문 API와 모델의 실제 도구 호출을 각각 확인한다. VOC와 프론트는 합의한 응답 형식으로 티켓·연동을 구현한다.
 3. 첫날 오후: 실제 문의 한 건을 프론트에서 끝까지 분석하고 7개 시나리오 데이터를 준비한다. 재고 동시 요청의 재현과 증거 기록을 확인한다. 백엔드의 HTTPS 주소가 준비되면 Vercel Preview에서도 같은 문의를 실행한다.
 4. 둘째 날 오전: 7개 시나리오를 반복 실행해 원인·근거·해결안을 검증한다.
 5. 둘째 날 오후: 정상·정보 부족 사례, 조사 및 검토 시간, 발표 흐름을 정리한다.
 
-첫 통합 완료 기준은 화면에서 입력한 문의가 실제 DB·로그·소스 조회를 거쳐, 개발자가 출처를 열어볼 수 있는 보고서로 반환되는 것이다.
+첫 통합 완료 기준은 티켓의 문의가 실제 DB·로그·소스 조회를 거쳐, 개발자가 출처를 열어볼 수 있는 보고서로 연결되는 것이다.
