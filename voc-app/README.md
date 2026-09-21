@@ -37,3 +37,5 @@ AI 상태와 무관하게 티켓을 OPEN·IN_PROGRESS·RESOLVED로 변경하고 
 `./gradlew :voc-app:test --tests com.jdd.voc.TicketHttpContractTest --rerun-tasks`를 실행한다.
 이 모드는 voc 스키마를 생성하고 각 테스트 전에 이 별도 DB의 티켓 fixture를 비운다.
 일반 앱 DB에 연결하지 않는다. 이 테스트의 성공은 실제 Agent·모델·MVP 검증을 의미하지 않는다.
+외부 DB 모드에서는 `--rerun-tasks`를 생략해도 Gradle의 UP-TO-DATE·빌드 캐시를 재사용하지 않는다.
+DB 모드만 검사 입력으로 구분하며 URL·비밀번호는 fingerprint에 포함하지 않는다.

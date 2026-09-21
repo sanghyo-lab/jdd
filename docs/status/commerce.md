@@ -17,6 +17,15 @@
 
 작업 단위가 끝날 때 제공 가능한 기능, 변경한 계약, 실제 검증 명령·결과, 다음 작업을 갱신한다. 실패와 막힌 이유도 함께 기록한다.
 
+## 2026-09-21T20:43:25+09:00 — 작업 재개·VOC 검증 재사용 오류 보완
+
+- 사용자의 재개 지시 후 원격 `0dd5bf9`·`eafb8ac`·`8d80786`의 전체 소스/테스트/계약/논의 변경을 읽고 깨끗한 main에 반영했다. 정책 사본 생성기·선택 메타데이터 계획·VOC 공백 거절이 새로 공유돼 독립 인수를 재개한다. 이전 차단 기록은 당시 상태이며 새 공유 입력을 반영했다.
+- LEAD-014: VOC 테스트에는 외부 DB 모드 구분과 재사용 차단이 없어 실제 PostgreSQL을 바꿔도 같은 명령이 UP-TO-DATE로 종료 0을 반환했다. 전용 `jdd_voc_contract_test`의 합성 티켓 제목을 CACHE_PROBE_CHANGED로 바꾼 뒤 원래 값이 복구되지 않고 XML도 그대로인 반례를 확인했다. 기본 앱 DB/기존 재현 자료는 변경하지 않았다.
+- 리더 보완: `voc-app/build.gradle`에 외부 DB 모드 플래그와 UP-TO-DATE/빌드 캐시 차단, README의 실행 설명만 추가했다. 김아름의 분석 전달/화면/runner 구현 경로는 중복 수정하지 않았다. API·업무 계약·테스트 단언·담당자 DONE은 변경하지 않는다.
+- 수정 전 독립 검증기는 종료 1/25.625초, 수정 후 같은 명령 두 번 모두 새 XML·원래 티켓 제목을 확인해 종료 0/28.408초다. 강제 재실행 옵션을 사용하지 않았다. `runtime/submission/commerce-20260921-resumed/voc-postgresql-cache-before/`·`after/`, 명령 로그 `commands/20260921T114122.082859Z-voc-postgresql-cache-before.log`·`20260921T114202.562875Z-voc-postgresql-cache-after.log`에 실패/성공을 보존했다.
+- 새 VOC HTTP 계약 7개를 같은 전용 PostgreSQL에서 실행해 모두 통과·실패/건너뜀 0이었다. 공백 ID·빈 값·탭/개행·유니코드 공백의 생성/PATCH 거절, 데이터/버전 불변, null 생략·정상 문자 보존을 확인했다. `voc-blank-identifiers-postgresql-01/`와 `commands/20260921T114237.000379Z-voc-blank-identifiers-postgresql.log` 종료 0/13.444초. 검증 buildId는 ticket-contract-test이고 소스는 `8d80786`+검증 설정 변경이다.
+- 전체 publish로 기본 H2 복귀·신규 snapshot 생성·3앱 재기동/연결을 확인한다. 이어 새 실제 정책 사본을 Agent 도구로 읽고 저장/재조회한다. 유료 호출 0회이며 실제 모델/화면/runner·역할 완료는 아직 남아 있다.
+
 ## 2026-09-21T20:21:10+09:00 — 외부 조건에 따른 goal 차단 판정
 
 - 독립 구현/인수를 공유한 `f0ddbb6` 이후 세 연속 goal 회차에서 같은 조건을 재확인했다. 현재 main `c63189c`에 새 소비자 구현·답변이 없고, web 없음·VOC analyses 빈 목록·runner 미구현·Agent DISABLED·ngrok 기본 설정 없음이 그대로다. 다른 PC의 실행 의도나 상태 파일을 살아 있는 작업의 증거로 사용하지 않았다.

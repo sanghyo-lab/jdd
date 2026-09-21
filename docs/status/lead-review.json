@@ -224,6 +224,14 @@
       "description": "The explicit demo override inherited two investigation worker slots while the profile example and proposed demo plan permit one concurrent model call. Concurrent investigations could hit the ledger concurrency rejection. This was a configuration finding, not an observed paid-provider failure.",
       "resolution": "Set JDD_AGENT_WORKER_CONCURRENCY=1 only in agent-app/compose.openai-demo.yaml. Keep standard development Compose, model activation conditions and all ledger limits unchanged; do not edit the owner's in-progress queue expiry/claim implementation.",
       "verification": "Rendered Compose configuration before/after: demo-worker-concurrency-before.json has worker=2/model=1; demo-worker-concurrency-after.json has worker=1/model=1 and verifies the standard Compose has neither this override nor paid activation. Used the expired example profile and a nonexistent key path; no app activation or model calls. Actual paid-model concurrency/quality remains part of the pending approved demo."
+    },
+    {
+      "id": "LEAD-014",
+      "owner": "voc",
+      "status": "VERIFIED",
+      "description": "VOC HTTP contracts did not track external PostgreSQL mode and could return UP-TO-DATE with unchanged XML after test database contents changed.",
+      "resolution": "Track only presence of VOC_TEST_DB_URL and disable up-to-date/build-cache reuse in that mode; preserve all assertions and H2 defaults. Only voc-app build settings and verification README changed.",
+      "verification": "Dedicated jdd_voc_contract_test: voc-postgresql-cache-before/result.json records the skipped repeat with CACHE_PROBE_CHANGED title and unchanged XML (verifier exit 1). Both fixed repetitions execute and restore the expected title in voc-postgresql-cache-after/result.json (exit 0). Current VOC HTTP contracts 7/7 passed on PostgreSQL with no skips in voc-blank-identifiers-postgresql-01. No application DB changes or paid model calls. Final approval remains pending."
     }
   ]
 }

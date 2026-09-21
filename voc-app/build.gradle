@@ -12,3 +12,11 @@ dependencies {
     testRuntimeOnly 'com.h2database:h2'
 }
 tasks.named('bootJar') { archiveFileName = 'app.jar' }
+tasks.named('test') {
+    // Keep the default H2 run distinct from explicit isolated PostgreSQL contracts.
+    def externalDatabase = providers.environmentVariable('VOC_TEST_DB_URL').isPresent()
+    inputs.property('isolatedPostgresContracts', externalDatabase)
+    // External rows can change without tracked code changes or new task fingerprints.
+    outputs.upToDateWhen { !externalDatabase }
+    outputs.doNotCacheIf('External PostgreSQL requires a fresh execution') { externalDatabase }
+}
