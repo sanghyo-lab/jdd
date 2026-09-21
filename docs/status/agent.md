@@ -1,5 +1,14 @@
 # 한재홍 — AI Agent 작업 상태
 
+## 2026-09-21T23:15:43+09:00 — 실제 VOC-07 보고서 완료·근거 검수·화면 인수 대기
+
+- `9d1bb86`을 전체 publish 종료 0으로 공유했다(`followup-concise-publish.log/json`). Python 67개·web 13개/production build·전체 Gradle check·세 앱/실제 PostgreSQL/HTTP/근거 연결이 통과했다. 일반 검증의 실제 모델 호출은 없다.
+- 같은 합성 티켓 `91e465e9-eaa6-4f84-9359-96479579e132`의 새 키/이전 조사 ID로 수동 local/codex_oauth 재조사를 실행했다. Agent build `9d1bb86d7351-c8c49a025b79`, 보존 commerce build `8bd5699533be-057bb12f48d9`. 분석 `3cb8890a-6eb1-4468-b31f-47d41a9ce2a7`, 조사 `ef5c5be8-0343-4b50-84f0-3b2621c5af27`은 COMPLETED로 보고서를 저장했다. 이전 두 실패와 근거는 삭제하지 않았다.
+- 9개 실제 조회 도구·32개 저장 근거 중 13개를 보고서에서 인용했다. 검수 결과 주문 두 건/서로 다른 키·초기 재고 1·예약 합계 -2·최종 재고 -1이 DB/JSON 로그와 일치한다. 실행 build 소스의 별도 확인/조건 없는 차감과 demo-v1 정책에 근거한 경쟁 조건 가설, 정확한 트랜잭션 순서/일부 소스 잘림의 한계, 사람이 검토할 조치 2개·재발 방지 2개/검증 방법을 구분한다. 한 건의 VOC-07 품질 인수이며 전체 시나리오·모델 비교 통과가 아니다.
+- 실제 gpt-5.6-luna OAuth 6회, 입력 69,907·출력 4,782·캐시 입력 9,728·cache write 0·reasoning 505토큰을 관측했다. 캐시 입력은 입력의 부분이고 reasoning은 출력의 부분이다. 모델 요청 지연 합계 117,078ms, 조사 약 117.62초다. API 비용으로 환산하지 않으며 앞선 실패의 미관측 usage는 여전히 null이다. 이 스택은 OAuth 총 18행·API/배포 예산 행 0이며 다른 배포 검증 장부는 보존했다.
+- 인증된 로컬 web→VOC 중계에서 완료 보고서와 근거 32개 전체가 Agent 저장 원문과 일치했다. 같은 키 재전송·명시 refresh·조회 후 같은 분석/조사 ID와 OAuth 18/API 0을 유지했다. 티켓은 OPEN이며 AI 완료를 티켓 해결로 바꾸지 않는다. 원문 `runtime/submission/agent-20260921/followup-oauth-voc07-03/`, `followup-oauth-voc07-run-03.log/json`, `followup-report-review.json`, `followup-report-review-run.log/json`이다.
+- [DISC-agent-001](../discussions/DISC-20260921-agent-001-llm-errors.md)에 두 실패→새 키 완료 및 저장 조회 결과를 인계한다. 김아름의 분석 화면·오류/기존 입력 안내·runner는 진행 중이므로 중복 구현하지 않고 약 60초마다 원격을 확인한다. PC/모바일의 실제 보고서 패널·ngrok와 나머지 여섯 VOC/NORMAL/NEEDS_INPUT/복구 품질·팀 완료는 별도 미검증이며 IN_PROGRESS다.
+
 ## 2026-09-21T23:07:13+09:00 — 조회 묶음 실제 인수·보고서 전송 실패 보존·티켓 웹 직접 확인
 
 - `3cc8bd4`와 macOS 공통 검사 보완 `b1f2d45`를 전체 publish 종료 0으로 공유했다. Python 67개·Java 186개 중 성공 177/조건부 제외 9·실패/오류 0, web 13개/production build와 세 앱/실제 DB/HTTP/근거 연결이 통과했다. 원문 `followup-budget-aware-publish-02.log/json`, `followup-publication-junit.json`이다. 앞선 macOS 실패도 별도 보존한다.
@@ -61,8 +70,8 @@
 - 담당 경로: `agent-app/`, `agent-core/`, `agent-infra/`
 - 준비된 자료: [구현 범위](../roles/han-jaehong-agent.md), [VOC·Agent 계약](../integration-contract.md), [커머스 조회 계약](../commerce-interface.md)
 - 다음 작업: 정책 snapshot·VOC 분석 전달 직접 인수를 완료했다. 김아름의 web·runner 공유를 확인해 승인된 실제 모델·ngrok 검증을 연결한다. 일곱 업무의 실제 근거 조회·저장·원문 재조회 검사는 통과했다. 일반 실행의 유료 차단을 유지한다.
-- 필요한 입력: 김아름의 화면/runner 공유 및 공개 ngrok 설정. 이 PC의 프로젝트 전용 Codex 로그인과 gpt-5.6-luna의 최소 OAuth 구조화 응답 검증은 성공했다. 배포용 API 키도 분리된 deployed/openai_api 컨테이너에서 최소 호출 1회·NEEDS_INPUT을 검증했다. 실제 VOC 조사 품질·전체 연동·원격 배포는 미검증이다. 전체 배포 profile·팀 누적 배정은 이번 $1/1회 범위와 장부를 포함해 별도로 정리한다.
-- 검증 결과: 전체 Gradle check·세 앱 Docker·PostgreSQL/HTTP smoke, 실제 DB 동시성·권한·복구·비용 예약과 일곱 커머스 조사 300근거·333필드/로그 대조를 확인했다. 모의 모델과 실제 모델을 구분하며 실제 모델 품질·화면은 미검증.
+- 필요한 입력: 김아름의 화면/runner 공유 및 공개 ngrok 설정. 이 PC의 프로젝트 전용 Codex 로그인과 gpt-5.6-luna의 최소 OAuth 구조화 응답 검증은 성공했다. 배포용 API 키도 분리된 deployed/openai_api 컨테이너에서 최소 호출 1회·NEEDS_INPUT을 검증했다. 실제 VOC-07 한 건의 보고서/근거 품질은 위에서 인수했으며 나머지 시나리오·전체 화면/ngrok·원격 배포는 미검증이다. 전체 배포 profile·팀 누적 배정은 이번 $1/1회 범위와 장부를 포함해 별도로 정리한다.
+- 검증 결과: 전체 Gradle check·세 앱 Docker·PostgreSQL/HTTP smoke, 실제 DB 동시성·권한·복구·비용 예약과 일곱 커머스 조사 300근거·333필드/로그 대조를 확인했다. 모의 모델과 실제 모델을 구분한다. 실제 OAuth VOC-07 한 건·티켓 화면을 인수했고 나머지 품질/보고서 화면·ngrok 검증은 진행 중이다.
 - 연동 요청: 정책 archive 소비자 구현 제공, DISC-20260921-agent-003의 선택 ID 공백 입력 경계 확인. 기본 Compose는 explicit test/mock이며 OAuth/API로 자동 활성화·fallback하지 않는다.
 
 작업 단위가 끝날 때 제공 가능한 기능, 변경한 계약, 실제 검증 명령·결과, 다음 작업을 갱신한다. 실패와 막힌 이유도 함께 기록한다.
