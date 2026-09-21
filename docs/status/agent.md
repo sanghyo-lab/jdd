@@ -155,3 +155,11 @@
 - 제공자 `878f602`, `920f51f`, `9a4b688`의 초기화 권한 수정·쿠폰 구현·HTTP 오류 구분과 검증 기록 전체를 읽었다. 이 PC에서 커머스 HTTP로 재현한 데이터에 도구를 연결하는 소비자 검증은 다음 단위다. 제공자 PC의 반복 결과를 이 PC의 실행으로 쓰지 않는다.
 - 정책의 현재 계약은 manifest에 버전만 연결한다. Agent는 정책 조회 시 실제 원문·해시와 그 한계를 저장한다. 과거 정책 사본의 보관을 주장하지 않는다.
 - 모델 호출은 0회다. 실제 OpenAI 어댑터·허용된 실제 모델 검증·VOC/웹/외부 ngrok 통합은 계속 진행하며 DONE을 보류한다.
+
+## 2026-09-21 — 이 PC의 실제 커머스 인수 검증
+
+- 조회 도구 `f715885` 전체 publish 종료 0: 전체 check·3앱 재빌드/재기동·PostgreSQL/HTTP smoke 후 main에 공유했다. 원문 `runtime/submission/agent-20260921/evidence-tools-publish.log`.
+- buildId `f715885049d7-a99bb5a5ec05`의 실제 Compose에서 VOC-07 20/20회·독립 트랜잭션/연결·재고 -1·성공 주문 2건 및 정상·충분 재고·시간 초과 롤백·복구를 확인했다. VOC-02·03 각 3/3회와 정상 대조도 실제 HTTP/DB/로그/소스에서 통과했다. 로그 `commerce-handoff-reproductions.log`.
+- 같은 데이터의 8개 도구 결과 25건을 전용 Agent PostgreSQL에 저장하고, 모든 근거 원문 GET 200과 같은 키 재전송의 동일 ID를 확인했다. 조사 `6b2ab6d9-c22d-4302-8ea3-d1c1af9f1a84`, 결과 `commerce-handoff-result.json`은 모의 모델 2회·OpenAI 호출 0회임을 명시한다. 최종 원인 분석 품질이나 VOC UI 완료를 뜻하지 않는다.
+- 재현 가능한 `CommerceHandoffTest`·`agent-app/scripts/check_commerce_handoff.py`를 제공한다. 평가 정답·fixtures 내용은 모델 입력에 포함하지 않는다. 저장·재조회 완료까지 재현 데이터를 보존했다.
+- [DISC-20260921-commerce-001](../discussions/DISC-20260921-commerce-001-inventory-evidence.md)에 직접 검증 결과를 답변했다. COMMERCE-002 조회 연결을 확인했으며 VOC 직접 답변·runner 확인이 남아 논의는 미해소다.

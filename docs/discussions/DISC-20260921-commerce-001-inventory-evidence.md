@@ -9,9 +9,9 @@
 | 정리 담당 | 이상효 |
 | 영향받는 역할 | commerce, agent, voc |
 | 필수 합의자 | 이상효(제공), 김아름(재현 runner), 한재홍(근거 조회) |
-| 확인·답변 대기 | voc(P1 답변), agent·voc(소비자 검증) |
-| 생성 시각 / 최종 갱신 | 2026-09-21T17:35:00+09:00 / 2026-09-21T18:04:01+09:00 |
-| 다음 행동 / 담당 | VOC 수락·runner 확인, Agent 실제 SELECT/로그/소스 연결 검증 |
+| 확인·답변 대기 | voc(P1 답변·runner 소비자 검증) |
+| 생성 시각 / 최종 갱신 | 2026-09-21T17:35:00+09:00 / 2026-09-21T18:22:45+09:00 |
+| 다음 행동 / 담당 | VOC의 P1 직접 답변·runner 확인, 제공자의 Agent 소비 결과 확인 |
 
 ## 결정할 질문
 
@@ -62,6 +62,14 @@ COMMERCE-001/002는 소비자 확인 전까지 미해소로 유지한다.
 - 소스 경계: 로그 buildId와 manifest·파일 해시를 대조한다. 재현 장벽·fixtures·expected·runner·테스트는 조사 도구의 검색/모델 입력에서 제외한다. 테스트 제어 API는 Agent 도구로 노출하지 않는다.
 - 내 다음 행동: 공유된 커머스를 이 PC의 분리한 검증 스택에 기동하고 조회 도구의 실제 DB·JSONL·소스 연결과 저장 근거 재조회를 검증한다. 조사·근거 저장 전 데이터 초기화를 수행하지 않는다.
 - 검증 상태: P1 코드/계약 검토와 제공자 기록 확인만 완료했다. Agent의 실제 소비자 조회와 VOC runner 검증은 남아 있으므로 미해소로 유지한다.
+
+2026-09-21T18:22:45+09:00 / 한재홍 / agent / P1
+
+- 의견: 실제 소비자 검증 결과. `f715885`를 이 PC에서 전체 publish한 뒤 buildId `f715885049d7-a99bb5a5ec05`의 세 앱·PostgreSQL로 VOC-07 20/20회와 순차 정상·재고 충분·시간 초과 롤백·해제 복구·SELECT 전용 권한을 확인했다. 두 backendPid/transactionId와 재고 -1·성공 주문 2건을 매회 대조했다. VOC-02·03도 각 3/3회 및 정상 대조를 통과했다.
+- 실제 Agent 소비: 8개 도구로 해당 HTTP 재현의 DB·JSONL·buildId 소스·정상 정책을 읽고 근거 25건을 별도 Agent PostgreSQL에 저장했다. 조사 ID `6b2ab6d9-c22d-4302-8ea3-d1c1af9f1a84`의 모든 원문 GET 200·같은 키 재전송 동일 ID를 확인했다. 데이터 초기화 없이 근거 저장·재조회를 마쳤다.
+- 모델 구분: 모델은 명시적인 테스트 대역 2회이며 OpenAI 호출은 0회다. 실제 AI 원인 분석이나 VOC 화면을 검증했다고 기록하지 않는다. `CommerceHandoffTest`와 `agent-app/scripts/check_commerce_handoff.py`로 저장 경로를 재현한다.
+- 원문: 한재홍 PC의 `runtime/submission/agent-20260921/commerce-handoff-reproductions.log`, `commerce-handoff-result.json`; 커머스 제공 스택의 `20260921T092002.492904Z-inventory.json`, `20260921T092013.969273Z-business.json`.
+- COMMERCE-002의 Agent 조회 연결을 확인했다. 김아름의 직접 답변·runner 소비 검증과 정리 담당 확인이 남아 OPEN을 유지한다.
 
 ### 김아름 — voc
 

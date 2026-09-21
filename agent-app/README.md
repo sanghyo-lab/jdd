@@ -151,3 +151,23 @@ DB 계정은 Agent 저장 계정과 별개이며 계약 10개 테이블의 SELEC
 `JDD_TOOLS_TEST_DB_URL`, `JDD_TOOLS_TEST_OWNER_PASSWORD`, `JDD_TOOLS_TEST_READER_PASSWORD`가 필요하다.
 실제 commerce DDL과 역할 `jdd_commerce`/`jdd_evidence`를 준비하고 합성 데이터·SELECT·권한 거절·스냅샷을 검증한다.
 이 검사는 실제 모델 품질이나 VOC 화면 검증을 대신하지 않는다.
+
+## 실제 커머스 근거 인수 검증 (모의 모델)
+
+커머스의 `reproduce_inventory.py --runs 20`과 정상 대조가 끝난 데이터·로그·소스를 유지한 상태에서 실행한다.
+조사 종료 전에 해당 데이터를 초기화하거나 서비스를 재기동하지 않는다.
+
+```bash
+python3 agent-app/scripts/check_commerce_handoff.py \
+  --compose-dir /path/to/running-jdd-clone \
+  --inventory-artifact /path/to/retained-inventory.json \
+  --report-dir runtime/submission/agent-handoff
+```
+
+이 명령은 기존 Compose DB에 전용 `jdd_agent_handoff_test` DB를 준비하고,
+실제 근거 도구 → Agent PostgreSQL 저장 → 원문 HTTP 재조회·동일 키 재전송을 검사한다.
+커머스에는 SELECT만 수행하며 재현 데이터 생성·초기화·앱 재시작은 수행하지 않는다.
+Java 21과 실행 중인 제공자 스택의 `.env`가 필요하다. 비밀 값은 출력·보고서에 포함하지 않는다.
+입력 파일에서는 상관 ID와 buildId만 사용한다. 모의 모델 2회와 실제 OpenAI 검증을 구분한다.
+`--rerun-tasks`로 이전 Gradle 결과를 재사용하지 않고 매번 현재 근거를 읽는다.
+`command.json`/`command.log`에 성공·실패, `result.json`에 조사·저장 근거·모의 검증 한계를 남긴다.
