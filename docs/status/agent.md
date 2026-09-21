@@ -105,4 +105,5 @@
 - 기준: 원격 `d69e0d4`의 로컬 데모 문서 변경 전체를 확인했다. [상세 구현 프롬프트](../prompts/implement-voc-investigation-agent.md)·[데모 절차](../ngrok-local-demo.md)·비용 정책의 기존 변경을 보존하고 [goal 시작문](../prompts/goal-han-jaehong-agent.md)과 [Agent goal](../goals/agent.md)을 맞췄다.
 - 인계: AGENT-NGROK-001의 web 중계·화면/API 접근 제어·주소 구분은 김아름과 연동하고, AGENT-NGROK-002의 모델 설정·터널 중단 중 조사 지속·재연결 후 기존 ID 조회·모델 재호출 방지는 한재홍의 검증에 포함했다. 상대의 접수·구현·실제 외부 검증은 아직 확인하지 않았다.
 - 정적 검증: `python3 scripts/check_docs.py` 통과(36개 Markdown·285개 로컬 링크·8개 JSON 예제), `git diff --check` 통과. 공유 검증은 키가 없는 별도 main clone에서 수행하며 공개 ngrok 경로·실제 모델 검증으로 간주하지 않는다.
+- 공유 검증 결과: `e138b4e`에서 `scripts/dev publish` 통과. 협업 테스트 31개·문서 38개/링크 296개/JSON 예제 8개·전체 Gradle check·PostgreSQL과 세 앱의 DB/HTTP/SELECT 전용 권한·근거 볼륨 smoke를 확인했다. 공유 중 추가된 `0196fc4`·`5b11710`의 논의 문서와 협업 문서 즉시 공유 규칙도 통합했다. 현재 논의 목록은 등록 0건이며 기존 연동 요청의 해소를 뜻하지 않는다. 이번 결과 기록만의 후속 공유는 최신 협업 문서 공유 절차를 적용한다.
 - 범위: 문서·goal 시작문만 수정한다. 기존 구현 초안을 보존하고 공개 터널·실제 OpenAI 호출·구현 goal은 이번 작성 세션에서 실행하지 않는다. 프로모션 적용 금액·데모 전용·$30 기준을 유지한다.
