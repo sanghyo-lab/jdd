@@ -17,6 +17,15 @@
 
 작업 단위가 끝날 때 제공 가능한 기능, 변경한 계약, 실제 검증 명령·결과, 다음 작업을 갱신한다. 실패와 막힌 이유도 함께 기록한다.
 
+## 2026-09-21T20:15:20+09:00 — 데모 구성 공유와 대기 만료 독립 검증
+
+- LEAD-013의 데모 전용 worker 동시성 1과 대기열 P1 답변을 최신 Agent `104761f`·`0ad4bfd`·`a3d7d5b` 전체 변경과 통합해 `1c02f85`로 공유했다. 논의 파일 두 곳의 동시 답변 충돌은 양쪽 기록을 보존해 해결했다. 첫 publish의 rebase 중단도 `commands/20260921T110602.515611Z-publish-demo-worker-alignment.log`에 남겼다.
+- 재실행한 전체 publish 종료 0/195.685초: Python 38개·문서 검사·Gradle check·3앱 재빌드/기동·DB/HTTP/근거 smoke 통과. 기본 JUnit 132개 중 실패 0·조건부 건너뜀 9개이며, 세 앱 buildId는 `1c02f85b4391-64991e1f84a7`이다. 모델은 DISABLED이며 데모 override를 활성화하지 않았다. 원문 `commands/20260921T111024.630718Z-publish-demo-worker-alignment-after-merge.log`, `demo-worker-publication-junit.json`, `demo-worker-publication-runtime.json`.
+- [DISC-agent-005](../discussions/DISC-20260921-agent-005-queue-limits.md) 제공자 구현을 이 PC에서 독립 인수했다. 실제 PostgreSQL 실행 저장소 11개·실제 HTTP/worker 포화 1개 모두 통과, 실패/건너뜀 0. 만료 경계·선점 경쟁·재전송·실행 예산 분리, 슬롯 포화 중 미실행 만료·같은 ID 반환·명시적 새 키의 후속 실행을 확인했다. 모델은 테스트 대역 2회·유료 0회다. `agent-queue-postgresql-01/`과 `commands/20260921T111401.850496Z-leader-agent-queue-postgresql.log`(20.328초).
+- 현재 소스로 bootJar를 만든 뒤 별도 `jdd_agent_worker_test`의 임시 JVM 4개에서 재시작·worker 소유권 이전·근거 보존·기존 기한 유지·만료 요청 미실행을 통과했다. 기존 V4 조사 4건의 입력/응답 digest·상태와 근거 1건의 digest가 V6 이관 후 유지되고, 과거 기한은 createdAt + 10분이었다. `agent-worker-queue-02/`, `agent-worker-queue-build.json`, `agent-queue-worker-migration-before.json`·`after.json`; 재시작 로그 `commands/20260921T111453.255506Z-leader-agent-worker-queue-restart.log` 종료 0/22.412초. 새 검사 기록을 보존하고 임시 JVM은 모두 종료했다.
+- 기본 앱 DB는 기존 조사 0건이어서 V6 적용·장부 0만 확인했으며 기존 기록 보존의 근거로 세지 않는다. 최초 읽기 쿼리가 존재하지 않는 DB 이름으로 실패한 뒤 로컬 POSTGRES_DB를 사용해 바로잡은 사실도 `agent-queue-default-migration-before.json`에 남겼다. 실제 마이그레이션 보존 비교는 위 별도 DB에서 수행했다.
+- 남은 조건: 대기열 수용량/429·VOC polling의 직접 합의와 소비 검증, 기존 분석/화면/runner·정책 snapshot 인수, 허용된 실제 모델·PC/모바일·공개 접속 검증이다. 이 인수는 최종 전체 검토·실제 모델 품질·DONE/APPROVED를 대신하지 않는다.
+
 ## 2026-09-21T20:05:21+09:00 — 데모 worker와 호출 동시성 정렬
 
 - LEAD-013: 명시적 데모 override의 worker 동시성을 1로 고정했다. 기존 override는 기본 worker 2를 상속해 model concurrentCalls 1인 예제/배분 계획과 달랐다. 두 조사가 동시에 모델 경계에 도달하면 영속 장부의 동시 호출 제한에 걸릴 수 있으므로 조사도 순차 실행하도록 맞췄다. 그 실패를 실제 유료 모델에서 관측했다고 주장하지 않는다.

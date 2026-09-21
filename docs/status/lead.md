@@ -11,6 +11,13 @@
 
 다른 담당자의 DONE을 대신 작성하지 않는다. 전체 코드 수정 권한으로 직접 보완한 내용과 영향을 여기에 공유한다.
 
+## 2026-09-21T20:15:20+09:00 — LEAD-013 공유와 영속 대기 기한 독립 인수
+
+- `1c02f85`를 전체 publish 종료 0으로 공유했다. 데모 전용 worker=1 구성만 조정했고 기본 앱/유료 호출 활성화 조건은 유지했다. 기본 Java 132개(실패 0·조건부 건너뜀 9), Python 38개와 실제 3앱/DB/근거 연결을 통과했다. buildId `1c02f85b4391-64991e1f84a7`, 모델 DISABLED.
+- Agent `104761f`의 V6·접수 기한 저장·선점 배제·포화 중 만료 정리·재시작 변경과 테스트를 직접 읽고 이 PC에서 PostgreSQL 12개를 실행해 실패/건너뜀 없이 통과했다. 별도 JVM 4개의 재시작/소유권 검증, 기존 V4 조사 4건·근거 1건의 V6 이관 digest 보존도 새로 확인했다. 타 PC의 성공 기록을 재사용하지 않았다.
+- 자료·명령·실행 시간은 [commerce 상태](commerce.md)의 같은 시각 기록과 `runtime/submission/commerce-20260921-resumed/agent-queue-postgresql-01/`, `agent-worker-queue-02/`, `agent-queue-worker-migration-after.json`에 연결했다. 실제 HTTP/DB/worker를 사용했으며 추론은 모의 2회·유료 0회다. 기존 앱 조사 0건의 마이그레이션 관측은 기록 보존 검증과 구분했다.
+- [DISC-agent-005](../discussions/DISC-20260921-agent-005-queue-limits.md)의 commerce/lead 인수만 갱신한다. 수용량/429·VOC 소비 합의, 화면/runner·정책 snapshot과 실제 모델 검증은 남아 있다. 모든 역할은 IN_PROGRESS이며 타인의 완료 기록·최종 승인 항목은 작성하지 않았다.
+
 ## 2026-09-21T20:05:21+09:00 — LEAD-013 명시 데모 worker 설정
 
 - 리더가 `agent-app/compose.openai-demo.yaml`의 worker 동시성만 1로 지정했다. 기본 worker 2와 모델 호출 한도 1의 불일치를 실제 Compose 구성 렌더링으로 확인하고 1/1로 맞췄다. 기본 개발 Compose와 유료 활성 조건, 비용 장부의 제한을 바꾸지 않는다.
