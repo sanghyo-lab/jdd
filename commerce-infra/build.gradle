@@ -1,2 +1,8 @@
 plugins { id 'java-library' }
-dependencies { api project(':commerce-core') }
+dependencies {
+    api project(':commerce-core')
+    implementation 'org.springframework:spring-jdbc'
+    implementation 'org.springframework:spring-context'
+    implementation 'tools.jackson.core:jackson-databind'
+    implementation 'org.slf4j:slf4j-api'
+}
