@@ -16,6 +16,12 @@
 
 
 
+## 2026-09-21T21:53:09+09:00 — LEAD-019 / AGENT-LEAD-019 로그 보관 개수 경계 재현·수정 범위
+
+- 독립 코드 검토에서 LogEvidenceTools가 빈 빌드 디렉터리도 32개 검색 한도에 넣는 것을 확인했다. 현재 이 PC의 실제 보관 디렉터리도 35개이고 그중 로그가 있는 빌드는 9개다. 합성 디렉터리 40개 중 로그 1개만 마지막 순회 항목에 둔 실제 Java 도구 검사에서 buildId 없는 requestId 조회는 0개, 정확한 buildId 조회는 같은 원문 1개였다. 실패 종료 1과 양쪽 원문을 `log-build-limit-before/result.json`에 보존했다. 실제 모델 호출은 0회다.
+- 리더 수정 범위: agent-infra LogEvidenceTools의 파일 후보 선택, 해당 독립 검사와 agent-app 실행 안내. 빈 빌드는 로그 검색 예산을 소모하지 않도록 하고, 후보가 많을 때 최근 로그부터 유한 범위로 검색한다. 기존 AND 조건·파일/바이트/행 제한·부분 결과·원문/줄 번호·명시 buildId 조회를 유지한다. 모델 전송/인증과 VOC의 진행 중 worker/화면 경로는 수정하지 않는다.
+- AGENT-LEAD-019로 한재홍에게 변경 인수·현재 근거 조회 계약과 회귀 결과 확인을 요청한다. 소스 수정/검증 후 lead-review.json에 결과를 반영한다. 검토는 진행 중이며 최종 APPROVED나 실제 모델 검증으로 표시하지 않는다.
+
 ## 2026-09-21T21:50:20+09:00 — 내부 runtime 공유·실제 경계 확인과 복구 fixture 정리
 
 - `ab89c30`의 전체 publish는 종료 0/184.686초였다. Python 65개·전체 Gradle check·세 앱 재빌드/재기동·PostgreSQL/HTTP/근거 연결이 통과했다. 현재 XML 집계는 161개 중 152개 통과·9개 조건부 제외·실패/오류 0이다. buildId는 `ab89c30f609b-c3676007d767`이며 실제 Agent 내부 llm은 test/mock/mock, businessReady=false다.
