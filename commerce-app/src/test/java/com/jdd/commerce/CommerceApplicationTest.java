@@ -22,6 +22,6 @@ class CommerceApplicationTest {
         assertThat(result).containsEntry("service", "commerce-app")
                 .containsEntry("schema", "commerce")
                 .containsEntry("buildId", "test-build")
-                .containsEntry("businessReady", false);
+                .containsEntry("businessReady", true);
     }
 }

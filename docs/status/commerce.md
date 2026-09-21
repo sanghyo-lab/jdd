@@ -1,6 +1,6 @@
 # 이상효 — 이커머스 구현과 개발리더 작업 상태
 
-- 상태: 상품·주문·재고·쿠폰·JSONL을 구현했다. HTTP/H2 13개, 실제 PostgreSQL의 VOC-02·03 각 3회 및 VOC-07 20회와 정상·복구 대조를 통과했다. 결제·취소·환불·모델 통합은 진행 중이다.
+- 상태: 상품·주문·결제·쿠폰·재고·취소·환불·JSONL을 구현했다. HTTP/H2 19개, 실제 PostgreSQL VOC-01~06 각 3회·VOC-07 20회와 정상·중복·복구 대조를 통과했다. 실제 AI 조사·화면·소비자 통합과 팀 완료는 진행 중이다.
 - 담당자: 이상효 (역할 B)
 - 겸임 책임: [개발리더](../roles/lee-sanghyo-lead.md). 세 담당자 DONE 이후에도 전체 코드 검사·실제 검증·수정을 수행하며 [리더 상태](lead.md)에 기록한다.
 - GitHub 계정: `sanghyo-lab`
@@ -10,7 +10,7 @@
 - 작업 Issue·공유 커밋: 시작 후 기입
 - 담당 경로: `commerce-app/`, `commerce-core/`, `commerce-infra/`, `fixtures/commerce/`
 - 준비된 자료: [구현 범위](../roles/lee-sanghyo-commerce.md), [커머스 계약](../commerce-interface.md), [업무 정책](../business-policy.md), [7개 시나리오](../voc-scenarios.md)
-- 다음 작업: 결제·취소·환불 및 VOC-01·04~06, 소비자 연동 추적
+- 다음 작업: 기본 Compose 전체 업무 재검증, 소비자 연동·화면·Agent 근거 확인, 독립 리더 검토와 실제 모델 검증 범위 준비
 - 필요한 입력: 한재홍의 조회 연결 확인, 김아름의 재현 실행 연동 확인
 - 검증 결과: 준비 PC에서 전체 Gradle check와 세 앱의 Docker 기동·smoke 통과. 실제 PostgreSQL 기본 마이그레이션과 조사 계정 SELECT 확인. VOC-07의 실제 HTTP·DB 첫 재현과 대조·복구를 추가 검증했다. 나머지 업무와 20회 반복은 진행 중이다.
 - 연동 요청: 담당 goal 시작 후 v1 커머스 DDL·API·업무 로그 구현 결과를 제공한다.
@@ -75,3 +75,8 @@
 - 구현: 모의 CARD/EASY_PAY 승인, 전체 취소·재고 반환·모의 환불, 영속 요청 결과와 입력 지문. 주문 행 잠금으로 결제·취소의 동시 중복 실행을 방지하며 최초 결과를 재전송한다. VOC-01·05·06의 상태/후처리 누락은 조사 대상으로 유지한다.
 - 제공: VOC-01·04·05·06의 독립 SQL·수동 HTTP·관측 기준, 01~06 순차 실행기. VOC-05의 지정 주문·키 한 번 실패 제어는 기본 비노출이고 Agent 검색 영역 밖이다.
 - 검증: HTTP/H2의 CARD/EASY_PAY·동시 4건 결제/취소 재전송·입력 충돌·새 키 중복 방지·취소 전후 상태·실패/정상 환불·미결제 취소·쿠폰 복원 누락·실제 DB 제약 실패 롤백을 통과했다. 현재 19개 테스트가 성공했고 PostgreSQL 01~06 각 3회와 재시작 복구는 다음 실행으로 기록한다. 모델 호출 0회다.
+
+- 실제 PostgreSQL: `c09694c` / buildId `c09694cde1cd-643370744894`에서 `reproduce_commerce.py --runs 3` 종료 0, VOC-01~06 각각 3/3회와 정상 대조를 통과했다. 결과 `runtime/submission/commerce-reproductions/20260921T091646.380723Z-business.json`에 HTTP·DB·로그 줄·소스 manifest를 보존했다.
+- 재고 회귀: 같은 커밋 빌드에서 `reproduce_inventory.py --runs 20` 종료 0, 20/20회·독립 연결/트랜잭션·정상/롤백/복구 대조를 재확인했다. 결과 `20260921T091900.980389Z-inventory.json`이다. 정상 주문의 충분한 재고와 시나리오 간 독립 접두어를 사용했다.
+- 프로세스 복구: `check_recovery.py`가 결제·취소에 각각 4개 동시 HTTP 요청을 보내 승인/환불/반환 1회를 확인했다. 실제 커머스 PID 74508 종료 후 새 JVM에서 같은 키 응답과 새 키의 중복 방지·DB 불변을 검증했다(`lifecycle-recovery-20260921.json`, prepare/verify와 두 서버 원문 로그). 결제 후 취소된 주문의 결제 재전송은 저장된 최초 응답을 반환한다.
+- 업무 구현·독립 검증을 근거로 commerce의 businessReady를 true로 전환한다. 실제 모델 결과·UI·팀 DONE을 뜻하지 않는다. 7개 결함 외 발견한 초기화 권한/HTTP 오류 분류는 수정·재검증했고 소비자 요청은 계속 추적한다.

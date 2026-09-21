@@ -1,7 +1,7 @@
 # Commerce 실행과 현재 제공 기능
 
 상품·주문·쿠폰·재고, 모의 결제·전체 취소·모의 환불과 처리 이력을 실제 DB에 저장한다.
-일곱 시연용 결함을 재현 대상으로 유지한다. 현재 단위의 실제 PostgreSQL 검증이 끝날 때까지 `businessReady=false`다.
+일곱 시연용 결함을 재현 대상으로 유지한다. 실제 PostgreSQL 업무 검증 후 `businessReady=true`이며 실제 AI 조사·팀 완료와는 별도다.
 
 ```bash
 ./scripts/dev up
@@ -38,6 +38,17 @@ python3 fixtures/commerce/reproduce_inventory.py --runs 20
 [VOC-04](../fixtures/commerce/VOC-04/README.md)는 주문 생성의 중복이며 결제·취소 재전송과 구분한다.
 [VOC-05](../fixtures/commerce/VOC-05/README.md)의 일시 환불 오류 제어는 opt-in 내부 API로 지정 주문·키에 한 번만 적용하고 실행 후 해제한다.
 제어 구현·평가 데이터는 Agent 소스 스냅샷에 없다. 실제 DB·로그·소스 재현은 AI가 원인을 조사한 결과와 별도다.
+
+결제·취소 동시 요청과 같은 빌드의 재시작 보존은 아래 두 단계로 확인한다. `--report`는 이전 실행과 다른 새 경로를 지정한다.
+
+```bash
+python3 fixtures/commerce/check_recovery.py --phase prepare --report runtime/submission/recovery-first.json
+docker compose --env-file .env restart commerce
+python3 fixtures/commerce/check_recovery.py --phase verify --report runtime/submission/recovery-first.json
+```
+
+prepare는 합성 주문의 결제/취소에 각각 4개 동시 요청을 보내고, verify는 동일 키·새 키의 재전송과 DB 불변을 확인한다.
+별도 Compose 프로젝트/파일을 사용했다면 재시작에도 같은 옵션을 전달한다. 새 바이너리를 빌드하는 up과 같은 프로세스의 restart를 구분한다.
 
 ## 로그와 조사 경계
 

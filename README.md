@@ -10,7 +10,9 @@
 - 프론트 제안: `web`의 Next.js·React·TypeScript, 로컬 실행 + ngrok 데모 연결
 - 조사 대상: 주문·결제·쿠폰·취소·재고에 관한 7개 문의 시나리오
 
-현재는 **각 PC에서 역할별 개발을 시작할 준비 단계**다. 공통 Spring Boot 실행 골격·DB·동기화 도구를 준비했고, 주문·티켓·AI 분석 기능은 각 담당 goal에서 구현한다. 실제 goal은 아직 시작하지 않았다.
+현재는 **세 역할의 구현·통합 검증 진행 중**이다. 커머스 업무 API와 일곱 VOC의 실제 PostgreSQL 재현을 제공한다.
+Agent는 조사 접수·영속 실행·근거/보고서 검증·비용 제어를 구현했으며 실제 모델/조회 도구와 VOC 티켓·화면은 이어 연결한다.
+실제 AI 조사·팀 완료 여부는 [담당자 상태](docs/status/commerce.md)와 team-check로 확인한다.
 
 ## 각자 시작하기
 
@@ -28,6 +30,7 @@
 위 명령으로 각자의 PostgreSQL·커머스·Agent·VOC를 실행하고 연결을 확인한다.
 설치 조건과 검증 범위는 [로컬 개발 안내](docs/local-development.md)에 있다.
 자동 개발은 [AGENTS.md](AGENTS.md)와 [협업 반복 규칙](docs/autonomous-development.md)을 따른다.
+커머스 업무 재현·입력·로그·복구 검증은 [Commerce 실행 안내](commerce-app/README.md)를 따른다. 모델 호출 없이 독립 실행할 수 있다.
 원격 확인은 `./scripts/dev status`, 소스 반영은 `./scripts/dev sync`, 검증 후 공유는 `./scripts/dev publish`다.
 모든 goal은 **GitHub main에 세 담당자의 유효한 DONE과 개발리더 이상효의 독립 검토·최종 APPROVED가 모두 있을 때** 종료한다.
 세 DONE 이후에도 이상효는 전체 코드를 직접 검사하고 실제 통합 검증·수정·보완을 계속한다.
