@@ -17,6 +17,20 @@
 
 작업 단위가 끝날 때 제공 가능한 기능, 변경한 계약, 실제 검증 명령·결과, 다음 작업을 갱신한다. 실패와 막힌 이유도 함께 기록한다.
 
+## 2026-09-21T21:05:00+09:00 — 동시 공유 통합과 P2 직접 수락
+
+- 문서 push가 새 `de13f74`로 거절됐다. 작성 중이던 수용량 검사와 실패 XML을 무시 경로에 보존한 뒤 문서 커밋을 rebase하고 양쪽 논의 답변·해소 이력을 합쳤다. 정리 담당의 P2 원문을 읽고 내 수락을 새로 작성했으며 현재 예산 논의는 DISCUSSING이다. 앞선 REOPENED는 P1 변경 확인 이력으로 보존한다.
+- `de13f74`의 시작 전 runtime 검증·Windows 사용자 ID/실행기/Wrapper 분기를 읽었다. LEAD-016의 소스상 문제는 이 변경으로 보완됐으며 내 앞선 지적은 수정 전 `56cadd5` 대상이다. 실제 Windows OAuth/파일 마운트·모델 품질은 별도 인수다. 제공자의 진행 경로를 중복 편집하지 않았다.
+- 수용량 검사 3개는 수정 전 모두 실패했다. 3칸 큐에 동시 요청 16건이 전부 접수됐고 포화 새 입력도 429 대신 202였다. `queue-admission-before/result.xml`, `commands/20260921T120414.704065Z-queue-admission-before.log` 종료 1/16.203초에 보존했다. 독립 접수 보완을 이어 진행한다.
+
+## 2026-09-21T21:02:00+09:00 — 내보내기 공유·새 인증 분리 검토·다음 수용량 단위
+
+- LEAD-015 내보내기는 새 원격 `56cadd5`와 통합한 `0c07ca9`로 전체 publish 종료 0/197.111초 후 공유됐다. Python 57개·기본 Java 146개 중 통과 137/조건부 건너뜀 9/실패 0·3앱/DB/근거 연결이 통과했다. buildId `0c07ca9c7c53-2e36710d9930`, Agent는 새 정책의 test/mock이다. 원문 `commands/20260921T115649.460423Z-exporter-portability-publish.log`, `exporter-publication-junit-runtime.json`.
+- 공유된 exporter로 실제 기본 PostgreSQL 장부를 재조회해 READ ONLY/REPEATABLE READ·호출 0건을 확인했다. `exporter-published-ledger.json`, `commands/20260921T120053.495585Z-exporter-published-ledger.log` 종료 0/0.430초. `VOC-AGENT-EXPORT-001`의 Windows 직접 결과와 Agent 확인은 미수신이라 LEAD-015는 OPEN이다.
+- `56cadd5`의 인증/Responses/SSE/비용·OAuth 별도 장부·설정·스크립트/테스트·문서 변경을 검토했다. 로컬 OAuth·배포 API·기본 test/mock으로 바뀌었으며 이전 로컬 API 배분 계획을 현재 활성화 근거로 사용하지 않는다. [DISC-agent-004](../discussions/DISC-20260921-agent-004-demo-allocation.md)를 요구 변경으로 다시 열었다. 이 PC의 프로젝트 전용 인증 파일/명시 모델이 없어 실제 OAuth/API 품질은 미검증이다.
+- 추가 지적 LEAD-016: `scripts/llm run-local/demo`의 무조건적인 os.getuid/getgid와 POSIX 실행 파일 선택은 Windows 네이티브 경로에서 보완이 필요하다. POSIX API 없는 객체를 주입한 독립 검사에서 자식 실행 전 AttributeError를 재현했다. `llm-windows-posix-api-review.json`은 모의 OS 경계 검사이며 실제 Windows 성공/실패로 표시하지 않는다. 한재홍에게 Windows용 사용자/Compose/Wrapper 선택 보완·실제 김아름 PC 재검증을 요청한다.
+- [DISC-agent-005](../discussions/DISC-20260921-agent-005-queue-limits.md)의 수용량 P1은 전원 합의됐으나 구현이 없다. 리더가 접수 저장소·대기 수용량 설정·429 오류/계약·동시 접수 검사를 직접 보완한다. Agent의 새 인증 경로와 VOC 분석/화면은 중복 편집하지 않으며 구현 전에 대상·이유를 공유한다. 실제 모델 호출 0회, 타 담당자의 DONE·리더 승인 미작성.
+
 ## 2026-09-21T20:57:00+09:00 — VOC-AGENT-EXPORT-001 보완과 직접 관측
 
 - 정책/공백 입력의 독립 인수와 Windows 요청 접수를 `2674772`로 문서 검사 후 즉시 일반 push했고 원격 포함을 확인했다. 리더의 다음 작은 단위는 Agent exporter와 회귀/안내만이며 소유자의 실행기·VOC 진행 소스는 편집하지 않았다.

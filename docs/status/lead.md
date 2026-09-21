@@ -11,6 +11,19 @@
 
 다른 담당자의 DONE을 대신 작성하지 않는다. 전체 코드 수정 권한으로 직접 보완한 내용과 영향을 여기에 공유한다.
 
+## 2026-09-21T21:05:00+09:00 — 동시 공유 통합과 P2 직접 수락
+
+- 문서 push가 새 `de13f74`로 거절됐다. 작성 중이던 수용량 검사와 실패 XML을 무시 경로에 보존한 뒤 문서 커밋을 rebase하고 양쪽 논의 답변·해소 이력을 합쳤다. 정리 담당의 P2 원문을 읽고 내 수락을 새로 작성했으며 현재 예산 논의는 DISCUSSING이다. 앞선 REOPENED는 P1 변경 확인 이력으로 보존한다.
+- `de13f74`의 시작 전 runtime 검증·Windows 사용자 ID/실행기/Wrapper 분기를 읽었다. LEAD-016의 소스상 문제는 이 변경으로 보완됐으며 내 앞선 지적은 수정 전 `56cadd5` 대상이다. 실제 Windows OAuth/파일 마운트·모델 품질은 별도 인수다. 제공자의 진행 경로를 중복 편집하지 않았다.
+- 수용량 검사 3개는 수정 전 모두 실패했다. 3칸 큐에 동시 요청 16건이 전부 접수됐고 포화 새 입력도 429 대신 202였다. `queue-admission-before/result.xml`, `commands/20260921T120414.704065Z-queue-admission-before.log` 종료 1/16.203초에 보존했다. 독립 접수 보완을 이어 진행한다.
+
+## 2026-09-21T21:02:00+09:00 — 인증 정책 통합·LEAD-016 요청·수용량 보완 범위
+
+- LEAD-015는 `0c07ca9`로 전체 publish 후 공유했고 실제 PostgreSQL 내보내기도 재확인했다. Windows 소비자/Agent 확인은 아직 없으며 OPEN이다. 전체 검사 수·시간·buildId/원문은 commerce 상태에 연결한다.
+- 새 `56cadd5`의 모델 인증·전송·정책 변경을 직접 읽었다. 기본 test/mock과 live 분리가 적용됐으며 실제 모델은 호출하지 않았다. 이전 로컬 API 배분 논의는 새 정책에 맞춘 직접 답변이 필요해 REOPENED로 기록한다.
+- LEAD-016(agent 요청): `scripts/llm`의 run-local/demo는 os.getuid/getgid를 무조건 호출하고 POSIX scripts/dev·gradlew를 직접 실행한다. POSIX API 부재 모의 환경에서는 subprocess 전 AttributeError가 확인됐다. Windows 네이티브 실행은 미수행이다. 한재홍에게 OS별 실행 경로/비루트 마운트 접근 보완, 김아름에게 공유 뒤 실제 Windows 인수를 요청한다. 새 인증 담당 소스를 이 단위에서 편집하지 않는다.
+- 리더 다음 단위는 DISC-agent-005의 합의된 QUEUED 수용량이다. `JdbcInvestigationRepository`·새 admission 잠금 마이그레이션·설정/오류 처리·계약과 검증만 직접 보완한다. 기본 20/허용 1~100, 기존 키 우선·충돌 409, 새 입력 429/Retry-After 5·조사/모델 예약 미생성을 실제 PostgreSQL 동시 HTTP로 검증한다. 한재홍은 제공자 변경을 확인하고 김아름은 진행 중 전달/화면에서 소비한다. 타인의 상태/DONE을 작성하지 않는다.
+
 ## 2026-09-21T20:57:00+09:00 — LEAD-015 내보내기 환경·Compose 탐색 보완
 
 - `VOC-AGENT-EXPORT-001`에 따라 exporter의 고정 `docker compose` 실행을 실제 플러그인 검사→standalone Compose 검사로 바꿨다. Windows 시스템/프로필/프로그램 경로를 제한 환경에 보존하고 키·앱 환경은 제외한다. DB 조회/실패·시간 초과에서 자식 진단 원문을 노출하거나 성공 산출물을 만들지 않는다.
