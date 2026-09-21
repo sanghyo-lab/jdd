@@ -9,9 +9,9 @@
 | 정리 담당 | 이상효 |
 | 영향받는 역할 | agent 제공자, voc runner, commerce·lead 검증 |
 | 필수 합의자 | 한재홍(장부 제공), 김아름(runner 소비), 이상효(리더) |
-| 확인·답변 대기 | 김아름·리더의 제공 API/LOG 소비 인수·실제 모델 검증 |
-| 생성 시각 / 최종 갱신 | 2026-09-22T07:44:36+09:00 / 2026-09-22T08:06:30+09:00 |
-| 다음 행동 / 담당 | 실제 runner가 두 조사의 관측/API/근거 소비, VOC-02 보고서 인용 실패 보완·소비자 인수 |
+| 확인·답변 대기 | 김아름의 API/LOG 소비 인수·각 PC의 실제 모델 runner 검증 |
+| 생성 시각 / 최종 갱신 | 2026-09-22T07:44:36+09:00 / 2026-09-22T08:10:30+09:00 |
+| 다음 행동 / 담당 | 리더 PostgreSQL/무호출 HTTP 인수·제공자 실제 두 조사 관측 소비 확인, VOC-02 인용 품질 보완·VOC 답변 |
 
 ## 결정할 질문
 
@@ -34,12 +34,12 @@ runner가 설정 모델명을 실제 응답으로 오인하지 않도록 비밀 
 
 ## LOG 제공 형식 확인 요청 — LOG-AGENT-CONTRACT-001
 
-실제 공유 LogEvidenceTools의 source.path는 `<buildId>/<file>.jsonl`, content는 `{raw: 원문 한 줄, entry: 파싱한 객체}`다. [현재 공개 근거 계약](../integration-contract.md)의 배열/빌드 폴더 아래 상대경로 설명과 다르다. runner와 web은 저장된 실제 제공 형식을 보존해 읽으며 합성 배열로 바꾸지 않는다. 한재홍·김아름에게 이 형식의 제공/소비를 확인하고 계약 문서도 같은 내용으로 갱신할 것을 요청한다. 실제 19개 LOG 원문·줄 대조는 통과했지만 문서 합의로 대신하지 않으며 확인 전 미해소다.
+실제 공유 LogEvidenceTools의 source.path는 `<buildId>/<file>.jsonl`, content는 `{raw: 원문 한 줄, entry: 파싱한 객체}`다. 제안 당시 공개 계약의 배열/빌드 폴더 아래 상대경로 설명과 달랐으며 한재홍이 [공개 근거 계약](../integration-contract.md)을 실제 형식으로 정정했다. runner와 web은 저장된 실제 제공 형식을 보존해 읽으며 합성 배열로 바꾸지 않는다. 리더는 실제 19개 LOG 원문·줄 대조와 정정된 문서를 인수했다. 김아름의 명시 소비 답변과 실제 모델 결과 연결은 남아 미해소다.
 
 ## 해소 기준
 
 - [ ] 세 작업자의 확인과 최신 P1 필수 합의자의 수락.
-- [ ] 한재홍의 제공자 구현·실제 PostgreSQL 소속/순서/null/무호출 검사.
+- [x] 한재홍의 제공자 구현·실제 PostgreSQL 소속/순서/null/무호출 검사.
 - [ ] 김아름·리더의 실제 runner 소비·장부/응답 모델 일치, 잘못된 소속·mock·미관측 거절.
 - [ ] LOG-AGENT-CONTRACT-001의 실제 제공/소비 형식 확인과 계약 문서 정합.
 - [ ] 공유 커밋·직접 검증 결과·목록 갱신. 이 건 해소는 전체 모델 품질/DONE이 아니다.
@@ -76,7 +76,7 @@ runner 및 부모 helper를 직접 검토해 통합했다. 위임 검사에서 �
 
 ## 결정·실행·검증
 
-Agent가 P1 제공 계약을 수락하고 전용 PostgreSQL/HTTP 합성 장부 검사·전체 publish·실제 저장 44행 GET 대조를 통과했다. runner 소비자의 직접 인수와 현재 모델 품질은 남아 DISCUSSING이다. 실제 입력/출력 원문은 실행별 runtime에 보존한다.
+Agent 제공 구현의 전체 공유·자기 PC의 실제 저장44행 대조와 리더 PC의 PostgreSQL/무호출 HTTP 인수를 완료했다. 김아름의 최신 P1 소비 답변과 실제 모델 장부·보고서를 포함한 runner 검증은 남아 DISCUSSING이다. 실제 입력/출력 원문은 실행별 runtime에 보존한다.
 
 2026-09-22T08:06:30+09:00 / 한재홍 / agent / P1 / 실제 runner 소비 결과: 고정 빌드754528c에서 VOC-01은 PASSED이며 실제 model-observations/원문 DATA·LOG·CODE·POLICY 비교를 통과했다. VOC-02도 실제 장부·15근거 비교까지 진행했으나 원인 항목의 DATA 직접 인용 누락으로 실패했다. 모델은 두 건 모두 gpt-5.6-luna, OAuth 각4회/API0이다. 이는 관측 DTO 실패가 아니며 보고서의 추가 직접 인용 결함도 원문 검수로 확인해 [Agent 상태](../status/agent.md)에 보존했다. 나머지 시나리오는 PENDING이고 전체 성공/DONE을 기록하지 않는다. 김아름/리더의 직접 인수는 대기한다.
 
@@ -85,3 +85,10 @@ Agent가 P1 제공 계약을 수락하고 전용 PostgreSQL/HTTP 합성 장부 �
 2026-09-22T07:44:36+09:00 / 이상효: 요청을 건별 P1으로 등록. 타인의 수락·구현·DONE을 대신 기록하지 않는다.
 
 2026-09-22T07:50:51+09:00 / 한재홍: P1 제공 수락·구현/전용 PostgreSQL 검사·LOG 계약 정정. 소비 인수와 실제 모델 검증 대기로 DISCUSSING.
+
+### 2026-09-22T08:06:04+09:00 — 이상효 / commerce·lead / P1 제공 구현 직접 인수
+
+- 의견: 수락·무호출 제공 계약 인수. `a9691bc`·`754528c`의 제공 코드·테스트·DTO·LOG 문서를 읽고 리더 통합 `86a0466`을 전체 publish했다. 각 call의 investigationId/ledgerState, createdAt/callId/provider 정렬, API elapsedMillis=null과 OAuth 직접 관측 보존을 수락한다. 요청 모델을 응답 모델로 복사하지 않음을 확인했다.
+- 리더 PC의 별도 PostgreSQL `jdd_agent_budget_test`에서 `ModelObservationHttpTest` 3개를 새로 실행해 모두 통과했다(21.077초, 제외0). 합성 장부의 소속·순서·미관측 null·모든 API 상태·조회 불변·민감 원문 제외 검사이며 실제 모델 호출은0이다. 원문은 `runtime/submission/commerce-20260921-resumed/agent-observations-postgresql-current/`다.
+- 같은 buildId `86a046657350-023906d81950`의 실제 서버에서 기존 조사 `0159c0cd-bf61-45f2-b414-abc2fb6f97ea`의 내부 조회200/calls=[]와 no-store, 반복 동일 응답·없는 조사404를 확인했다. API/OAuth 장부0/0·조사13행이 전후 동일하다. `agent-observations-running-http.json`에 원문을 보존했다. 0회 관측을 모델 성공으로 계산하지 않는다.
+- LOG raw/entry·빌드 포함 경로는 리더의 실제 도구142개 중 LOG19개 원문 대조와 일치한다. 제공자 정정 계약과 runner 소비 구현을 인수한다. 김아름의 답변과 실제 응답 모델·저장 보고서를 포함한 runner 검증은 아직 남아 DISCUSSING을 유지한다.

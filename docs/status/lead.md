@@ -1,6 +1,6 @@
 # 이상효 — 개발리더 검토 상태
 
-- 상태: 커머스 일곱 업무 재현·복구와 Agent/VOC 단위 인수·지적 보완을 진행했다. 실제 모델·화면·최종 전 영역 검토/승인은 남아 있다.
+- 상태: 커머스 일곱 업무 재현·복구, PC/모바일 문의·주문 화면과 Agent/VOC 단위 인수를 검증했다. 전체 실제 모델 품질·최종 전 영역 검토/승인은 남아 있다.
 - 담당자: 이상효. commerce 구현과 개발리더를 겸한다.
 - 작업 브랜치: main
 - 최종 승인: [lead.json](lead.json)의 IN_PROGRESS. 세 담당자 DONE 후에도 독립 검토·전체 검증이 필요하다.
@@ -10,6 +10,15 @@
 - 지적·수정 기록: 실제 검토를 시작하면 LEAD ID, 담당 역할, 경로·재현 방법, 예상·실제 결과, 수정 커밋과 검증 근거를 기록한다.
 
 다른 담당자의 DONE을 대신 작성하지 않는다. 전체 코드 수정 권한으로 직접 보완한 내용과 영향을 여기에 공유한다.
+
+## 2026-09-22T08:06:04+09:00 — 최종 화면 수정 공유·담당 Agent 구현 인수
+
+- `86a0466` 전체 publish 종료0/248.411초로 LEAD-025의 상품 선택 보존을 공유했다. 한재홍의 `a9691bc`·`754528c`도 통합했다. Python70·web19, Java216개 중207통과/9조건부제외·실패0이며 세 앱 buildId `86a046657350-023906d81950`의 실제 PostgreSQL/HTTP/근거 연결을 확인했다. `final-publication-junit-runtime.json`과 `commands/20260921T225715.942433Z-selected-product-final-publish.log`가 원문이다. 변경 없는 Gradle 결과 재사용·조건부 제외를 별도 실제 PostgreSQL 검사로 세지 않는다.
+- 실제 최종 production web에서 문의7개(9.260초)·shop9개(5.345초)를 다시 통과했다. 올바른 암호 폼, 문의/조사 상태 분리·v2 새키·reload·390폭·refresh 거절과 목록 밖 상품 선택/재고 갱신·같은 결제/취소키를 확인했다. `runtime/submission/leader-browser-analysis-03/`, `leader-browser-shop-04/`에 PC/모바일 화면·HTTP 원문을 보존했다. 주문 `1211cf88-8351-460f-b9d8-91e488e6db85`의 DB 주문/결제/환불 각1건, 업무로그7줄과 실행소스 SHA도 일치했다. mock 오류 흐름을 모델 품질 성공으로 세지 않는다.
+- 제공자 요청 RUNNER-AGENT-OBS-001·AGENT-LEAD-READINESS-001·AGENT-LEAD-CITATION-021의 담당자 접수·구현·공유를 확인했다. 장부/worker/인용 소스와 테스트를 직접 읽었으며 Agent 중복 구현은 하지 않았다. 리더 PC의 별도 PostgreSQL 관측 HTTP3개를 새 실행해 통과(21.077초/제외0)했고, 실제 기본 서버의 기존 조사200/빈 calls·반복 동일·없는 조사404/no-store 및 API/OAuth0·조사13행 불변을 확인했다. `agent-observations-postgresql-current/`, `agent-observations-running-http.json`에 보존했다.
+- [DISC-20260922-commerce-001 P1](../discussions/DISC-20260922-commerce-001-model-observations.md)의 LOG/관측과 [DISC-20260921-commerce-002 P2](../discussions/DISC-20260921-commerce-002-live-mvp-runtime.md)의 준비 의미를 직접 수락했다. 제공자 장부44행 및 과거 실제 보고서 UI 인수는 한재홍 PC의 결과로 구분한다. 김아름 직접 답변·각 PC의 현재 실제 모델 runner/의미 검수는 남아 미해소다.
+- 08:10 동기화에서 새 `86d6f6a`의 Agent v6 지침·로더·검사·계약·실제 실패 기록을 전부 읽었다. 한재홍의 첫 실제 runner는 VOC-01 통과·VOC-02 항목별 DATA 인용 실패로 종료1이고 나머지9사례는 PENDING이다. 실패를 약화하지 않은 v6 보완을 통합하며 그 효과는 담당자의 새 모델 검증이 필요하다. 동시 편집된 두 논의 파일은 양쪽 직접 답변을 보존하고 목록·대기자를 합쳤다. 첫 publish의 rebase 중단/종료1 원문도 보존했다.
+- `d642878..bbfb38d`의 네 커밋·24경로 전체 차이와 새 답변을 확인하고 main을 동기화했다. 실제 모델ID는 사용자 답변 대기, root OAuth/API 실제 호출0이다. 실제 세션은 요약과 분리해 보존하며 세 담당자의 DONE과 최종 APPROVED를 대필하지 않는다.
 
 
 
