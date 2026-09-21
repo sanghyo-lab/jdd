@@ -11,6 +11,13 @@
 
 다른 담당자의 DONE을 대신 작성하지 않는다. 전체 코드 수정 권한으로 직접 보완한 내용과 영향을 여기에 공유한다.
 
+## 2026-09-21T20:57:00+09:00 — LEAD-015 내보내기 환경·Compose 탐색 보완
+
+- `VOC-AGENT-EXPORT-001`에 따라 exporter의 고정 `docker compose` 실행을 실제 플러그인 검사→standalone Compose 검사로 바꿨다. Windows 시스템/프로필/프로그램 경로를 제한 환경에 보존하고 키·앱 환경은 제외한다. DB 조회/실패·시간 초과에서 자식 진단 원문을 노출하거나 성공 산출물을 만들지 않는다.
+- 대상은 `agent-app/scripts/export_model_calls.py`, README, `scripts/tests/test_model_call_export.py`다. 비용 SQL·모델/조사 서비스·VOC 화면 경로·계약 DTO는 변경하지 않는다. 읽기 전용 관측과 기존 출력 보존은 유지한다.
+- 변경 전 회귀 실패·변경 후 macOS 임시 경로 별칭 검사 실패를 모두 보존했다. 후자는 같은 실제 경로를 정규화해 수정했고 환경/탐색/실패 검사 6개를 통과했다. 이 PC의 실제 Docker/PostgreSQL에서도 READ ONLY/REPEATABLE READ·호출 0건 관측을 내보냈다. 유료 호출은 없다. 상세 원문은 commerce 상태에 연결했다.
+- Windows 네이티브 검증은 이 Mac에서 수행하지 않았다. 따라서 LEAD-015는 OPEN이며 김아름에게 공유 코드로 기존 실패 명령을 다시 실행해 종료 코드·Compose 선택/관측 결과를 요청한다. 한재홍에게도 담당 경로 보완의 확인을 요청한다. 타인의 접수·완료·사용 장부를 대신 작성하지 않는다.
+
 ## 2026-09-21T20:52:00+09:00 — 새 정책 사본 독립 인수·Windows 내보내기 요청 접수
 
 - `6b9ca6f`의 LEAD-014를 전체 publish 종료 0으로 공유했다. Python 45개·기본 Java 133개(실패 0, 조건부 건너뜀 9개)·3앱 재기동과 DB/HTTP/근거 연결을 확인했다. 원문과 실제 실행 시간은 commerce 상태에 연결했다.

@@ -12,10 +12,38 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 from uuid import UUID
 
 ROOT = Path(__file__).resolve().parents[2]
+
+# Docker Desktop's CLI/plugin discovery needs the Windows profile and installation
+# paths as well as PATH. Keep this allowlist separate from any model/app settings.
+CHILD_ENVIRONMENT = frozenset((
+    'PATH', 'HOME', 'USER', 'LOGNAME', 'TMPDIR', 'LANG', 'LC_ALL',
+    'SYSTEMROOT', 'WINDIR', 'COMSPEC', 'PATHEXT', 'USERPROFILE', 'APPDATA',
+    'LOCALAPPDATA', 'PROGRAMDATA', 'PROGRAMFILES', 'PROGRAMFILES(X86)',
+    'PROGRAMW6432', 'ALLUSERSPROFILE', 'TEMP', 'TMP',
+    'DOCKER_HOST', 'DOCKER_CONTEXT', 'DOCKER_CONFIG',
+))
+
+
+def compose_command(project, environment):
+    """Probe the plugin, then standalone Compose, using the same restricted env."""
+    for executable, arguments in (('docker', ['compose']), ('docker-compose', [])):
+        path = shutil.which(executable, path=environment.get('PATH', ''))
+        if not path:
+            continue
+        command = [path, *arguments]
+        try:
+            probe = subprocess.run([*command, 'version'], cwd=project, env=environment,
+                                   stdin=subprocess.DEVNULL, capture_output=True, timeout=10)
+        except (OSError, subprocess.TimeoutExpired):
+            continue
+        if probe.returncode == 0:
+            return command
+    raise SystemExit('Docker Compose is unavailable; check Docker Desktop or docker-compose on PATH')
 
 QUERY = """
 BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY;
@@ -84,21 +112,28 @@ def main():
     if output.exists():
         parser.error('Use a new output path; previous observations must remain intact')
     project = args.compose_dir.resolve()
-    allowed = ('PATH', 'HOME', 'USER', 'LOGNAME', 'TMPDIR', 'LANG', 'LC_ALL',
-               'DOCKER_HOST', 'DOCKER_CONTEXT', 'DOCKER_CONFIG')
-    environment = {key: os.environ[key] for key in allowed if key in os.environ}
+    environment = {key.upper(): value for key, value in os.environ.items()
+                   if key.upper() in CHILD_ENVIRONMENT}
+    compose = compose_command(project, environment)
     # The container supplies its own Agent password; no credential is placed in argv or output.
-    command = ['docker', 'compose', '--env-file', '.env', '--env-file', 'runtime/build.env',
+    command = [*compose, '--env-file', '.env', '--env-file', 'runtime/build.env',
                '-f', 'compose.yaml', 'exec', '-T', 'db', 'sh', '-c',
                'PGPASSWORD="$AGENT_DB_PASSWORD" exec psql -X -qAt -v ON_ERROR_STOP=1 '
                '-h 127.0.0.1 -U jdd_agent -d "${1:-$POSTGRES_DB}" -v "investigation_id=$2"',
                'export-jdd-model-calls', args.database or '', args.investigation_id or '']
-    result = subprocess.run(command, cwd=project, env=environment, input=QUERY,
-                            text=True, capture_output=True, timeout=30)
+    try:
+        result = subprocess.run(command, cwd=project, env=environment, input=QUERY,
+                                text=True, encoding='utf-8',
+                                capture_output=True, timeout=30)
+    except (OSError, subprocess.TimeoutExpired, UnicodeError):
+        raise SystemExit('Read-only ledger export failed; check the local Compose DB and Agent migrations') from None
     if result.returncode:
         # Connection/configuration errors can contain local paths or environment values.
         raise SystemExit('Read-only ledger export failed; check the local Compose DB and Agent migrations')
-    report = json.loads(result.stdout)
+    try:
+        report = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        raise SystemExit('Read-only ledger export failed; the database did not return a JSON observation') from None
     if report['transactionReadOnly'] != 'on' or report['transactionIsolation'] != 'repeatable read':
         raise SystemExit('Expected a consistent read-only snapshot')
     if len(report['calls']) > 1000:

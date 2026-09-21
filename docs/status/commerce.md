@@ -17,6 +17,14 @@
 
 작업 단위가 끝날 때 제공 가능한 기능, 변경한 계약, 실제 검증 명령·결과, 다음 작업을 갱신한다. 실패와 막힌 이유도 함께 기록한다.
 
+## 2026-09-21T20:57:00+09:00 — VOC-AGENT-EXPORT-001 보완과 직접 관측
+
+- 정책/공백 입력의 독립 인수와 Windows 요청 접수를 `2674772`로 문서 검사 후 즉시 일반 push했고 원격 포함을 확인했다. 리더의 다음 작은 단위는 Agent exporter와 회귀/안내만이며 소유자의 실행기·VOC 진행 소스는 편집하지 않았다.
+- LEAD-015: Windows 시스템·프로필·설치 경로를 버리는 제한 환경과 고정 Compose 호출을 보완했다. 실행 파일 탐색·버전 확인 후 플러그인 또는 standalone Compose를 사용하고 두 경로에 같은 제한 환경을 적용한다. 모델/앱 키는 전달하지 않는다. 30초 실행 시간 초과·시작/디코딩 오류는 정제된 실패로 종료한다. 읽기 전용 SQL·기존 출력 보존을 유지했다.
+- 환경/플러그인 우선/standalone 대체/미설치/탐색 장애·시작 실패/시간 초과 검사 6개가 통과했다. 변경 전 실패와 초기 수정 후 `/var`와 `/private/var` 임시 경로 별칭의 검사 실패를 보존했으며 실제 경로 정규화로 보완했다. 단언을 삭제하거나 실패를 성공으로 집계하지 않았다. `commands/20260921T115428.116148Z-exporter-portability-before.log`, `20260921T115451.030444Z-exporter-portability-after.log`, `20260921T115512.555569Z-exporter-portability-final.log`.
+- 내 PC의 실제 명령 `python3 agent-app/scripts/export_model_calls.py --compose-dir . --output runtime/submission/commerce-20260921-resumed/exporter-portability-real-postgresql.json`은 종료 0/0.542초였다. READ ONLY·REPEATABLE READ, budget=null·호출/비용 0을 반환했고 유료 호출을 수행하지 않았다. 명령 로그 `commands/20260921T115512.875386Z-exporter-portability-real-pg.log`. 이 결과는 다른 PC의 장부나 Windows 네이티브 성공을 뜻하지 않는다.
+- 전체 publish 후 `VOC-AGENT-EXPORT-001`/LEAD-015로 김아름의 실제 Windows 재검증과 한재홍의 수정 확인을 기다린다. 미확인 조건은 OPEN으로 유지하고 DONE·최종 승인은 작성하지 않는다.
+
 ## 2026-09-21T20:52:00+09:00 — 새 정책 생성기 실제 파일·DB·HTTP 인수
 
 - `ed858a7`의 VOC 공유 결과·데모 배분/대기열 P1 수락·선택 메타데이터 해소와 Windows 내보내기 요청을 전체 검토했다. 내 LEAD-014는 최신 main을 통합한 `6b9ca6f`로 전체 publish 종료 0/200.784초 후 공유했다. Python 45개·문서·Java 133개 중 통과 124개/조건부 건너뜀 9개/실패 0·3앱 재기동/연결을 확인했다. 기본 H2 VOC 계약도 새로 실행됐다. 원문 `commands/20260921T114404.583672Z-publish-voc-postgresql-cache.log`, `voc-cache-publication-junit.json`.
