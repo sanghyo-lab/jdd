@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { Assignee, Ticket, TicketDetail } from "@/lib/api-types";
 import { api, ApiFailure, dateLabel, statusLabel } from "@/lib/client-api";
 import { ContextInputs, contextFromForm } from "./ticket-form";
+import { AnalysisWorkspace } from "./analysis-workspace";
 
 export function TicketEditor({ id }: { id: string }) {
   const [detail, setDetail] = useState<TicketDetail | null>(null); const [assignees, setAssignees] = useState<Assignee[]>([]);
@@ -38,7 +39,7 @@ export function TicketEditor({ id }: { id: string }) {
     {error && <div className="notice error" role="alert">{error}{!detail && <button onClick={() => setRevision(n => n + 1)}>다시 조회</button>}</div>}
     {!detail ? !error && <div className="empty" role="status">문의를 불러오는 중…</div> : <>
       <div className="page-heading"><div><p className="eyebrow">문의 상세 · 버전 {detail.ticket.version}</p><h1>{detail.ticket.title}</h1><p className="muted">접수 {dateLabel(detail.ticket.createdAt)} · 최근 수정 {dateLabel(detail.ticket.updatedAt)}</p></div><span className={"badge " + detail.ticket.status}>{statusLabel[detail.ticket.status]}</span></div>
-      <div className="detail-columns"><section className="panel"><div className="panel-heading"><h2>문의와 처리 상태</h2><span className="small muted">담당자가 확인 후 해결 처리</span></div>
+      <div className="detail-columns"><section className="panel" id="ticket-input"><div className="panel-heading"><h2>문의와 처리 상태</h2><span className="small muted">담당자가 확인 후 해결 처리</span></div>
         {notice && <div className="notice success" role="status">{notice}</div>}
         {conflictPending && !conflict && <div className="notice warning" role="alert">작성 중인 입력은 유지했습니다. 최신 저장 내용을 불러오지 못했습니다.
           <button disabled={busy} onClick={async () => { setBusy(true); try { setConflict((await api<TicketDetail>(path)).ticket); } catch (e) { setError((e as Error).message); } finally { setBusy(false); } }}>최신 버전 다시 확인</button></div>}
@@ -47,13 +48,10 @@ export function TicketEditor({ id }: { id: string }) {
           <button className="secondary" onClick={() => { setDetail({ ...detail, ticket: conflict }); setConflict(null); setConflictPending(false); setError(""); setNotice("최신 저장 내용을 불러왔습니다. 필요한 부분을 다시 수정해 주세요."); }}>작성 중인 입력을 최신 내용으로 교체</button></div>}
         <form className="stack" key={detail.ticket.version} onSubmit={save}>
           <label>제목<input name="title" required maxLength={200} defaultValue={detail.ticket.title} /></label>
-          <label>문의 내용<textarea name="message" required rows={8} maxLength={10000} defaultValue={detail.ticket.message} /></label>
+          <label>문의 내용<textarea aria-label="문의 내용" name="message" required rows={8} maxLength={10000} defaultValue={detail.ticket.message} /></label>
           <div className="form-grid"><label>업무 상태<select name="status" defaultValue={detail.ticket.status}>{Object.entries(statusLabel).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
             <label>담당자<select name="assigneeId" defaultValue={detail.ticket.assigneeId ?? ""}><option value="">미배정</option>{assignees.map(a => <option key={a.id} value={a.id}>{a.displayName}</option>)}</select></label></div>
           <ContextInputs context={detail.ticket.context} /><button className="primary align-start" disabled={busy || conflictPending}>{busy ? "저장 중…" : "변경 저장"}</button>
-        </form></section><aside className="panel"><div className="panel-heading"><h2>저장된 분석 이력</h2><span className="count">{detail.analyses.length}</span></div>
-          <p className="small muted">문의가 수정되어도 분석 당시의 버전과 이력은 유지됩니다.</p>
-          {detail.analyses.length === 0 ? <p className="empty">아직 분석 요청이 없습니다.</p> : <ul className="history">{detail.analyses.map(a => <li key={a.analysisRequestId}><strong>티켓 버전 {a.ticketVersion}</strong><p className="small">전달: {({ PENDING: "전달 대기", SUBMITTED: "전달 완료", FAILED: "전달 실패" } as Record<string, string>)[a.submissionStatus] ?? a.submissionStatus} · 조사: {({ QUEUED: "대기", RUNNING: "조사 중", COMPLETED: "완료", NEEDS_INPUT: "추가 정보 필요", FAILED: "조사 실패" } as Record<string, string>)[a.investigationStatus ?? ""] ?? "미접수"}</p><time className="small muted">{dateLabel(a.createdAt)}</time></li>)}</ul>}
-        </aside></div></>}
+        </form></section></div><AnalysisWorkspace ticket={detail.ticket} initialAnalyses={detail.analyses} /></>}
   </>;
 }
