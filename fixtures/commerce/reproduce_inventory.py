@@ -12,6 +12,7 @@ import time
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 import uuid
+from evidence_files import business_log, source_manifest
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'scripts'))
@@ -99,26 +100,20 @@ SELECT json_build_object(
         file = ROOT / 'runtime/evidence/logs/commerce' / self.build / 'business.jsonl'
         deadline = time.monotonic() + 10
         while time.monotonic() < deadline:
-            lines = file.read_text().splitlines() if file.exists() else []
+            complete, log_read = business_log(file, self.build)
             rows = []
-            for number, line in enumerate(lines, 1):
-                try:
-                    event = json.loads(line)
-                except json.JSONDecodeError:
-                    continue  # A concurrently appended trailing line is retried.
+            for row in complete:
+                event = row['event']
                 if (event.get('productId') == prefix + '-product' or event.get('orderId') in order_ids):
-                    rows.append({'line': number, 'event': event})
+                    rows.append(row)
             created = {r['event']['orderId'] for r in rows if r['event']['event'] == 'ORDER_CREATED'}
             if created == set(order_ids):
                 break
             time.sleep(0.1)
         else:
             raise AssertionError('Committed order logs not exported before deadline')
-        assert all(r['event']['buildId'] == self.build for r in rows)
-        manifest = json.loads((ROOT / 'runtime/evidence/source' / self.build / 'manifest.json').read_text())
-        assert manifest['buildId'] == self.build
-        assert not any('/reproduction/' in name or 'fixtures/' in name or '/test/' in name for name in manifest['files'])
-        return {'logPath': str(file.relative_to(ROOT)), 'logs': rows, 'sourceManifest': manifest}
+        manifest = source_manifest(ROOT, self.build)
+        return {'logPath': str(file.relative_to(ROOT)), 'logs': rows, 'logRead': log_read, 'sourceManifest': manifest}
 
     def concurrent(self, prefix, stock=1):
         self.seed(prefix, stock)

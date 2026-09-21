@@ -80,3 +80,10 @@
 - 검증: InvestigationApiTest 10개와 별도 실제 PostgreSQL ModelCallLedgerTest 12개 모두 실패/건너뜀 0. 오류 요청의 조사/비용 행 불변과 V5 총 호출 한도의 8개 동시 예약·새 조사/설정 우회 거절을 확인했다. `agent-postgresql-ledger-transport-02/`, `commands/20260921T100922.967043Z-agent-error-envelope-and-pg-call-limit.log`(21.027초). 실제 모델 호출은 0회다.
 - LEAD-006 후속: 기존 실제 컨테이너 복구 기록의 결제 2건·환불 1건 생성/변경 시각 6개를 대조해 HTTP와 PostgreSQL이 일치함을 확인했다. `payment-refund-container-precision-review.json`은 원본 SHA를 포함한 보존 자료 검토이며 새 실행인 것처럼 기록하지 않는다.
 - ngrok CLI 3.39.11 설치·버전 확인 완료. `ngrok config check`는 기본 설정 파일 없음으로 종료 1이었다. 인증·접근 정책·공개 URL·PC/모바일 화면·실제 모델 통합은 미검증이다.
+
+## 2026-09-21 — LEAD-011 재현 증거 검사 강화
+
+- 본인 commerce의 두 재현 검사기가 손상된 완료 로그를 조용히 제외하고 manifest에 적힌 해시만 보존하는 문제를 합성 파일로 재현했다. 실제 7개 업무 결과를 위조한 것은 아니지만 잘못된 근거를 놓칠 수 있는 검사 누락이므로 보완했다.
+- 공유 helper와 Python 회귀 7개로 로그/소스의 실제 바이트를 검사한다. `scripts/tests/test_commerce_evidence.py`만 공통 검증 경로에 추가했고 김아름의 진행 중 snapshot 생성기/테스트 파일은 수정하지 않았다. 생산 API·업무 정책·의도한 7개 결함의 의미는 바뀌지 않는다.
+- 이 PC에서 강화한 검사기로 실제 VOC-01~06 각 3회·재고 동시성 20회와 대조를 다시 통과했다. 기존 실패·변경 전 손상 입력 수락·변경 후 검사·실제 원문/빌드는 commerce 상태에 연결했다.
+- 원격 `a545332` 정책 사본 소비, `6214fc8` 인수 요청 갱신, `cfd36d1` 무근거 완료 거절과 프롬프트 v2의 전체 변경을 읽었다. 생성기 실물 인수·VOC 화면·실제 모델 품질은 남아 있다. 타인의 DONE과 최종 전체 리더 검사 결과는 작성하지 않았다.

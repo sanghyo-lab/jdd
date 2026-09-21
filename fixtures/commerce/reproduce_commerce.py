@@ -8,6 +8,7 @@ import re
 import time
 import uuid
 from reproduce_inventory import InventoryReproduction, ROOT
+from evidence_files import business_log, source_manifest
 
 
 class CommerceReproduction(InventoryReproduction):
@@ -46,13 +47,11 @@ SELECT json_build_object(
         deadline = time.monotonic() + 10
         while time.monotonic() < deadline:
             rows = []
-            for number, line in enumerate(path.read_text().splitlines() if path.exists() else [], 1):
-                try:
-                    event = json.loads(line)
-                except json.JSONDecodeError:
-                    continue
+            complete, log_read = business_log(path, self.build)
+            for row in complete:
+                event = row['event']
                 if any(isinstance(value, str) and value.startswith(prefix + '-') for value in event.values()):
-                    rows.append({'line': number, 'event': event})
+                    rows.append(row)
             created = {row['event']['orderId'] for row in rows if row['event']['event'] == 'ORDER_CREATED'}
             calculated = {row['event']['orderId'] for row in rows if row['event']['event'] == 'DISCOUNT_CALCULATED'}
             expected_discounts = set(order_ids if discounted_ids is None else discounted_ids)
@@ -62,11 +61,8 @@ SELECT json_build_object(
             time.sleep(0.1)
         else:
             raise AssertionError('Committed business evidence did not arrive')
-        assert all(row['event']['buildId'] == self.build for row in rows)
-        manifest = json.loads((ROOT / 'runtime/evidence/source' / self.build / 'manifest.json').read_text())
-        assert manifest['buildId'] == self.build
-        assert not any('/test/' in name or '/reproduction/' in name or 'fixtures/' in name for name in manifest['files'])
-        return {'logPath': str(path.relative_to(ROOT)), 'logs': rows, 'sourceManifest': manifest}
+        manifest = source_manifest(ROOT, self.build)
+        return {'logPath': str(path.relative_to(ROOT)), 'logs': rows, 'logRead': log_read, 'sourceManifest': manifest}
 
     def run_coupon_boundary(self, prefix, record):
         responses = record['responses'] = {}

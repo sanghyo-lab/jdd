@@ -126,3 +126,11 @@
 - LEAD-010으로 Agent 오류 본문을 공통 계약에 맞췄다. HTTP 10개와 실제 PostgreSQL 비용 장부 12개를 통과했고 상세 실패·수정·검증·계약 영향은 [리더 상태](lead.md)에 기록했다. 타인의 상태/DONE을 대신 작성하지 않았다.
 - 기존 `container-lifecycle-recovery-02.json`의 결제/환불 시각 6개가 DB와 같음을 추가 대조했다. 원본 SHA와 비교는 `runtime/submission/commerce-20260921-resumed/payment-refund-container-precision-review.json`에 있다.
 - 시연 준비용 ngrok 3.39.11을 설치했으나 로컬 인증 설정이 없고 web도 아직 공유 전이다. 터널은 실행하지 않았다. 실제 모델 호출 0회이며 필요한 구현·모의 검증을 계속한다.
+
+## 2026-09-21 — LEAD-011 근거 검사기 보강·38회 재검증
+
+- 합성 손상 입력으로 두 재현 검사기가 잘못된 완료 로그 줄과 소스 해시 불일치를 통과시키는 것을 확인했다. 실제 앱 로그/스냅샷을 수정하지 않았으며 `evidence-validator-before.json`과 `commands/20260921T101536.690272Z-evidence-integrity-regression-before.log`의 4개 실패 subcase를 보존했다.
+- `fixtures/commerce/evidence_files.py`를 두 실행기에 연결했다. 완료 줄의 JSON/UTF-8/buildId 오류와 허용 경로·파일·SHA-256 불일치, 선언된 정책 사본 오류를 거절한다. 미완성 마지막 줄은 명시적으로 기록하고 기존 10초 이벤트 대기 범위에서 다시 확인한다. `scripts/tests/test_commerce_evidence.py` 7개 통과, 기존 검사·실패 단언을 약화하지 않았다. 공통 check의 Python 자동 발견에 포함되며 공통 생성기는 수정하지 않았다.
+- 강화한 검사기로 실제 기본 PostgreSQL·HTTP의 `d1f92dc4ed3d-f1239ba8f94e`를 새로 확인했다. VOC-01~06 각각 3/3회(18.888초), VOC-07 20/20회와 SELECT 권한/순차/충분 재고/시간 초과 복구(23.173초)가 통과했다. 각 재현은 35개 실행 소스 해시와 로그를 대조한다. `runtime/submission/commerce-reproductions/20260921T101855.977959Z-business.json`, `20260921T101927.342268Z-inventory.json`이 원문이다.
+- 과거 기본 컨테이너 재현/복구의 원문도 읽기 전용으로 검토해 해시·완료 로그가 정상임을 확인했다. `retained-evidence-integrity-review.json`은 새 실행과 구분한다.
+- 이전 HTTP 보완은 전체 publish 종료 0의 `d1f92dc`로 공유했다(`commands/20260921T101140.478841Z-publish-agent-error-envelope.log`, 402.975초). 실제 오류 9건의 공통 본문 확인은 `http-protocol-errors-envelope-fixed.json`이다. 모델 호출 0회, 실제 VOC 화면/모델과 최종 리더 승인은 남아 있다.

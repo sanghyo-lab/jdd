@@ -38,6 +38,9 @@ python3 fixtures/commerce/reproduce_inventory.py --runs 20
 [VOC-04](../fixtures/commerce/VOC-04/README.md)는 주문 생성의 중복이며 결제·취소 재전송과 구분한다.
 [VOC-05](../fixtures/commerce/VOC-05/README.md)의 일시 환불 오류 제어는 opt-in 내부 API로 지정 주문·키에 한 번만 적용하고 실행 후 해제한다.
 제어 구현·평가 데이터는 Agent 소스 스냅샷에 없다. 실제 DB·로그·소스 재현은 AI가 원인을 조사한 결과와 별도다.
+두 재현 검사기는 완료된 JSONL 줄의 손상·다른 buildId와 소스 원문의 SHA-256 불일치를 실패로 처리한다.
+기록 중인 마지막 미완성 줄은 `logRead.incompleteTrailingLine`으로 표시하고 필요한 이벤트가 오면 다시 읽는다.
+새 manifest에 정책 사본이 선언되면 고정 경로·버전·해시도 검사한다.
 
 각 reset.sql은 해당 합성 접두어만 초기화한다. 한 주문이 다른 접두어의 상품·쿠폰을 함께 참조하면
 삭제 전에 전체 초기화를 거절한다. 이 경우 새로운 접두어로 재현하고 혼합 주문은 보존한다.
