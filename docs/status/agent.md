@@ -1,5 +1,12 @@
 # 한재홍 — AI Agent 작업 상태
 
+## 2026-09-22T00:17:00+09:00 — 전체 후속 시도의 읽기 전용 사용량 집계·원격 대기
+
+- 보존한 VOC-07 3건·NORMAL 5건을 조사 ID로 영속 OAuth 장부와 일대일 대조했다. 저장 완료 3건·실패 5건, 모델 호출 44회 중 usage 관측 43회/미관측 1회다. 중복 call ID가 없고 이 스택의 장부 44행 전체가 여덟 시도에 속함을 확인했다.
+- 관측 부분합은 입력 367,564·출력 18,648·cached input 35,328·reasoning 3,518·cache write 0이다. cached/reasoning은 각 입력/출력의 부분이며 따로 더하지 않는다. 미관측 건 때문에 전체 usage는 null이고 비용/시간 절감률로 환산하지 않는다. 이 스택 API 호출/배정 행은 0이며, 별도 허가된 과거 배포 1회/$0.00083725 장부는 제외·보존했다.
+- 코드/프롬프트를 수정하며 실행한 개발 시도이므로 독립적인 모델 비교나 성공률 평가로 해석하지 않는다. 저장 완료 중 NORMAL 두 건의 직접 인용 주의사항도 유지한다. 결과/장부 SHA·개별 실패·모델/usage/지연은 `followup-oauth-observation-summary.json`, 재집계 명령은 `summarize-followup-oauth.py`와 `followup-oauth-observation-summary-run.log/json`에 보존했다. 모두 `runtime/submission/agent-20260921/` 아래이며 모델 입력으로 제공하지 않았다.
+- 추가 추론·업무 변경 없이 기존 원문만 집계했다. 김아름의 새 분석 화면·runner 공유는 아직 없으며 약 60초 원격 확인과 인수 대기를 유지한다.
+
 ## 2026-09-22T00:11:00+09:00 — 저장 ID 제한 후 정상 보고서 완료·직접 인용 검수 주의사항
 
 - `418bec1` 전체 publish 종료 0: Python 67개·web 13개/production build·전체 Gradle check·세 앱/실제 PostgreSQL/HTTP/근거 연결을 통과했다. 원문 `followup-reference-schema-publish.log/json`. 자동 검사의 실제 모델 호출은 없다.
