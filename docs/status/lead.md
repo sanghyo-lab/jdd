@@ -65,3 +65,10 @@
 - `./gradlew :voc-app:test --tests com.jdd.voc.TicketHttpContractTest :agent-app:test --tests com.jdd.agent.InvestigationApiTest` 종료 0: VOC 6개·Agent 9개, 건너뜀 0. 원문 `commands/20260921T094719.048664Z-lead-http-protocol-regression.log`, `http-protocol-regression/` XML. 전체 publish 뒤 실제 컨테이너에서도 상태를 확인한다.
 - LEAD-009(commerce): check_recovery의 재시작 직후 연결 실패를 제한 있는 준비 대기로 고치고 같은 컨테이너 buildId의 재시작 후 영속 상태를 실제로 재확인했다. 실패·성공과 동시 배포를 피한 재검증 조건은 commerce 상태에 기록했다.
 - 최종 승인 전 단위 검증이다. 이 PC의 실제 PostgreSQL VOC/Agent 계약 10개, Agent JVM 소유권/복구, 커머스 기본 환경 38회 재현·정상 대조를 확인했지만 실제 AI·화면·최종 전체 검토는 남아 있다.
+
+## 2026-09-21T19:08:10+09:00 — 실제 HTTP 후속과 모델 장부 독립 검사
+
+- `5d59fee`로 LEAD-007/008/009를 전체 publish 후 공유했다. 배포 중간 빌드 `72f11203f5f8-01d782b91e1a`의 실제 HTTP 오류 9건은 모두 405/415/404이며 실패/성공 원문을 보존했다. 추가로 Agent의 방식·없는 경로 오류 본문이 공통 DTO가 아닌 것을 확인해 다음 작은 수정 단위로 보완한다.
+- 원격 `07aeadd` OpenAI 전송과 `1e179f3` 명시 활성화·V5 누적 호출 한도의 전체 코드·테스트·설정·상태를 읽었다. 단일 전송/예약·실제 usage·미확정 차단과 기본 DISABLED를 대조했다. 최종 독립 전 영역 검토·실제 모델 품질 완료를 뜻하지 않는다.
+- 이 PC의 별도 PostgreSQL에서 ModelCallLedgerTest 10개와 InvestigationExecutionTest 7개, 실패/건너뜀 0이었다. 원문 `agent-postgresql-state-01/`와 `commands/20260921T095748.070459Z-independent-agent-postgresql-state.log`. 이는 총 호출 한도 V5 이전 검증이며 새 12개 장부 검사는 별도로 이어 수행한다. 실제 유료 호출은 0회다.
+- 선택 ID 공백 불일치는 [DISC-20260921-agent-003](../discussions/DISC-20260921-agent-003-empty-context.md)에서 P1을 수락했다. 담당자의 진행 중 입력/화면·소비 작업과 중복 수정하지 않는다.

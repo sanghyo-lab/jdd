@@ -114,3 +114,9 @@
 - LEAD-009: Docker restart가 HTTP 준비 전에 반환하여 최초 컨테이너 복구 검사가 RemoteDisconnected로 실패했다. 당시 publish와도 겹쳤으므로 그 시도는 실패로 보존한다(`container-lifecycle-recovery-20260921.json`). 실행 안내에 build.env·동시 배포 금지를 명시하고 verify가 연결 수립만 최대 30초 기다리게 했다. 잘못된 응답/다른 buildId/업무 실패는 우회하지 않는다.
 - 재검증: publish 종료 후 독립 실행한 `container-lifecycle-recovery-02.json`은 c1276d4의 실제 컨테이너 재시작 전후 결제·취소 각 4개 동시 요청, 동일/새 키의 중복 방지, DB 불변을 통과했다. NOT_READY 18회와 READY 관측을 보존했고 verify는 5.423초였다. 이 시간은 검사 실행 시간이며 조사 시간 절감률이 아니다.
 - 리더 독립 검증: 실제 별도 PostgreSQL의 VOC 티켓 5개·Agent 조회 5개 모두 통과(건너뜀 0), 원문 `postgresql-contracts-01/`와 `commands/20260921T093950.784200Z-independent-postgresql-contracts.log`. 새 Agent JVM의 복구·근거 보존·동일 키·소유권/인계 7개 확인은 `agent-worker-01/`에 있다. 모의/비활성 모델 검사이며 유료 호출 0회다.
+
+## 2026-09-21T19:08:10+09:00 — HTTP 보완 공유와 선택 ID 논의
+
+- `5d59fee`의 전체 publish가 종료 0이었다. 원격 `07aeadd`·`1e179f3`를 통합하며 전체 검사·세 앱 재빌드/재기동·smoke를 다시 수행했다. 원문 `commands/20260921T095623.187863Z-publish-lead-protocol-recovery.log`(646.894초)에 동시 push에 따른 반복도 보존했다.
+- 실제 buildId `72f11203f5f8-01d782b91e1a`의 세 앱에서 잘못된 방식/형식/경로 9건 모두 405/415/404였다. `http-protocol-errors-after.json`과 `commands/20260921T100542.201823Z-deployed-http-protocol-verification.log`. Agent의 405/없는 경로 404는 아직 Spring 기본 본문이므로 공통 오류 DTO 보완을 이어 진행한다.
+- [DISC-20260921-agent-003](../discussions/DISC-20260921-agent-003-empty-context.md) P1 영향 없음·수락을 직접 답변했다. VOC 생성/PATCH·화면·기존 티켓 처리와 Agent 직접 소비 검증은 남아 있다.
