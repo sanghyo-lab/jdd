@@ -16,6 +16,14 @@
 
 
 
+## 2026-09-21T22:32:32+09:00 — LEAD-020 공유·새 빌드의 실제 전달/복구 확인
+
+- e237c35의 전체 publish는 종료 0/174.737초다. Python 65개·Java 183개 중 174통과/9조건부 제외·실패/오류 0, 세 앱 재빌드·재기동·실제 PostgreSQL/HTTP/근거 연결을 통과했다. 독립 검사한 전송 소스/테스트의 바이트가 공유 커밋과 일치한다. 현재 buildId는 `e237c3577656-057bb12f48d9`, Agent는 test/mock/mock이며 실제 VOC 모델 검증은 아니다.
+- 공유 후 새 바이너리에서 실제 VOC→Agent 중단·3회 전달 소진·복원·같은 키/원래 입력 재전송·새 버전 조사·VOC 컨테이너 교체를 다시 검증했다. 종료 0/24.387초, 두 조사·분석의 PostgreSQL 행/HTTP 보존, 전달 SUBMITTED·조사 FAILED/LLM_CONFIGURATION_ERROR·티켓 OPEN 구분, API/OAuth 호출 0·진행 작업 0을 확인했다. 본인 합성 티켓 10a46221-637d-4d24-ac3f-b9360fe7347f는 종료 결과로 보존했다.
+- 원문은 `runtime/submission/commerce-20260921-resumed/voc-http-transport-publication.json`, `voc-agent-recovery-02/result.json`, `commands/20260921T132740.447304Z-voc-http-transport-publish.log`, `commands/20260921T133113.881432Z-voc-agent-recovery-after-transport.log`다. 복구 검사와 runtime 자료 조회를 잘못 겹쳐 Agent 중지 중 Connection refused가 난 수집 실패도 보존했다. 앱 복원 뒤 순차 조회는 성공했으며 이를 제품 결함 또는 검증 성공으로 덮어쓰지 않았다(`publication-observation-overlapped-recovery.json`).
+- 깨끗하고 동기화된 e237c35의 team-check는 종료 1/1.437초, 세 역할·리더 모두 IN_PROGRESS다. 원문 `commands/20260921T133152.978771Z-team-check-after-transport.log`. 22:28 메타데이터 검사에서도 이 PC의 프로젝트 auth/명시 모델·web package는 없었다. 기존 인증 입력 질문과 담당자의 web/runner·필수 인수 답변을 기다리며 DONE·APPROVED를 작성하지 않는다.
+- VOC-LEAD-020의 김아름 직접 수정 인수, VOC-LEAD-MVP-001의 Windows 검사 인수와 Agent의 AGENT-LEAD-019/내부 runtime/정책 생성기 인수는 아직 답변 대기다. 요청을 공유한 사실을 담당자 완료로 간주하지 않는다. 실제 세션 이벤트 1,442개의 마스킹 제출본과 원본 prefix/제출 해시 검사를 별도로 보존했고, 아래 상태 설명은 실제 대화 원문을 대신하지 않는다.
+
 ## 2026-09-21T22:27:30+09:00 — LEAD-020 HTTP 본문 제한 수정과 실제 PostgreSQL 회귀
 
 - HttpAgentGateway는 전체 HTTP 완료 future에 요청 기한을 적용하고 만료/스레드 중단 시 전송을 취소한다. 본문 subscriber는 최대 4MiB를 바이트로 제한하고 초과 조각에서 즉시 수신을 취소한다. 시간 초과는 AGENT_UNAVAILABLE·재시도 가능, 크기 초과는 AGENT_PROTOCOL_ERROR·자동 재시도 없음으로 기존 오류 경로에 연결한다. DTO·저장/lease·모델·화면 변경은 없고 새 의존성도 추가하지 않았다.
