@@ -84,6 +84,11 @@ class CommerceHttpTest {
         assertThat(count("orders")).isEqualTo(2);
     }
     @Test void rejectsInvalidNumbersAndEmptyInputsWithoutWrites() throws Exception {
+        assertThat(request("DELETE", "/api/orders", null).statusCode()).isEqualTo(405);
+        var unsupported = client.send(HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + "/api/orders"))
+                .header("Content-Type", "text/plain").POST(HttpRequest.BodyPublishers.ofString("{}"))
+                .build(), HttpResponse.BodyHandlers.ofString());
+        assertThat(unsupported.statusCode()).isEqualTo(415);
         for (String quantity : List.of("0", "-1", "1.5", "\"1\"", "null", "2147483648", "true")) {
             assertThat(request("POST", "/api/orders", order("invalid", quantity)).statusCode()).as(quantity).isEqualTo(400);
         }

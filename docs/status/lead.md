@@ -4,7 +4,7 @@
 - 담당자: 이상효. commerce 구현과 개발리더를 겸한다.
 - 작업 브랜치: main
 - 최종 승인: [lead.json](lead.json)의 IN_PROGRESS. 세 담당자 DONE 후에도 독립 검토·전체 검증이 필요하다.
-- 검토 기록: [lead-review.json](lead-review.json). 현재 미검토 양식이며 성공 결과가 없다.
+- 검토 기록: [lead-review.json](lead-review.json). 단위 지적·수정 근거를 기록하며 최종 전 영역 검토와 필수 검사는 아직 미완료다.
 - 작업 기준: [리더 역할](../roles/lee-sanghyo-lead.md), [리더 단계](../goals/lead.md), [공통 완료 기준](../team-completion.md)
 - 다음 작업: 각 담당 구현이 준비되면 전체 영역의 코드·실제 동작을 검사하고 문제를 수정·재검증한다.
 - 지적·수정 기록: 실제 검토를 시작하면 LEAD ID, 담당 역할, 경로·재현 방법, 예상·실제 결과, 수정 커밋과 검증 근거를 기록한다.
@@ -31,3 +31,9 @@
 
 - 대상: `fixtures/commerce/VOC-07/reset.sql`. 최소 권한의 기본 DB에서 임시 테이블 생성이 permission denied였고 재현 HTTP를 시작하지 못했다. 전용 DB의 성공과 실제 기본 배포 권한 차이를 발견했다.
 - 수정 `878f602`: commerce 계정의 TEMP/DDL 권한 추가 없이 psql의 안전하게 인용된 ID 배열 변수로 초기화한다. 기존 주문이 있는 접두어와 신규 접두어, 실제 컨테이너의 20회·대조·복구로 재검증했다. 계약/소비자 API 변경은 없다. 상세 실패·성공 원문은 commerce 상태에 연결했다. 최종 전체 리더 검증과 역할 완료 갱신은 별도로 남아 있다.
+
+## 2026-09-21 — LEAD-003 잘못된 HTTP 방식의 서버 오류 분류
+
+- 실제 DELETE /api/orders가 일반 예외 처리기로 들어가 500 INTERNAL_ERROR를 반환했다. `CommerceErrors`에서 잘못된 방식 405와 media type 415를 명시적으로 처리하고 같은 오류 DTO를 유지했다.
+- 실제 실패 원문과 HTTP/H2 재검증 13개는 commerce 상태에 연결했다. 배포 후 실제 요청으로 최종 확인하며 최종 리더 승인과 분리한다.
+- `6b646a0`까지 초기화 수정의 전체 publish·세 앱 기동·smoke가 종료 0이었다. Docker의 기존 단계 재사용을 확인했고, 쿠폰 Java 소스 변경 때는 Gradle cache mount의 다운로드 재사용을 검증한다.

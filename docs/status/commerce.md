@@ -1,6 +1,6 @@
 # 이상효 — 이커머스 구현과 개발리더 작업 상태
 
-- 상태: DDL·상품·주문·재고·커밋 후 JSONL을 구현했다. HTTP/H2 8개 및 전용 PostgreSQL의 VOC-07 첫 재현·대조·복구를 통과했다. VOC-07 20회와 대조·복구를 실제 PostgreSQL에서 통과했다. 나머지 업무·모델 통합은 진행 중이다.
+- 상태: 상품·주문·재고·쿠폰·JSONL을 구현했다. HTTP/H2 13개, 실제 PostgreSQL의 VOC-02·03 각 3회 및 VOC-07 20회와 정상·복구 대조를 통과했다. 결제·취소·환불·모델 통합은 진행 중이다.
 - 담당자: 이상효 (역할 B)
 - 겸임 책임: [개발리더](../roles/lee-sanghyo-lead.md). 세 담당자 DONE 이후에도 전체 코드 검사·실제 검증·수정을 수행하며 [리더 상태](lead.md)에 기록한다.
 - GitHub 계정: `sanghyo-lab`
@@ -10,7 +10,7 @@
 - 작업 Issue·공유 커밋: 시작 후 기입
 - 담당 경로: `commerce-app/`, `commerce-core/`, `commerce-infra/`, `fixtures/commerce/`
 - 준비된 자료: [구현 범위](../roles/lee-sanghyo-commerce.md), [커머스 계약](../commerce-interface.md), [업무 정책](../business-policy.md), [7개 시나리오](../voc-scenarios.md)
-- 다음 작업: 쿠폰의 VOC-02·03과 정상 대조, 이어 결제·취소·환불 및 VOC-01·04~06
+- 다음 작업: 결제·취소·환불 및 VOC-01·04~06, 소비자 연동 추적
 - 필요한 입력: 한재홍의 조회 연결 확인, 김아름의 재현 실행 연동 확인
 - 검증 결과: 준비 PC에서 전체 Gradle check와 세 앱의 Docker 기동·smoke 통과. 실제 PostgreSQL 기본 마이그레이션과 조사 계정 SELECT 확인. VOC-07의 실제 HTTP·DB 첫 재현과 대조·복구를 추가 검증했다. 나머지 업무와 20회 반복은 진행 중이다.
 - 연동 요청: 담당 goal 시작 후 v1 커머스 DDL·API·업무 로그 구현 결과를 제공한다.
@@ -63,3 +63,8 @@
 - 구현: 고객 쿠폰 조회, 소유자·기간·사용 상태 검사, 주문과 같은 트랜잭션의 사용 기록·JSONL 근거. 발급 쿠폰 행 잠금으로 우발적인 동시 중복 사용을 방지한다. VOC-02 최소금액 경계 제외와 VOC-03 정수 나눗셈 결함은 재현 대상으로 유지한다.
 - 합성 입력: `fixtures/commerce/VOC-02`, `VOC-03`에 독립 SQL·HTTP 요청·관측 기준을 제공하고 `reproduce_commerce.py`로 실제 DB/HTTP/로그/소스를 함께 기록한다. 초기화는 TEMP 권한 없이 해당 합성 접두어만 대상으로 한다.
 - HTTP/H2: `./gradlew --no-daemon :commerce-app:test` 종료 0. 쿠폰 경계값·소유/기간/사용 거절·정액/상한·동시 동일 쿠폰 사용·DB 실패 시 쿠폰/주문/재고 롤백을 추가 검증했다. 실제 PostgreSQL 3회 반복은 이 커밋 빌드에서 이어 수행한다. 결제·취소·환불과 실제 모델은 미검증이다.
+
+- 실제 PostgreSQL 결과: 커밋 `b4ab33c`, buildId `b4ab33c6eedb-619cf0ac6c61`(workingTreeDirty=false)에서 VOC-02·03 각 3/3회 통과. 명령은 전용 DB/포트 18080의 `reproduce_commerce.py --runs 3`, 원문은 `runtime/submission/commerce-reproductions/20260921T090509.872937Z-business.json`이다. 쿠폰 거절 로그·성공 할인 로그·주문/사용/재고 DB·실행 소스를 대조했다.
+- 실제 같은 쿠폰의 동시 요청 2건도 201/422·주문/사용 1건·재고 9였고, 동일 접두어 초기화 후 주문/사용 0·재고 10을 확인했다(`coupon-concurrency-reset-20260921.json`).
+- 추가 오류 수정: 지원하지 않는 DELETE /api/orders가 실제 HTTP 500을 반환하는 것을 확인했다(`unsupported-method-before-fix.json`). 정상 405와 지원하지 않는 content type의 415로 분리하고 HTTP/H2 13개를 재통과했다. 실패 기록을 보존하며 배포 후 실제 HTTP도 재확인한다.
+- COMMERCE-002 접수 확인: `0c04673`에서 한재홍이 P1을 직접 수락했다. 실제 소비자 조회와 VOC 답변은 아직 남아 있어 논의를 해소하지 않는다. 모델 호출 0회, DONE·APPROVED 미작성이다.
