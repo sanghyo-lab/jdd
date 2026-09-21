@@ -18,13 +18,20 @@
 - 담당 경로: `agent-app/`, `agent-core/`, `agent-infra/`
 - 준비된 자료: [구현 범위](../roles/han-jaehong-agent.md), [VOC·Agent 계약](../integration-contract.md), [커머스 조회 계약](../commerce-interface.md)
 - 다음 작업: 새 정책 snapshot과 VOC 분석 전달·web·runner를 인수하고 승인된 실제 모델·ngrok 검증을 연결한다. 일곱 업무의 실제 근거 조회·저장·원문 재조회 검사는 통과했다. 일반 실행의 유료 차단을 유지한다.
-- 필요한 입력: 프로젝트 전용 Codex 최초 로그인과 CODEX_MODEL, 김아름의 분석/화면/runner 전달 및 공개 ngrok 설정. API 크레딧은 배포 전용이며 배포 시 profile 범위를 별도로 설정한다. 실제 OAuth/API 호출은 아직 0회다.
+- 필요한 입력: CODEX_MODEL, 김아름의 분석/화면/runner 전달 및 공개 ngrok 설정. 이 PC의 프로젝트 전용 Codex 최초 로그인은 2026-09-21T21:41+09:00에 성공했다. API 크레딧은 배포 전용이며 배포 시 profile 범위를 별도로 설정한다. 실제 OAuth/API 모델 호출은 아직 0회다.
 - 검증 결과: 전체 Gradle check·세 앱 Docker·PostgreSQL/HTTP smoke, 실제 DB 동시성·권한·복구·비용 예약과 일곱 커머스 조사 300근거·333필드/로그 대조를 확인했다. 모의 모델과 실제 모델을 구분하며 실제 모델 품질·화면은 미검증.
 - 연동 요청: 정책 archive 소비자 구현 제공, DISC-20260921-agent-003의 선택 ID 공백 입력 경계 확인. 기본 Compose는 explicit test/mock이며 OAuth/API로 자동 활성화·fallback하지 않는다.
 
 작업 단위가 끝날 때 제공 가능한 기능, 변경한 계약, 실제 검증 명령·결과, 다음 작업을 갱신한다. 실패와 막힌 이유도 함께 기록한다.
 
 
+
+## 2026-09-21T21:41:37+09:00 — 프로젝트 전용 Codex 로그인 실제 검증
+
+- 사용자 요청의 `./scripts/llm login`을 실제 실행했다. 설치된 Codex CLI 0.155.1의 브라우저 인증이 `Successfully logged in`과 종료 코드 0으로 완료됐고, 같은 프로젝트 인증 디렉터리에서 `codex login status`도 종료 0·ChatGPT 로그인 상태를 확인했다. 기존 개발 세션의 인증 파일을 복제하거나 변경하지 않았다.
+- 저장소 밖 프로젝트 인증 파일의 존재·0600과 디렉터리 0700을 확인했다. 인증 파일 내용·토큰·브라우저 인증 URL은 공유 기록에 넣지 않았다. 공식 인증 문서의 file 저장과 ChatGPT 로그인 설정을 확인했고, `python3 -m unittest discover -s scripts/tests -p test_llm_workflow.py -v`의 6개 모의 검사도 통과했다.
+- 비밀 없는 실제 결과는 `runtime/submission/agent-20260921/oauth-login-check.json`에 보존했다. 이번 검사는 로그인까지이며 실제 모델 호출·프로모션 API 사용·앱 재기동은 0회다. CODEX_MODEL 접근과 Responses 호환성·VOC 조사 품질은 후속 실제 호출로 검증해야 하며 DONE을 기록하지 않았다.
+- 원격 `bc3d7c6`의 MVP 실행 환경 보존 보완을 동기화했다. 로그인 검증 기록만 협업 문서 공유 절차로 공유하며 전체 앱 검증이나 실제 모델 검증으로 간주하지 않는다.
 
 ## 2026-09-21T21:05:14+09:00 — 분리 구현 최종 검증·공유 완료, 실제 로그인 대기
 
