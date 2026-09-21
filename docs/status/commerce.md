@@ -10,12 +10,21 @@
 - 작업 Issue·공유 커밋: 시작 후 기입
 - 담당 경로: `commerce-app/`, `commerce-core/`, `commerce-infra/`, `fixtures/commerce/`
 - 준비된 자료: [구현 범위](../roles/lee-sanghyo-commerce.md), [커머스 계약](../commerce-interface.md), [업무 정책](../business-policy.md), [7개 시나리오](../voc-scenarios.md)
-- 다음 작업: 기본 Compose 전체 업무 재검증, 소비자 연동·화면·Agent 근거 확인, 독립 리더 검토와 실제 모델 검증 범위 준비
-- 필요한 입력: 한재홍의 조회 연결 확인, 김아름의 재현 실행 연동 확인
-- 검증 결과: 실제 PostgreSQL에서 일곱 업무 재현·반복·로그/실행 소스·SELECT 권한과 재시작 복구를 확인했다. 기본 Compose의 최신 업무 재검증과 실제 소비자·모델·화면 통합은 남아 있다. 아래 기록의 buildId별 결과를 구분한다.
+- 다음 작업: 별도 PostgreSQL의 전체 HTTP 경계·롤백 검사, 새 정책 사본·VOC runner·화면 인수, 독립 리더 검토와 실제 모델 검증 범위 준비
+- 필요한 입력: 김아름의 정책 snapshot·VOC 분석/화면·재현 runner 소비 결과, 사용자 데모 사용 범위·비밀 설정
+- 검증 결과: 기본 Compose의 실제 PostgreSQL에서 일곱 업무 반복·로그/소스 해시·SELECT 권한과 재시작 복구를 확인했다. 일곱 재현의 Agent 8종 도구·300근거 저장/원문 재조회도 이 PC에서 검증했다. 모의 모델이며 실제 AI 품질·VOC 화면·최종 통합은 남아 있다. 아래 기록의 buildId별 결과를 구분한다.
 - 연동 요청: COMMERCE-001/002로 v1 DDL·API·업무 로그·재현 자료를 제공하고 소비자 접수·검증을 추적한다.
 
 작업 단위가 끝날 때 제공 가능한 기능, 변경한 계약, 실제 검증 명령·결과, 다음 작업을 갱신한다. 실패와 막힌 이유도 함께 기록한다.
+
+## 2026-09-21T19:32:00+09:00 — 일곱 Agent 소비 인수와 데모 배분 답변
+
+- `5edef99`의 근거 검사 보강을 전체 publish 종료 0 후 일반 push했다. 검증 도중 `0ba2862`와 `de34e9d`의 전체 변경을 읽고 통합·재검증했다. Python 38개·문서 검사·전체 Gradle check·3개 앱/DB/SELECT 권한/근거 마운트 통과. 원문 `commands/20260921T102243.717630Z-publish-evidence-validator.log`(519.616초)는 아래 로컬 제출 디렉터리에 보존했다.
+- `check_commerce_handoff.py --business-artifact`를 이 PC에서 실행했다. 보존한 commerce buildId `d1f92dc4ed3d-f1239ba8f94e`의 VOC-01~06 각 첫 재현과 VOC-07을 실제 8종 도구로 읽고 별도 Agent PostgreSQL에 총 300근거를 저장했다. 300원문 HTTP 재조회, 새로고침, 같은 키의 동일 조사 ID·추가 모델 호출 없음을 확인했다.
+- 제공자 보존 데이터와 Agent 근거의 주문·결제·환불·쿠폰 333개 필드 및 업무 로그 원문이 모두 일치했다. Java 2개·Python 비교 통과, 명령 종료 0/25.2초. 모델은 공통 모의 절차 총 20회·유료 0회이며 원인·해결안 AI 품질 검증은 아니다.
+- 원문: `runtime/submission/commerce-20260921-resumed/seven-agent-handoff-01/`의 각 조사 JSON·비교 JSON·JUnit XML·command.log, 바깥 `commands/20260921T103141.792798Z-seven-commerce-agent-handoff.log`. 실제 DB 데이터를 다시 초기화하거나 다른 PC의 성공을 재사용하지 않았다.
+- [DISC-20260921-agent-004](../discussions/DISC-20260921-agent-004-demo-allocation.md)의 P1 배분 계획(이 PC commerce·lead 합산 $15/최대 176회·단일 장부)을 직접 수락했다. 기본 Agent DB의 장부/호출/진행 조사 0행 확인, 실제 활성화는 하지 않았다. 김아름의 배분 수락·사용자의 구체적인 데모 범위·비밀 설정이 남아 있다.
+- [DISC-20260921-commerce-001](../discussions/DISC-20260921-commerce-001-inventory-evidence.md)에 새 인수 결과를 기록했다. VOC runner·새 정책 사본·실제 화면/모델 검증 전에는 해소·DONE으로 표시하지 않는다.
 
 ## 2026-09-21 — 커머스·개발리더 goal 시작
 
