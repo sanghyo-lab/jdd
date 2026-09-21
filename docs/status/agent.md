@@ -1,5 +1,14 @@
 # 한재홍 — AI Agent 작업 상태
 
+## 2026-09-21T23:43:16+09:00 — NORMAL 완료·정상 판정 인수·문장별 인용 보완
+
+- 없는 정책 제목 안내 단위 `93c892e`를 전체 publish 종료 0으로 공유했다. Python 67·web 13/production build·전체 Gradle check·세 앱/실제 PostgreSQL/HTTP/근거 연결 통과, 원문 `followup-policy-section-publish.log/json`이다.
+- 같은 정상 티켓의 새 키/이전 조사 ID로 실행한 `30716c64-0eac-4e16-8be5-ebdaa6141cfb`가 COMPLETED가 됐다. 분석 `06c17b31-f604-4f23-9567-2eae85eac35a`, Agent build `93c892e829aa-7e57a8f5accd`, 보존 commerce build `8bd5699533be-057bb12f48d9`. 정책 조회를 포함한 7도구·20근거를 저장했다. 최초 정책 실패를 소급 성공 처리하거나 정확한 당시 인자를 추정해 기록하지 않는다.
+- 정상 판단 직접 검수: INITIAL +2·예약 2건 -2·재고 0, 해당 주문 1개/예약 -1, PAYMENT_PENDING·결제/환불 행 없음이 저장 DB/로그/정책과 일치한다. 장애 가설·예방 제안을 억지로 만들지 않았다. 다만 fact-order-status가 환불 기록 없음까지 설명하면서 orders/payments만 인용했고 저장된 refunds 근거를 누락했다. 정상 오판 방지와 전송은 인수했지만 문장별 인용 완전성은 보완이 필요하다.
+- 시스템 프롬프트 v5는 각 항목의 모든 사실 주장과 빈 조회 주장에 해당하는 근거를 직접 인용하거나 항목을 분리하고, 불필요한 부가 주장은 생략하도록 보완한다. 특정 시나리오 정답·ID·평가 파일은 추가하지 않으며 v1~v4를 보존한다. 기존 실행기/격리/SSE 25개 모의 검사 통과·실패/제외 0(`followup-citation-tests.log/json`, `followup-citation-results/`). 실제 v5 품질은 별도 후속 검증이며 프롬프트 변경만으로 인용 누락 해결을 확정하지 않는다.
+- 이번 실제 OAuth 5회: 입력 40,506·출력 1,565·캐시 입력 10,240·reasoning 483(각 입력/출력의 일부)·cache write 0, 모델 요청 합계 60,022ms·조사 약 60.53초. 이 스택 누적 OAuth 27행/API 0행이며 앞선 미관측 usage는 null로 유지한다. 인증된 web 중계의 보고서/근거 20개·같은 키/refresh 조회 후 27/0 불변도 확인했다.
+- 원문 `followup-oauth-normal-02/`, `followup-oauth-normal-run-02.log/json`, `followup-normal-review.json`, `followup-normal-review-run.log/json`. 김아름의 화면/runner는 원격 공유 대기이며 후속 커밋을 확인해 이어 인수한다. 전체 VOC·ngrok·역할 DONE·리더 승인은 여전히 별도 미완료다.
+
 ## 2026-09-21T23:36:00+09:00 — NORMAL 실제 정책 조회 실패 보존·없는 제목의 재조회 안내
 
 - 김아름의 후속 공유를 기다리는 동안 별도 정상 대조 한 건을 실제 local/codex_oauth로 수동 조사했다. 보존한 커머스 정상 대조 주문/상품/고객 ID와 중립적인 문의만 전달했으며 기대 정답·재현 파일은 모델 입력에서 제외했다. 같은 Agent build `9d1bb86d7351-c8c49a025b79`에서 조사 `f0c31cd2-20e9-4fce-a5d1-18a87ab1f3a9`가 readBusinessPolicy 실행 중 TOOL_EXECUTION_FAILED가 됐다. 16개 근거는 저장·재조회됐지만 보고서는 없으며 NORMAL 품질 성공으로 계산하지 않는다.
