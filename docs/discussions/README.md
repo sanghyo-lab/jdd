@@ -12,9 +12,9 @@
 
 | ID / 논의 | 상태 | 정리 담당 | 확인·답변 대기 | 다음 행동 / 막힌 이유 | 해소 근거 | 최종 갱신 |
 | --- | --- | --- | --- | --- | --- | --- |
-| [DISC-20260921-agent-001 — 모델 설정·장애·예산 오류](DISC-20260921-agent-001-llm-errors.md) | AGREED | 한재홍 | Agent 단위 공유·VOC 소비자 검증 | Agent 계약·매핑/HTTP 검증 기록. VOC 화면·재조사·모의 통합 대기 | 미해소: 소비자 구현·검증 필요 | 2026-09-21T17:55:54+09:00 |
+| [DISC-20260921-agent-001 — 모델 설정·장애·예산 오류](DISC-20260921-agent-001-llm-errors.md) | AGREED | 한재홍 | VOC 소비자 검증 | Agent 실행기·전송·비용 제어 공유. VOC 화면·재조사·모의 통합 대기 | 미해소: 소비자 구현·검증 필요 | 2026-09-21T19:12:00+09:00 |
 | [DISC-20260921-commerce-001 / 재고 재현·근거](DISC-20260921-commerce-001-inventory-evidence.md) | AGREED | 이상효 | VOC runner 검증 | P1 전원 수락. 제공자 PC도 실제 8도구·25근거 저장/재조회 확인 | 미해소: VOC 소비자 검증 필요 | 2026-09-21T18:39:01+09:00 |
-| [DISC-20260921-agent-002 / build별 정책 사본](DISC-20260921-agent-002-policy-snapshot.md) | AGREED | 한재홍 | voc·agent 구현, commerce 검증 | P1 전원 수락. VOC 생성기·계약, Agent 소비, commerce 새 빌드 확인 | 미해소: 구현·소비 검증 필요 | 2026-09-21T18:38:12+09:00 |
+| [DISC-20260921-agent-002 / build별 정책 사본](DISC-20260921-agent-002-policy-snapshot.md) | AGREED | 한재홍 | VOC 생성기·Agent/commerce 실제 인수 | Agent 소비 a545332·14개 파일/도구 검사 통과, 공통 생성기 대기 | 미해소: 새 실제 snapshot 소비 필요 | 2026-09-21T19:12:00+09:00 |
 | [DISC-20260921-voc-001 / runner 선택 메타데이터](DISC-20260921-voc-001-runner-metadata.md) | AGREED | 김아름 | 계획 연결·정리 | P1 전원 수락. 기존 필수 계약 유지·선택 확장 보류 | 미해소: 정리 담당의 결정·계획 연결 필요 | 2026-09-21T18:43:32+09:00 |
 | [DISC-20260921-agent-003 / 선택 ID 공백 입력](DISC-20260921-agent-003-empty-context.md) | OPEN | 한재홍 | 김아름 P1 | commerce 영향 없음·P1 수락. VOC 입력/화면/기존 티켓 처리 답변 대기 | 미해소: 답변·구현·소비 검증 필요 | 2026-09-21T19:08:10+09:00 |
 
