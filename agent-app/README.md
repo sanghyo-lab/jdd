@@ -47,6 +47,24 @@ missingInformation에 따라 COMPLETED/NEEDS_INPUT을 서버에서 결정한다.
 `recoverInterrupted`는 단일 실행 소유자가 시작할 때만 호출해야 한다. 실행 소유권·스케줄러 연결은 다음 구현 범위다.
 이 저장 계층의 합성 검증을 실제 VOC 조사·모델 품질 검증으로 간주하지 않는다.
 
+## 모델 호출 허용과 비용 장부
+
+`PaidModelGate`는 기본 금지이며 데모 모드·명시적 유료 허용·승인 범위·만료 시각·모델 허용 목록을 모두 검사한다.
+현재 실제 OpenAI 클라이언트·환경 설정 연결은 구현 중이다. 이 계층이 있다는 이유로 유료 호출을 시작하지 않는다.
+모의 검증에서는 실제 네트워크가 없는 함수를 호출해 허용/차단과 실패 처리를 확인한다.
+
+- `agent.demo_budget`의 단일 누적 예산은 로컬에 배정한 금액($30 이하)·범위·동시 호출·조사당 호출 수를 고정한다. 재시작·새 조사·다른 범위 이름으로 초기화하거나 확대하는 API는 없다.
+- `agent.model_calls`는 실제 HTTP 시도마다 하나의 ID, 요청/실제 모델·가격 버전·prompt 지문·도구 스키마·시각·usage를 저장한다. 재시도·전환도 새 시도로 예약해야 하며 이 계층은 자동 재시도하지 않는다.
+- DB 예산 행을 잠근 상태에서 확정+미확정+진행 중 예약+새 호출 최댓값을 검사한다. 모델 출력의 근거 ID와 비용 장부 ID는 별개다.
+- 전송 전에 예약을 DISPATCHED로 한 번만 전환한다. 미전송 예약만 취소할 수 있다. 응답 유실·중단·필요 usage 누락·미등록 실제 모델은 UNKNOWN이며 새 유료 호출을 차단한다.
+- 늦게 확보한 실제 사용량은 같은 시도의 UNKNOWN을 정산할 수 있다. 동일 정산 이벤트는 중복 합산하지 않고, 실제 비용이 예약을 넘으면 실제 값을 보존하고 추가 호출을 차단한다.
+- input/output/cache read/cache write/reasoning은 nullable 수치다. 미관측을 0으로 채우지 않으며 reasoning을 output에 다시 더하지 않는다. 캐시 쓰기 적용 모델은 입력을 일반·읽기·쓰기 구간으로 나누어 계산한다.
+
+가격은 하드코딩하지 않고 모델·컨텍스트 구간·service tier에 맞는 검증된 버전을 구성해야 한다.
+현재 테스트 가격·모델명은 합성 값이다. [OpenAI 가격](https://developers.openai.com/api/docs/pricing)과
+[캐시 비용 계산](https://developers.openai.com/api/docs/guides/prompt-caching)을 실제 데모 설정 시 재확인한다.
+여러 PC의 예산 배분 또는 공유 장부·계정 전체 잔액 확인은 이 로컬 장부가 대신하지 않는다.
+
 ## 검증
 
 ```bash
@@ -73,3 +91,11 @@ Agent를 재시작한 뒤 `python3 agent-app/scripts/check_intake.py --verify-ex
 
 외부 URL은 위 DB 이름만 허용하며 각 테스트는 그 DB의 조사·근거를 초기화한다. 앱의 업무 DB를 지정하지 않는다.
 테스트용 DB 자격 증명을 Git·명령 인수·로그에 남기지 않는다. 이 검증은 모델 API를 사용하지 않는다.
+
+`ModelCallLedgerTest`는 기본적으로 별도 H2 DB에서 동시 예약·사용량 정산·중복 정산·예산/호출 한도·유료 차단을 검증한다.
+실제 PostgreSQL 검증에는 전용 `jdd_agent_budget_test`와 `JDD_BUDGET_TEST_DB_URL`,
+`JDD_BUDGET_TEST_DB_USER`, `JDD_BUDGET_TEST_DB_PASSWORD`를 사용한다. 해당 DB의 장부·합성 조사는 테스트마다 초기화한다.
+
+```bash
+./gradlew :agent-app:test --tests com.jdd.agent.ModelCallLedgerTest --rerun-tasks
+```
