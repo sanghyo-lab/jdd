@@ -21,6 +21,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -41,6 +43,7 @@ class OpenAiTransportTest {
     private java.util.concurrent.ExecutorService executor;
     private final AtomicInteger hits = new AtomicInteger();
     private final List<JsonNode> requests = new java.util.concurrent.CopyOnWriteArrayList<>();
+    private final List<OpenAiInvestigationModel> clients = new ArrayList<>();
     private final AtomicReference<ModelCallLedger.State> dispatchState = new AtomicReference<>();
     private int status = 200;
     private long delay;
@@ -76,7 +79,7 @@ class OpenAiTransportTest {
         });
         server.start();
     }
-    @AfterEach void stop() { server.stop(0); executor.shutdownNow(); }
+    @AfterEach void stop() { clients.forEach(OpenAiInvestigationModel::close); server.stop(0); executor.shutdownNow(); }
 
     @Test void disabledGateBlocksTheActualSocketAndCreatesNoBudget() {
         var model = model(false, 128 * 1024, Duration.ofSeconds(2));
@@ -148,6 +151,38 @@ class OpenAiTransportTest {
                 .isInstanceOf(InvestigationFailure.class).satisfies(error -> assertThat(((InvestigationFailure) error).error().code()).isEqualTo("LLM_UNAVAILABLE"));
         assertThat(hits.get()).isEqualTo(1); assertThat(entry().state()).isEqualTo(ModelCallLedger.State.UNKNOWN);
     }
+    @ParameterizedTest
+    @ValueSource(strings = {"credit_balance_exhausted", "organization_spend_limit_exceeded",
+            "project_spend_limit_exceeded", "organization_usage_limit_exceeded", "insufficient_quota"})
+    void providerBillingLimitsAreNotPresentedAsTransientFailures(String code) {
+        status = 429;
+        response = json.writeValueAsString(Map.of("error", Map.of("code", code, "type", "insufficient_quota", "message", "private-provider-canary")));
+        try (var model = model(true, 128 * 1024, Duration.ofSeconds(2))) {
+            assertThatThrownBy(() -> model.next(request(1, List.of())))
+                    .isInstanceOf(InvestigationFailure.class).satisfies(error -> {
+                        var api = ((InvestigationFailure) error).error();
+                        assertThat(api.code()).isEqualTo("INVESTIGATION_BUDGET_EXCEEDED");
+                        assertThat(api.retryable()).isFalse();
+                        assertThat(api.message()).doesNotContain("private-provider-canary");
+                    });
+            assertThat(hits.get()).isEqualTo(1);
+            assertThat(entry().state()).isEqualTo(ModelCallLedger.State.UNKNOWN);
+            assertThat(entry().confirmedUsd()).isNull(); assertThat(entry().receipt().usage()).isNull();
+            assertThat(entry().receipt().outcome()).contains(code);
+            assertThatThrownBy(() -> model.next(request(2, List.of()))).isInstanceOf(PaidModelGate.Rejected.class);
+            assertThat(hits.get()).isEqualTo(1);
+        }
+    }
+
+    @Test void broaderInsufficientQuotaTypeIsRecognizedWithoutTrustingArbitraryErrorText() {
+        status = 429;
+        response = "{\"error\":{\"code\":\"private-unknown-code\",\"type\":\"insufficient_quota\",\"message\":\"private-provider-canary\"}}";
+        assertThatThrownBy(() -> model(true, 128 * 1024, Duration.ofSeconds(2)).next(request(1, List.of())))
+                .isInstanceOf(InvestigationFailure.class).satisfies(error -> assertThat(((InvestigationFailure) error).error().code()).isEqualTo("INVESTIGATION_BUDGET_EXCEEDED"));
+        assertThat(entry().receipt().outcome()).contains("insufficient_quota").doesNotContain("private-");
+        assertThat(entry().state()).isEqualTo(ModelCallLedger.State.UNKNOWN);
+        assertThat(hits.get()).isEqualTo(1);
+    }
     @Test void timeoutKeepsReservationAndDoesNotDispatchAnAutomaticRetry() {
         delay = 500;
         assertThatThrownBy(() -> model(true, 128 * 1024, Duration.ofMillis(150)).next(request(1, List.of()))).isInstanceOf(PaidModelGate.Rejected.class);
@@ -158,6 +193,14 @@ class OpenAiTransportTest {
         assertThatThrownBy(() -> model(true, 1024, Duration.ofSeconds(2)).next(request(1, List.of())))
                 .isInstanceOf(InvestigationFailure.class).satisfies(error -> assertThat(((InvestigationFailure) error).error().code()).isEqualTo("INVESTIGATION_BUDGET_EXCEEDED"));
         assertThat(hits.get()).isZero(); assertThat(jdbc.queryForObject("SELECT count(*) FROM agent.model_calls", Integer.class)).isZero();
+    }
+    @Test void specialTokenLookingEvidenceIsCountedAsOrdinaryTextWithoutDroppingIt() {
+        var original = request(1, List.of(Message.feedback("literal evidence: <|endoftext|> <|fim_prefix|> 한국어")));
+        model(true, 128 * 1024, Duration.ofSeconds(2)).next(original);
+        assertThat(hits.get()).isEqualTo(1);
+        assertThat(requests.getFirst().path("messages").get(2).path("content").asText())
+                .isEqualTo("literal evidence: <|endoftext|> <|fim_prefix|> 한국어");
+        assertThat(entry().state()).isEqualTo(ModelCallLedger.State.CONFIRMED);
     }
     @Test void redirectIsNotFollowedAndCannotSendCredentialsToAnotherEndpoint() {
         var redirected = new AtomicInteger();
@@ -199,7 +242,9 @@ class OpenAiTransportTest {
         var authorization = allowed ? new PaidModelGate.Authorization(true, true, "synthetic-wire", clock.instant().plusSeconds(60), Set.of(price.model())) : PaidModelGate.Authorization.disabled();
         var gate = new PaidModelGate(authorization, new ModelCallLedger.Budget("synthetic-wire", new BigDecimal("30"), 8, 2), ledger, clock);
         var settings = new OpenAiInvestigationModel.Settings(price, 1_050_000, maxBytes, 32000, 4096, "o200k_base", Duration.ofMillis(100), timeout, "low");
-        return OpenAiInvestigationModel.localMock(URI.create("http://127.0.0.1:" + server.getAddress().getPort() + "/v1"), settings, gate, json, clock);
+        var client = OpenAiInvestigationModel.localMock(URI.create("http://127.0.0.1:" + server.getAddress().getPort() + "/v1"), settings, gate, json, clock);
+        clients.add(client);
+        return client;
     }
     private Request request(int iteration, List<Message> history) {
         return new Request(investigation, repository.find(investigation).orElseThrow().input(), InvestigationPromptLoader.load(), iteration,

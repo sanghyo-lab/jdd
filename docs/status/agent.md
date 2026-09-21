@@ -237,4 +237,13 @@
 - 별도 실제 PostgreSQL `jdd_agent_export_test`에만 합성 상태 5종을 준비해 필터/총합/미확정/누락 ID/민감 본문 제외/덮어쓰기/잘못된 ID/행 불변/파일 모드/1,000건 경계를 통과했다. 원문 `runtime/submission/agent-20260921/ledger-export/20260921T103000Z/verification.json`, `ledger-export-postgres-final.log`.
 - 기본 앱 DB의 장부 미설정·호출 0건도 실제 내보냈고, 기존 도메인 테스트가 작성한 `jdd_agent_budget_test`를 추가로 읽었다. `ledger-export/default-no-calls.json`, `ledger-export/domain-test-ledger.json`. 합성 장부 검증이며 제공자 청구·실제 모델 사용 기록이 아니다.
 - 이 내보내기는 로컬 검수용이다. runner의 선택 관측 DTO/조회 경로 또는 최종 모델 판정을 임의로 확정하지 않았다. 실제 데모 승인·팀 예산 합의·모델 품질 검증은 아직 남아 있다.
+
+## 2026-09-21 — 제공자 과금 오류 구분과 토크나이저 사전 재사용
+
+- 내보내기는 `85e3f72`로 전체 publish 종료 0 후 공유했다(`ledger-export-publish.log`). `5edef99`의 제공자 근거 검사 강화 전체를 읽고 기존 재현 원문을 새 검사기로 읽기 전용 검토했다. 보존 빌드 `cfd36d1c9044-8fd07a02b0f4`의 실행 소스 35개 해시·완료 로그 436줄이 정상이며 새 재현으로 계산하지 않는다. 원문 `retained-evidence-integrity.json`.
+- 추가 검수에서 OpenAI의 과금 관련 429를 모두 일시 장애로 반환하는 누락을 확인했다. 공식 오류 코드의 크레딧/조직·프로젝트 지출/조직 사용 한도와 insufficient_quota를 로컬 모의 HTTP로 먼저 재현했다. 6개 실패 원문 `billing-errors-before-fix.log`/`.xml`을 보존했다.
+- 비용 장부 정산 뒤 알려진 과금 오류를 기존 INVESTIGATION_BUDGET_EXCEEDED·retryable=false로 반환한다. 일반 rate limit은 LLM_UNAVAILABLE다. 알려진 분류값만 장부 outcome에 남기고 제공자 자유 형식 오류를 SDK에 넘기지 않는다. usage 없음은 0원이 아닌 UNKNOWN·전체 예약액이며 다음 유료 시도를 차단한다. 새 API 필드는 없다.
+- 확대 검증 중 토크나이저 사전을 모델 인스턴스마다 적재해 기본 테스트 JVM에서 Java heap space가 발생했다. `billing-errors-final.log`, `billing-errors-executor-failure.xml`, 원인 stacktrace `billing-errors-diagnose.log`를 보존했다. 힙 한도나 검사 기준을 낮추지 않고 thread-safe lazy registry를 재사용하고 테스트 클라이언트를 닫도록 수정했다. 특수 토큰 형태의 문자열도 삭제 없이 일반 텍스트로 추정한다.
+- 수정 후 OpenAiTransportTest 21개·InvestigationRunnerTest 9개, 실패/건너뜀 0(`billing-errors-memory-fixed.log`). 가격/상한 예약은 그대로이며 실제 OpenAI 호출은 0회다.
+- `4a2aeed`의 리더 일곱 근거 독립 인수·예산 P1 직접 수락을 읽었다. 같은 300근거·333필드 검사가 공급자 PC에서도 통과했지만 VOC/web·실제 모델 검증을 대신하지 않는다. 김아름의 답변·생성기/연동과 사용자 데모 범위 확인을 기다리며 독립 작업을 계속한다.
 - 실제 개발 세션의 사용자/응답/도구 이벤트 852건을 `runtime/submission/agent-20260921/session/20260921T100624Z/`에 중간 캡처했다. 이메일·비밀 값 검사/가림과 원문 prefix/산출물 SHA·제외 유형을 manifest에 남겼다. 요약이나 미가림 원본과 구분하고 진행 종료 시 갱신한다. Git에는 원시 세션/개인정보를 공유하지 않는다.

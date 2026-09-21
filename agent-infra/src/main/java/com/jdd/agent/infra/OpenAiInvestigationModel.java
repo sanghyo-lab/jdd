@@ -3,6 +3,9 @@ package com.jdd.agent.infra;
 import com.jdd.agent.domain.*;
 import com.jdd.agent.domain.Investigation.ApiError;
 import com.knuddels.jtokkit.api.EncodingType;
+import com.knuddels.jtokkit.Encodings;
+import com.knuddels.jtokkit.api.Encoding;
+import com.knuddels.jtokkit.api.EncodingRegistry;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URI;
@@ -17,7 +20,6 @@ import okhttp3.Response;
 import okio.Buffer;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
-import org.springframework.ai.tokenizer.JTokkitTokenCountEstimator;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -39,7 +41,11 @@ public final class OpenAiInvestigationModel implements InvestigationModel, AutoC
         }
     }
     private static final int RESPONSE_BYTES = 2 * 1024 * 1024;
+    // JTokkit's registry/encodings are thread-safe; retain each vocabulary once per JVM.
+    private static final EncodingRegistry ENCODINGS = Encodings.newLazyEncodingRegistry();
     private static final String SERVICE_TIER = "default";
+    private static final List<String> BILLING_CODES = List.of("credit_balance_exhausted", "organization_spend_limit_exceeded",
+            "project_spend_limit_exceeded", "organization_usage_limit_exceeded", "insufficient_quota");
     private final Settings settings;
     private final PaidModelGate gate;
     private final JsonMapper json;
@@ -48,7 +54,7 @@ public final class OpenAiInvestigationModel implements InvestigationModel, AutoC
     private final okhttp3.OkHttpClient network;
     private final OpenAiChatOptions options;
     private final OpenAiChatProtocol protocol;
-    private final JTokkitTokenCountEstimator estimator;
+    private final Encoding estimator;
     private final URI endpoint;
     private final Mode mode;
     private final ThreadLocal<Attempt> current = new ThreadLocal<>();
@@ -58,6 +64,7 @@ public final class OpenAiInvestigationModel implements InvestigationModel, AutoC
         PaidModelGate.Rejected gateRejection;
         InvestigationFailure localFailure;
         boolean malformed;
+        String billingCode;
         Attempt(Request request) { this.request = request; }
     }
 
@@ -76,7 +83,7 @@ public final class OpenAiInvestigationModel implements InvestigationModel, AutoC
         this.settings = settings; this.gate = gate; this.json = json; this.clock = clock; this.mode = mode;
         endpoint = URI.create(base.toString() + "/chat/completions");
         protocol = new OpenAiChatProtocol(json);
-        estimator = new JTokkitTokenCountEstimator(EncodingType.fromName(settings.tokenizer()).orElseThrow());
+        estimator = ENCODINGS.getEncoding(EncodingType.fromName(settings.tokenizer()).orElseThrow());
         options = OpenAiChatOptions.builder().apiKey(apiKey).baseUrl(base.toString()).model(settings.pricing().model())
                 .maxRetries(0).timeout(settings.requestTimeout()).maxCompletionTokens(settings.maxOutputTokens())
                 .reasoningEffort(settings.reasoningEffort()).serviceTier(SERVICE_TIER).store(false).build();
@@ -139,7 +146,8 @@ public final class OpenAiInvestigationModel implements InvestigationModel, AutoC
         var buffer = new Buffer(); request.body().writeTo(buffer);
         if (buffer.size() > settings.maxRequestBytes()) throw limitFailure();
         String body = buffer.readUtf8();
-        int estimatedTokens = estimator.estimate(body);
+        // Special-token-looking strings in tickets/evidence are ordinary untrusted text.
+        int estimatedTokens = estimator.countTokensOrdinary(body);
         if (estimatedTokens > settings.estimatedInputLimit()) throw limitFailure();
         var payload = json.readTree(body);
         if (!settings.pricing().model().equals(payload.path("model").asText())
@@ -169,6 +177,12 @@ public final class OpenAiInvestigationModel implements InvestigationModel, AutoC
                             try { parsed = json.readTree(bytes); } catch (RuntimeException malformed) { /* unknown usage retained */ }
                         }
                         var usage = parsed == null ? null : OpenAiUsageParser.parse(parsed);
+                        if (attempt.status == 429 && parsed != null) {
+                            String code = parsed.path("error").path("code").asText("");
+                            if (BILLING_CODES.contains(code)) attempt.billingCode = code;
+                            else if ("insufficient_quota".equals(parsed.path("error").path("type").asText("")))
+                                attempt.billingCode = "insufficient_quota";
+                        }
                         String actualModel = parsed == null || !parsed.path("model").isString() ? null : parsed.path("model").asText();
                         String tier = parsed == null || !parsed.path("service_tier").isString() ? null : parsed.path("service_tier").asText();
                         boolean tariffVerified = attempt.status == 200 && SERVICE_TIER.equals(tier) && usage != null
@@ -176,11 +190,20 @@ public final class OpenAiInvestigationModel implements InvestigationModel, AutoC
                                 && usage.inputTokens() <= settings.modelInputCeiling() && usage.outputTokens() <= settings.maxOutputTokens();
                         attempt.malformed = attempt.status == 200 && (parsed == null || !parsed.path("choices").isArray() || parsed.path("choices").size() != 1);
                         return new PaidModelGate.Result<>(received[0], new ModelCallLedger.Receipt(received[0].header("x-request-id"),
-                                actualModel, usage, "HTTP_" + attempt.status + (tariffVerified ? "" : "_TARIFF_UNVERIFIED"),
+                                actualModel, usage, "HTTP_" + attempt.status
+                                        + (attempt.billingCode == null ? "" : "_" + attempt.billingCode)
+                                        + (tariffVerified ? "" : "_TARIFF_UNVERIFIED"),
                                 clock.instant(), tier, tariffVerified));
                     }
                 } catch (IOException transport) { throw new UncheckedIOException("Model transport failed", transport); }
             });
+            // Settle the receipt first, then avoid passing provider error text into SDK exceptions/logs.
+            if (attempt.billingCode != null)
+                throw new InvestigationFailure(new ApiError("INVESTIGATION_BUDGET_EXCEEDED",
+                        "모델 제공자의 크레딧·지출 또는 사용 한도 확인이 필요합니다.", false));
+            if (attempt.status >= 300 && attempt.status < 500 && attempt.status != 408 && attempt.status != 429)
+                throw InvestigationFailure.modelConfiguration();
+            if (attempt.status != 200) throw InvestigationFailure.unavailable();
             if (attempt.malformed) throw InvestigationFailure.unavailable();
             returned = true;
             return response;

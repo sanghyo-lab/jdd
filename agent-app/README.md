@@ -151,6 +151,12 @@ JDD_AGENT_PAID_CALLS_ALLOWED=true, JDD_AGENT_DEMO_PROFILE과 JDD_AGENT_OPENAI_AP
 Luna $0.5323728, Terra $5.323728이다. 실제 짧은 조사 비용의 추정이나 측정값이 아니다.
 성공 조사당 실제 총비용·지연·실패/재시도까지 비교한 뒤 모델을 확정해야 한다.
 필요 usage가 누락되면 새 유료 호출을 차단하고 제공자 근거로 미확정 사용량을 조정할 때까지 유지한다.
+OpenAI의 크레딧/지출/사용 한도 429는 기존 `INVESTIGATION_BUDGET_EXCEEDED`·retryable=false로 반환하고,
+일시 속도 제한은 `LLM_UNAVAILABLE`로 구분한다. 공식 [오류 코드](https://developers.openai.com/api/docs/guides/error-codes)의
+알려진 code/type만 분류하며 제공자의 자유 형식 메시지를 SDK 오류·로그·클라이언트에 전달하지 않는다.
+두 경우 모두 실제 usage가 없으면 예약액을 UNKNOWN으로 보존하고 자동 재시도하지 않는다.
+로컬 입력 추정은 공유 JTokkit 사전을 재사용하며 특수 토큰처럼 보이는 문의/근거 문자열도 일반 텍스트로 센다.
+이 추정값은 제공자 usage나 과금 상한을 대체하지 않는다.
 
 ### 저장한 사용량과 비용 내보내기
 
