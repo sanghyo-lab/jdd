@@ -1,5 +1,15 @@
 # 한재홍 — AI Agent 작업 상태
 
+## 2026-09-22T00:11:00+09:00 — 저장 ID 제한 후 정상 보고서 완료·직접 인용 검수 주의사항
+
+- `418bec1` 전체 publish 종료 0: Python 67개·web 13개/production build·전체 Gradle check·세 앱/실제 PostgreSQL/HTTP/근거 연결을 통과했다. 원문 `followup-reference-schema-publish.log/json`. 자동 검사의 실제 모델 호출은 없다.
+- 같은 정상 티켓의 명시 새 키 조사 `f374b241-1bb0-4b4f-834a-5de95142ffde`, 분석 `074fa711-d163-4561-9aeb-495c65915460`은 COMPLETED다. Agent build `418bec171703-75d56cd40d3c`, 보존 commerce build `8bd5699533be-057bb12f48d9`. 7도구·18저장 근거·12개 인용 ID이며 이번 응답에는 미등록 ID와 보고서 재수정이 없었다. 한 번의 실제 호환성 관측이며 스키마가 모든 응답의 정확성을 보장한다는 뜻은 아니다.
+- 검수: 대상 수량/예약 각각 1개, 초기 +2/전체 예약 -2/잔량 0, 두 주문 PAYMENT_PENDING과 대상 결제 행 없음이 원문 DB·로그·정책에 맞는다. 정상 처리로 판단하고 임의 장애나 자동 조치를 주장하지 않는다. 사실 6·정상 가설 1·사람 조치 1·선택적 불변조건 점검 제안 1이다.
+- 남은 주의사항: fact-total의 예약 합계 문장은 주문 상품 근거만 인용한다. 정상 가설은 주문 수량 비교의 order_items 인용이, 조치의 재고 시정 불필요 문장은 재고/정책 직접 인용이 빠져 있다. 각각의 내용은 같은 보고서의 다른 저장 근거와 일치하지만 항목별 직접 인용 완전성은 통과 처리하지 않는다. v5와 ID enum은 이 의미적 누락을 모두 해결하지 못했다. 저장 보고서/인용을 임의 수정하거나 실패를 삭제하지 않는다.
+- 실제 OAuth 5회 usage는 모두 관측: 입력 41,267·출력 2,290·reasoning 677(출력 일부)·cached/cache write 0, 모델 지연 합계 92,953ms·조사 약 93.74초. 누적 OAuth 44행/API 0행이며 앞선 미관측 usage는 null로 유지한다. 원문 `followup-oauth-normal-05/`, `followup-oauth-normal-run-05.log/json`, `followup-normal-05-diagnostics.log`.
+- 인증된 web 중계로 보고서·18근거 전체의 VOC/Agent 원문 일치와 동일 키/refresh/조회 후 호출 수 44/0 불변을 확인했다. `followup-normal-05-review.py/json`, `followup-normal-05-review-run.log/json`. 일반 제품 화면의 보고서 패널 검증이나 전체 모델 품질 완료를 뜻하지 않는다.
+- 김아름의 마지막 공유 이후 새 web 분석/근거 패널·runner는 아직 없다. [DISC-agent-001](../discussions/DISC-20260921-agent-001-llm-errors.md)에 정상 완료와 이전 실패 이력을 함께 인계하고 원격 확인을 유지한다. Agent IN_PROGRESS이며 자동 반복 실호출·API fallback 없이 다음 화면 인수를 준비한다.
+
 ## 2026-09-22T00:03:00+09:00 — 실제 실패 분류 확인·현재 조사 근거 ID 출력 후보 제한
 
 - `e497d84`의 전체 publish가 종료 0으로 끝났다(`followup-phase-publish.log/json`). 같은 정상 티켓을 새 키로 조사한 `ad5a949e-6b0e-4484-af41-269c81b172a3`는 REPORT_VALIDATION_FAILED로 끝났다. 분석 `05b5015f-21a2-4cd7-986e-5c959806fc2f`, 저장 근거 17개다. 원문 `followup-oauth-normal-04/`, `followup-oauth-normal-run-04.log/json`을 보존한다.
