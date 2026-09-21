@@ -18,6 +18,10 @@ export function Shop() {
   const [intent, setIntent] = useState<OrderIntent | null>(null); const [action, setAction] = useState<ActionIntent | null>(null);
   const [payment, setPayment] = useState<Payment | null>(null); const [refund, setRefund] = useState<Refund | null | undefined>(undefined);
   const [error, setError] = useState(""); const [notice, setNotice] = useState(""); const [busy, setBusy] = useState(false); const working = useRef(false);
+  async function refreshCoupons(customerId: string) {
+    const data = await api<{ items: Coupon[] }>("/api/commerce/customers/" + encodeURIComponent(customerId) + "/coupons?limit=100");
+    setCoupons(data.items); setCouponCustomer(customerId);
+  }
   async function refreshProducts() { const data = await api<{ items: Product[] }>("/api/commerce/products?limit=100"); setProducts(data.items); }
   useEffect(() => { void refreshProducts().catch(e => setError(e.message));
     try { const saved = JSON.parse(sessionStorage.getItem("jdd-shop-order") ?? "null"); if (saved?.checkoutKey && saved?.customerId && saved?.items?.length) { setIntent(saved); setCustomer(saved.customerId); } } catch { /* Invalid private browser state is not a server result. */ }
@@ -43,6 +47,7 @@ export function Shop() {
       const order = await api<Order>("/api/commerce/orders", { method: "POST", body: JSON.stringify(request) });
       choose(order); setNotice("주문 응답을 받았습니다. 주문 번호와 재고·금액을 확인하세요.");
       setOrders(previous => [order, ...previous.filter(item => item.id !== order.id)]); await refreshProducts();
+      if (couponCustomer === request.customerId) await refreshCoupons(request.customerId);
     });
   }
   function choose(order: Order) { setSelected(order); setAction(null); setPayment(null); setRefund(undefined); }
@@ -58,6 +63,7 @@ export function Shop() {
       // A same-key replay can return the original action snapshot. GET gives the current order state.
       const current = await api<Order>("/api/commerce/orders/" + encodeURIComponent(request.orderId)); setSelected(current);
       setOrders(previous => [current, ...previous.filter(item => item.id !== current.id)]); await refreshProducts();
+      if (couponCustomer === current.customerId) await refreshCoupons(current.customerId);
       setNotice(kind === "payments" ? "결제 응답과 현재 주문 상태를 확인했습니다." : "취소 응답을 확인했습니다. 환불 결과는 별도로 확인하세요.");
     });
   }
@@ -68,7 +74,7 @@ export function Shop() {
       <form className="stack" onSubmit={submitOrder}><label>고객 번호<input name="customerId" required maxLength={200} value={customer} disabled={!!intent} onChange={e=>setCustomer(e.target.value)} placeholder="합성 고객 식별자" /></label>
         <label>상품<select name="productId" required disabled={!!intent}><option value="">상품 선택</option>{products.map(product=><option key={product.id} value={product.id}>{product.name} · {money(product.price)} · 재고 {product.stockQuantity}개</option>)}</select></label>
         <label>수량<input name="quantity" type="number" min="1" step="1" required defaultValue={1} disabled={!!intent} /></label>
-        <button type="button" className="secondary align-start" disabled={busy || !!intent} onClick={()=>void run(async()=>{if(!customer.trim())throw Error("고객 번호를 먼저 입력하세요.");const data=await api<{items:Coupon[]}>("/api/commerce/customers/"+encodeURIComponent(customer)+"/coupons?limit=100");setCoupons(data.items);setCouponCustomer(customer);setNotice("고객 쿠폰을 조회했습니다.");})}>고객 쿠폰 조회</button>
+        <button type="button" className="secondary align-start" disabled={busy} onClick={()=>void run(async()=>{if(!customer.trim())throw Error("고객 번호를 먼저 입력하세요.");await refreshCoupons(customer);setNotice("고객 쿠폰을 조회했습니다.");})}>고객 쿠폰 조회</button>
         <label>적용 쿠폰<select name="couponId" disabled={!!intent || couponCustomer!==customer}><option value="">쿠폰 사용 안 함</option>{coupons.map(coupon=><option key={coupon.id} value={coupon.id}>{coupon.id} · {coupon.status} · {coupon.discountType==='FIXED'?money(coupon.fixedDiscountAmount??0):(coupon.discountRate??0)+'%'} · 최소 {money(coupon.minOrderAmount)}</option>)}</select></label>
         {couponCustomer===customer && <ul className="small coupon-list">{coupons.map(coupon=><li key={coupon.id}>{coupon.id} · {coupon.status} · 만료 {dateLabel(coupon.validUntil)}</li>)}</ul>}
         {intent && <div className="notice warning"><strong>저장된 주문 요청</strong><p className="small">고객 {intent.customerId}<br/>상품 {intent.items.map(item=>item.productId+' × '+item.quantity).join(', ')}<br/>쿠폰 {intent.customerCouponId??'없음'}<br/>체크아웃 키 {intent.checkoutKey}</p><p className="small">같은 요청의 재전송은 위 입력을 그대로 사용합니다. 중복 주문 결함의 시연 대상 경로입니다.</p></div>}
