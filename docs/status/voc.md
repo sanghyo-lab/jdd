@@ -1,17 +1,17 @@
 # 김아름 — VOC 티켓·AI 연동 작업 상태
 
-- 상태: 티켓 API·정책 snapshot 호환성·공백 입력 수정을 검증하고 main에 공유했다. 영속 분석 연동·화면·runner는 진행 대상이다.
+- 상태: 티켓 API와 분석 요청·불변 입력·이력 저장을 main에 공유하고 실제 PostgreSQL·앱 재시작 보존을 검증했다. Agent 전달/조회 worker·화면·runner는 진행 대상이다.
 - 담당자: 김아름 (역할 C)
 - GitHub 계정: `AhReumKim-ar`
 - 작업 브랜치: `main`
 - 완료 선언: [voc.json](voc.json)의 IN_PROGRESS. 실제 검증 후 자기 DONE을 공유하고 [세 담당자 완료 기준](../team-completion.md)이 충족될 때까지 goal을 유지한다.
 - 시작 지침: [voc goal](../goals/voc.md), [공통 실행](../local-development.md)
-- 공유 커밋: 티켓 `d8246e9`, 검증 안내 `d5d5484`, 주문 시각 정밀도 수정 `1d29d20`
+- 공유 커밋: 티켓 `d8246e9`, 검증 안내 `d5d5484`, 주문 시각 정밀도 수정 `1d29d20`, 분석 요청 저장 `4de1a98`
 - 담당 경로: `voc-app/`, `voc-core/`, `voc-infra/`, `web/`, `scenario-runner/`
 - 준비된 자료: [구현 범위](../roles/kim-areum-voc.md), [VOC·Agent 계약](../integration-contract.md), [커머스 계약](../commerce-interface.md), [프론트 설계](../frontend-deployment.md)
-- 다음 작업: 분석 저장 단위 공유 후 서버의 Agent 전달/조회·재시작 복구, 근거 중계와 한국어 화면 구현
+- 다음 작업: 저장된 분석의 서버 Agent 전달/조회·재시작 복구, 근거 중계와 한국어 화면 구현
 - 제공받은 입력: Agent 조사 API·실행기·8개 조회 도구, commerce VOC-07/02/03 재현 자료. 실제 모델 검증 허용 범위·배포 환경은 별도다.
-- 검증 결과: 티켓 HTTP/H2·실제 PostgreSQL 계약, 전체 Gradle check, 세 앱 Docker 기동·smoke와 앱 재기동 후 티켓 보존 통과. 프론트·VOC runner·실제 모델은 미검증.
+- 검증 결과: 티켓·분석 HTTP/H2와 실제 PostgreSQL 계약, 전체 Gradle check, 세 앱 Docker 기동·smoke와 앱 재생성 후 티켓·분석 입력/이력/동일 키 보존 통과. 프론트·VOC runner·실제 모델은 미검증.
 - 연동 요청: 아래 논의의 P1 수락과 공통 생성기 책임을 기록했다. scenario-runner는 아직 미구현을 알리는 실패 종료 골격이다.
 
 작업 단위가 끝날 때 제공 가능한 기능, 변경한 계약, 실제 검증 명령·결과, 다음 작업을 갱신한다. 실패와 막힌 이유도 함께 기록한다.
@@ -117,3 +117,13 @@
 - 원문: runtime/verification/analysis-http-h2.log·analysis-h2-results와 analysis-http-postgresql.log·analysis-postgresql-results. 실제 모델 호출은 없으며 이 결과를 Agent 작업기·화면·MVP 성공으로 계산하지 않는다.
 - 현재 제한: 전달/상태 조회 worker와 근거 중계·UI는 아직 없어 새 분석은 PENDING에 머문다. 실제 Agent로 보내고 오류·조회 상태를 영속 갱신하는 다음 단위를 계속한다. businessReady=false와 역할 IN_PROGRESS를 유지한다.
 - 통합: 리더 6b9ca6f의 외부 PostgreSQL 검사 캐시 차단 변경을 확인했다. 편집 중 rebase하지 않았고 이번 외부 검사는 --rerun-tasks로 실행했다. 커밋 경계에서 리더 변경을 보존해 통합하고 전체 publish를 수행한다.
+
+## 2026-09-21T21:16:00+09:00 — 분석 저장 게시·재시작 검증과 P2 답변
+
+- 공유: 분석 저장 단위 `4de1a98`를 전체 publish 종료 0으로 GitHub main에 공유했다. 두 차례 동시 원격 변경을 보존해 통합·재검증한 뒤 일반 push가 성공했다. 개발 checkout도 같은 커밋으로 통합해 당시 ahead/behind 0/0을 확인했다. 사용자 미추적 docs/ralphthon-readiness.md의 SHA-256은 기존 값과 같다.
+- 공통 검사: Python 57개 통과, 전체 Gradle check의 JUnit 154개 중 성공 145·조건부 건너뜀 9·실패/오류 0, 세 앱·각 DB 마이그레이션·HTTP 연결·Agent SELECT 전용/근거 마운트 smoke 통과. 기록은 runtime/verification/analysis-publish.log에 있다. 건너뛴 검사는 통과로 계산하지 않는다.
+- 결과 파일 정확성: 이전 고정 디렉터리에 이름이 바뀐 테스트 XML이 남아 있었다. 현재 커밋의 동일 Docker 검사 캐시에서 새 디렉터리로 다시 내보내 22개 suite만 집계했다. runtime/verification/latest-linux-gradle-check.json의 testedCommit은 4de1a986fe6b688aad18554b48ef95ba48cdf7aa다. 오래된 파일이 섞인 160개 집계는 사용하지 않는다.
+- 실제 복구: buildId 4de1a986fe6b-32fc61debb7b에서 합성 티켓 v1 분석을 저장하고 티켓을 v2로 수정해 별도 분석을 저장했다. 같은 이미지·DB를 유지하며 VOC 컨테이너만 재생성했다. 컨테이너 ID 변경, 티켓 v2와 두 입력 스냅샷·분석 ID·이력·nullable 필드, 두 키 재전송의 동일 응답과 총 2건을 실제 HTTP로 확인했다. 원문 runtime/verification/analysis-restart.json. Agent는 MOCK이며 모델 호출은 없다.
+- Windows 인수: 리더 `0c07ca9`의 exporter를 원래 명령으로 다시 실행해 종료 0을 확인했다. plugin docker.EXE compose 선택, READ ONLY on / REPEATABLE READ, API 장부 budget=null·calls=0이다. 원문 runtime/verification/voc-ledger-export-portable.json, SHA-256 8e76e2c14ee65f36a2b0af6bbe15f393e1a9aea1f1f90bae17020befa9d82b77. VOC-AGENT-EXPORT-001의 소비자 실패는 해소됐고 LEAD-015의 최종 분류와 Agent 확인은 담당자에게 남긴다.
+- [DISC-20260921-agent-004](../discussions/DISC-20260921-agent-004-demo-allocation.md)의 P2에 직접 답변했다. 로컬 OAuth/배포 API/test 구분, 기존 오류·재조사·근거 계약, 인증된 web 한정 공개를 수용한다. P1의 로컬 API 배분을 재사용하지 않는다. OAuth 사용량과 API 비용을 구분하며 배포 범위가 남아 DISCUSSING이다.
+- 현재 한계와 다음 단위: 저장 API의 재시작 보존까지 확인했다. 새 분석은 아직 PENDING이고 실제 Agent 자동 전달/조회·근거 중계·web·runner가 남아 있다. 프로젝트 전용 OAuth 로그인·실제 모델·공개 ngrok·MVP·DONE은 미검증이다. Agent worker 소비를 독립적으로 계속한다.
