@@ -17,6 +17,14 @@
 
 작업 단위가 끝날 때 제공 가능한 기능, 변경한 계약, 실제 검증 명령·결과, 다음 작업을 갱신한다. 실패와 막힌 이유도 함께 기록한다.
 
+## 2026-09-21T20:00:00+09:00 — 영속 QUEUED 기한과 포화/재시작 검증
+
+- V6에 queued_deadline_at을 저장하고 새 접수 기본 10분(설정 1초~1시간)의 대기 기한을 적용했다. 이전 기록은 원래 createdAt + 10분으로 이관한다. 같은 키·재시작·설정 변경으로 기한을 갱신하지 않으며 RUNNING 3분과 별도로 계산한다.
+- worker가 모든 슬롯 사용 중에도 한 번에 최대 100개 만료 QUEUED를 FAILED/INVESTIGATION_TIMEOUT으로 정리한다. 선점 SELECT/UPDATE도 만료 행을 배제한다. 상태/필수 DTO 필드는 유지했고 접수 수용량/429는 [DISC-agent-005](../discussions/DISC-20260921-agent-005-queue-limits.md)의 직접 합의 후 연결할 미완료 작업이다.
+- H2 접수/실행 검사를 통과한 뒤 실제 PostgreSQL 실행 저장소 11개(실패 0·건너뜀 0)를 확인했다. QueueWaitingTest도 별도 PostgreSQL/HTTP/worker에서 통과했다. 실행 슬롯 포화 중 만료 ID `7e7fa782-7786-4730-8649-114b97ae388b`는 모의 모델을 호출하지 않았고 같은 키/GET 재조회로 재실행되지 않았다. 슬롯 해제 뒤 명시적 새 키만 실행돼 총 모의 2회·유료 0회다.
+- 네 개의 임시 JVM을 사용한 기존 소유권·복구 검사를 확장해 실제 1초 기한 접수 → 종료 → 새 10분 설정 시작을 확인했다. 만료 ID `20f49f7d-ecec-4e1c-9c0d-78484622d077`의 기한·입력이 보존되고 모델 실행 없이 종료됐다. V4의 기존 종료 기록 8개도 V6 이관 시 입력/응답 digest·상태 보존과 원래 생성 시각 기준 기한을 확인했다. 검사가 시작한 임시 JVM은 종료했다.
+- 자료: `runtime/submission/agent-20260921/queue-deadline-h2.*`, `queue-deadline-postgres.*`, `queue-waiting/`, `queue-waiting-postgres.*`, `queue-worker-restart/`, `queue-worker-legacy-{before,after}.json`. 실제 모델·VOC 화면·공개 ngrok 성공으로 해석하지 않는다. 전체 publish 검증 후 공유한다.
+
 ## 2026-09-21T19:54:00+09:00 — 요구사항 재검토: 대기열 한도 누락
 
 - `6e240ab`에서 구현 프롬프트·비용 계획·현재 코드를 다시 대조해 QUEUED의 최대 대기와 수용량이 없음을 확인했다. RUNNING 3분·동시성·유료 예산 제한만으로는 이 요구가 충족되지 않는다. 기존 검증 성공을 대기열 완료 근거로 사용하지 않는다.

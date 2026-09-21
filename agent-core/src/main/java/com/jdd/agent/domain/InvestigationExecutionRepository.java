@@ -24,6 +24,9 @@ public interface InvestigationExecutionRepository {
     boolean fail(Claim claim, ApiError error, Instant now);
     int expire(Instant now);
 
+    /** Ends accepted requests whose persisted waiting deadline elapsed, without a model call. */
+    int expireQueued(Instant now);
+
     /** Only the exclusive worker owner may call this on startup, before claiming queued jobs. */
     int recoverInterrupted(Instant now);
 }

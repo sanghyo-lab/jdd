@@ -5,10 +5,12 @@ import com.jdd.agent.domain.InvestigationInput;
 import com.jdd.agent.domain.InvestigationRepository;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Optional;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import tools.jackson.databind.json.JsonMapper;
@@ -17,10 +19,15 @@ import tools.jackson.databind.json.JsonMapper;
 public class JdbcInvestigationRepository implements InvestigationRepository {
     private final JdbcTemplate jdbc;
     private final JsonMapper json;
+    private final Duration maximumQueueWait;
 
-    public JdbcInvestigationRepository(JdbcTemplate jdbc, JsonMapper json) {
+    public JdbcInvestigationRepository(JdbcTemplate jdbc, JsonMapper json,
+                                      @Value("${jdd.agent.queue.maximum-wait:PT10M}") Duration maximumQueueWait) {
+        if (maximumQueueWait.compareTo(Duration.ofSeconds(1)) < 0 || maximumQueueWait.compareTo(Duration.ofHours(1)) > 0)
+            throw new IllegalArgumentException("Queue maximum wait must be between one second and one hour");
         this.jdbc = jdbc;
         this.json = json;
+        this.maximumQueueWait = maximumQueueWait;
     }
 
     @Override public Optional<Stored> find(String id) {
@@ -40,11 +47,12 @@ public class JdbcInvestigationRepository implements InvestigationRepository {
         try {
             jdbc.update("""
                     INSERT INTO agent.investigations
-                    (investigation_id, ticket_id, request_key, input_json, view_json, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?)
+                    (investigation_id, ticket_id, request_key, input_json, view_json, created_at, queued_deadline_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
                     """, view.investigationId(), view.ticketId(), candidate.input().requestKey(),
                     json.writeValueAsString(candidate.input()), json.writeValueAsString(view),
-                    OffsetDateTime.ofInstant(view.createdAt(), ZoneOffset.UTC));
+                    OffsetDateTime.ofInstant(view.createdAt(), ZoneOffset.UTC),
+                    OffsetDateTime.ofInstant(view.createdAt().plus(maximumQueueWait), ZoneOffset.UTC));
             return candidate;
         } catch (DuplicateKeyException conflict) {
             return findByRequest(candidate.input().ticketId(), candidate.input().requestKey()).orElseThrow(() -> conflict);

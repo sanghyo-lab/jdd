@@ -49,7 +49,13 @@ missingInformation에 따라 COMPLETED/NEEDS_INPUT을 서버에서 결정한다.
 
 중단·시간 초과는 근거를 보존한 FAILED이며, 종료 후 이전 실행 토큰으로 들어온 응답은 반영하지 않는다.
 PostgreSQL advisory lock을 가진 실행기 하나만 시작 복구·작업 접수를 수행한다.
-재시작 시 QUEUED는 이어 처리하고 RUNNING은 INTERRUPTED로 정리한다. 미정산 모델 예약은 UNKNOWN으로 남긴다.
+재시작 시 기한이 남은 QUEUED만 이어 처리하고 RUNNING은 INTERRUPTED로 정리한다. 미정산 모델 예약은 UNKNOWN으로 남긴다.
+QUEUED의 대기 만료는 접수 시 `queued_deadline_at`에 저장하며 같은 키 재전송·재시작·새 설정으로 연장하지 않는다.
+V6 이전 기록은 원래 createdAt + 10분으로 이관한다. 실행 슬롯이 가득 차도 worker가 만료 작업을 최대 100건씩
+FAILED/INVESTIGATION_TIMEOUT으로 정리하며, 선점 쿼리도 만료 작업을 배제한다. 같은 키는 종료된 기존 ID를 반환한다.
+worker/DB가 중단된 동안에는 상태 갱신이 지연되지만 복구 후 만료 작업을 모델로 보내지 않는다.
+대기열 수용량·새 접수 429는 [DISC-agent-005](../docs/discussions/DISC-20260921-agent-005-queue-limits.md)의
+소비자 합의·구현이 남아 있으며 현재 접수 용량을 제한한다고 주장하지 않는다.
 이 저장 계층의 합성 검증을 실제 VOC 조사·모델 품질 검증으로 간주하지 않는다.
 
 `InvestigationRunner`가 도구 반복을 소유한다. 모델 요청→서버 인자 검증→실제 도구 호출→근거 커밋→후속 모델 요청→보고서 검사 순서다.
@@ -60,7 +66,8 @@ PostgreSQL advisory lock을 가진 실행기 하나만 시작 복구·작업 접
 | --- | --- | --- |
 | JDD_AGENT_WORKER_ENABLED | true | 접수 이후 비동기 실행. 비활성 모델은 설정 오류로 종료 |
 | JDD_AGENT_WORKER_CONCURRENCY | 2 | 소형 로컬 DB 풀에서 실행 수 제한 |
-| JDD_AGENT_WORKER_MAXIMUM_RUNTIME | PT3M | 조사 전체 시한과 늦은 결과 차단 |
+| JDD_AGENT_WORKER_MAXIMUM_RUNTIME | PT3M | RUNNING 선점 후 실행 시한과 늦은 결과 차단 |
+| JDD_AGENT_QUEUE_MAXIMUM_WAIT | PT10M | 새 접수의 대기 한도, 1초~1시간. 기존 기한은 유지 |
 | JDD_AGENT_LIMITS_MODEL_CALLS | 8 | 도구 후속 요청·보고서 수정 포함 |
 | JDD_AGENT_LIMITS_TOOL_CALLS | 24 | 조회 반복 상한 |
 | JDD_AGENT_LIMITS_REPORT_REPAIRS | 1 | 형식·근거 오류 수정 기회 |
@@ -194,7 +201,7 @@ python3 agent-app/scripts/check_intake.py
 근거 테스트의 원문은 테스트가 DB에 넣은 합성 데이터이며 모델 분석 결과가 아니다.
 Docker 스택에서는 실제 PostgreSQL 접수·재조회·재시작 보존을 별도로 확인한다.
 
-별도 PostgreSQL 테스트의 다섯 DB 모드는 Gradle 입력에 반영한다.
+별도 PostgreSQL 테스트의 여섯 DB 모드는 Gradle 입력에 반영한다.
 URL·비밀번호 자체는 작업 fingerprint에 넣지 않는다. 외부 DB 모드에서는 DB·근거 파일이
 소스와 독립적으로 바뀔 수 있으므로 UP-TO-DATE/빌드 캐시로 검증을 대체하지 않고 매번 실행한다.
 H2 모드로 돌아오면 PostgreSQL 결과를 재사용하지 않는다. 전용 DB·필수 환경변수·초기화 조건은
@@ -205,6 +212,7 @@ Agent를 재시작한 뒤 `python3 agent-app/scripts/check_intake.py --verify-ex
 동일 요청 ID·생성 시각의 보존을 확인한다. 포트를 바꿨으면 `--base-url`로 지정한다.
 
 `InvestigationExecutionTest`는 실행 선점·원문 저장·롤백·중단 복구·늦은 결과·시간 제한·보고서 검사를 확인한다.
+대기 기한의 경계·재전송/설정 변경 보존·선점 경쟁과 RUNNING 예산 분리도 검증한다.
 기본은 별도 H2 DB다. 실제 PostgreSQL에서는 **전용 폐기 가능한 DB `jdd_agent_execution_test`**를 준비하고
 `JDD_EXECUTION_TEST_DB_URL`, `JDD_EXECUTION_TEST_DB_USER`, `JDD_EXECUTION_TEST_DB_PASSWORD`를 테스트 프로세스에만 주입한 뒤 실행한다.
 
@@ -224,7 +232,18 @@ Agent를 재시작한 뒤 `python3 agent-app/scripts/check_intake.py --verify-ex
 ```
 
 `InvestigationRunnerTest`는 모의 모델의 도구 요청·저장 후 후속 요청·보고서/인자 수정 한도·실패·반복 HTTP 조회를 검증한다.
+
+`QueueWaitingTest`는 실제 PostgreSQL/HTTP/worker의 유일한 실행 슬롯을 모의 모델로 점유한 동안
+다른 요청이 대기 2초 후 모델 호출 없이 만료되는지 확인한다. 반복 GET/같은 키 POST는 기존 FAILED를
+반환하고, 슬롯 해제 후 명시적인 새 키 조사만 실행된다. 비어 있는 전용 `jdd_agent_queue_test`와
+`JDD_QUEUE_TEST_DB_URL`, `JDD_QUEUE_TEST_DB_PASSWORD`, 새 결과 경로 `JDD_QUEUE_TEST_REPORT`를 준비한다.
+
+```bash
+./gradlew :agent-app:test --tests com.jdd.agent.QueueWaitingTest
+```
+
 실제 프로세스 복구와 실행 소유권은 기존 Compose DB에 전용 `jdd_agent_worker_test`를 생성해 검증한다.
+이 검사는 실제 1초 대기 기한으로 접수한 뒤 다른 설정의 JVM으로 재시작해 기한 보존·미실행을 확인한다.
 이 스크립트는 임시 Agent JVM을 시작/종료하고 합성 RUNNING 스냅샷을 주입한다. 서비스 DB는 초기화하지 않는다.
 
 ```bash

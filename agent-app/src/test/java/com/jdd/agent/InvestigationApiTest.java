@@ -53,7 +53,7 @@ class InvestigationApiTest {
         assertThat(Instant.parse(view.get("createdAt").asText())).isNotNull();
 
         // A newly constructed service and repository must load the same persisted input/view.
-        var repository = new JdbcInvestigationRepository(jdbc, json);
+        var repository = new JdbcInvestigationRepository(jdbc, json, java.time.Duration.ofMinutes(10));
         var fresh = new InvestigationService(repository, Clock.systemUTC());
         assertThat(fresh.get(id).investigationId()).isEqualTo(id);
         assertThat(repository.find(id).orElseThrow().input().context().orderId()).isEqualTo("order-1");

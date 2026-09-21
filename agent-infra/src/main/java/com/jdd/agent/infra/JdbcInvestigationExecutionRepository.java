@@ -42,9 +42,10 @@ public class JdbcInvestigationExecutionRepository implements InvestigationExecut
         if (maximumRuntime.isNegative() || maximumRuntime.isZero()) throw new IllegalArgumentException("Invalid runtime");
         return transaction.execute(ignored -> {
             var candidates = jdbc.query("""
-                    SELECT input_json, view_json FROM agent.investigations WHERE execution_status = 'QUEUED'
+                    SELECT input_json, view_json FROM agent.investigations
+                    WHERE execution_status = 'QUEUED' AND queued_deadline_at > ?
                     ORDER BY created_at, investigation_id LIMIT 1
-                    """, this::read);
+                    """, this::read, timestamp(now));
             if (candidates.isEmpty()) return Optional.empty();
             var candidate = candidates.getFirst();
             var running = view(candidate.investigation(), Status.RUNNING, now,
@@ -54,7 +55,8 @@ public class JdbcInvestigationExecutionRepository implements InvestigationExecut
             int changed = jdbc.update("""
                     UPDATE agent.investigations SET execution_status = 'RUNNING', execution_token = ?,
                     deadline_at = ?, view_json = ? WHERE investigation_id = ? AND execution_status = 'QUEUED'
-                    """, token, timestamp(deadline), json.writeValueAsString(running), running.investigationId());
+                    AND queued_deadline_at > ?
+                    """, token, timestamp(deadline), json.writeValueAsString(running), running.investigationId(), timestamp(now));
             return changed == 1 ? Optional.of(new Claim(new Stored(candidate.input(), running), token, deadline))
                     : Optional.empty();
         });
@@ -123,6 +125,19 @@ public class JdbcInvestigationExecutionRepository implements InvestigationExecut
 
     @Override public int expire(Instant now) {
         return terminateRunning(now, true, new ApiError("INVESTIGATION_TIMEOUT", "조사 제한 시간을 초과했습니다.", false));
+    }
+
+    @Override public int expireQueued(Instant now) {
+        return transaction.execute(ignored -> {
+            var rows = jdbc.query("""
+                    SELECT input_json, view_json FROM agent.investigations
+                    WHERE execution_status = 'QUEUED' AND queued_deadline_at <= ?
+                    ORDER BY queued_deadline_at, investigation_id LIMIT 100 FOR UPDATE
+                    """, this::read, timestamp(now));
+            var error = new ApiError("INVESTIGATION_TIMEOUT", "조사 시작 전 대기 제한 시간을 초과했습니다. 새 요청 키로 재조사할 수 있습니다.", false);
+            rows.forEach(row -> save(failed(row.investigation(), error, now)));
+            return rows.size();
+        });
     }
 
     @Override public int recoverInterrupted(Instant now) {

@@ -6,9 +6,11 @@ import com.jdd.agent.domain.InvestigationExecutionRepository.*;
 import com.jdd.agent.domain.InvestigationInput;
 import com.jdd.agent.domain.InvestigationRepository;
 import com.jdd.agent.domain.InvestigationService;
+import com.jdd.agent.infra.JdbcInvestigationRepository;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.List;
@@ -24,6 +26,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import tools.jackson.databind.json.JsonMapper;
 import static org.assertj.core.api.Assertions.*;
 
 @SpringBootTest(properties = {
@@ -46,6 +49,7 @@ class InvestigationExecutionTest {
     @Autowired InvestigationExecutionRepository executions;
     @Autowired InvestigationRepository repository;
     @Autowired JdbcTemplate jdbc;
+    @Autowired JsonMapper json;
     private final Instant now = Instant.parse("2026-09-21T00:00:00Z");
 
     @BeforeEach void cleanDedicatedTestDatabase() {
@@ -155,6 +159,72 @@ class InvestigationExecutionTest {
         executions.completeTool(claim, tool, "0건", List.of(), now).orElseThrow();
         assertThatThrownBy(() -> executions.completeTool(claim, tool, "중복", List.of(observation()), now))
                 .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test void queueDeadlinePersistsAcrossReplayAndChangedConfiguration() {
+        String id = submit();
+        var original = repository.find(id).orElseThrow();
+        Instant deadline = now.plus(Duration.ofMinutes(10));
+        assertThat(queuedDeadline(id)).isEqualTo(deadline);
+        var restarted = new InvestigationService(new JdbcInvestigationRepository(jdbc, json, Duration.ofHours(1)),
+                Clock.fixed(now.plusSeconds(500), ZoneOffset.UTC));
+        assertThat(restarted.submit(original.input()).investigationId()).isEqualTo(id);
+        assertThat(queuedDeadline(id)).isEqualTo(deadline);
+        assertThat(executions.expireQueued(deadline.minusMillis(1))).isZero();
+        assertThat(executions.expireQueued(deadline)).isEqualTo(1);
+        var failed = restarted.get(id);
+        assertThat(failed.status()).isEqualTo(Status.FAILED);
+        assertThat(failed.error().code()).isEqualTo("INVESTIGATION_TIMEOUT");
+        assertThat(failed.error().message()).contains("대기");
+        assertThat(failed.error().retryable()).isFalse();
+        assertThat(failed.report()).isNull();
+        assertThat(failed.createdAt()).isEqualTo(original.investigation().createdAt());
+        assertThat(restarted.submit(original.input()).status()).isEqualTo(Status.FAILED);
+        assertThat(repository.find(id).orElseThrow().input()).isEqualTo(original.input());
+        assertThat(executions.expireQueued(deadline.plusSeconds(1))).isZero();
+    }
+
+    @Test void neverClaimsExpiredQueueEntriesEvenBeforeCleanup() {
+        String expired = submit();
+        Instant later = now.plus(Duration.ofMinutes(10));
+        String valid = new InvestigationService(repository, Clock.fixed(later, ZoneOffset.UTC)).submit(new InvestigationInput(
+                "1.0", UUID.randomUUID().toString(), 1, "valid", "새 합성 조사", null, null)).investigationId();
+        var claim = executions.claimNext(later, Duration.ofMinutes(3)).orElseThrow();
+        assertThat(claim.investigationId()).isEqualTo(valid);
+        assertThat(executions.claimNext(later, Duration.ofMinutes(3))).isEmpty();
+        assertThat(executions.expireQueued(later)).isEqualTo(1);
+        assertThat(repository.find(expired).orElseThrow().investigation().status()).isEqualTo(Status.FAILED);
+        assertThat(repository.find(valid).orElseThrow().investigation().status()).isEqualTo(Status.RUNNING);
+    }
+
+    @Test void waitingAndRunningHaveSeparateDeadlines() {
+        String id = submit();
+        Instant started = now.plusSeconds(599);
+        var claim = executions.claimNext(started, Duration.ofMinutes(3)).orElseThrow();
+        assertThat(claim.deadline()).isEqualTo(started.plus(Duration.ofMinutes(3)));
+        assertThat(executions.expireQueued(now.plusSeconds(600))).isZero();
+        assertThat(executions.expire(now.plusSeconds(600))).isZero();
+        assertThat(repository.find(id).orElseThrow().investigation().status()).isEqualTo(Status.RUNNING);
+        assertThat(executions.expire(claim.deadline())).isEqualTo(1);
+    }
+
+    @Test void cleanupAndClaimAtWaitingDeadlineCannotStartExpiredWork() throws Exception {
+        String id = submit();
+        Instant deadline = queuedDeadline(id);
+        var barrier = new CyclicBarrier(2);
+        try (var pool = Executors.newFixedThreadPool(2)) {
+            var claim = pool.submit(() -> { barrier.await(); return executions.claimNext(deadline, Duration.ofMinutes(3)); });
+            var cleanup = pool.submit(() -> { barrier.await(); return executions.expireQueued(deadline); });
+            assertThat(claim.get()).isEmpty();
+            assertThat(cleanup.get()).isEqualTo(1);
+        }
+        assertThat(repository.find(id).orElseThrow().investigation().error().code()).isEqualTo("INVESTIGATION_TIMEOUT");
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM agent.model_calls WHERE investigation_id = ?", Integer.class, id)).isZero();
+    }
+
+    private Instant queuedDeadline(String id) {
+        return jdbc.queryForObject("SELECT queued_deadline_at FROM agent.investigations WHERE investigation_id = ?",
+                OffsetDateTime.class, id).toInstant();
     }
 
     private String submit() {

@@ -46,7 +46,7 @@ def main():
 
     if sql("SELECT 1 FROM pg_database WHERE datname = 'jdd_agent_worker_test'", "postgres") != "1":
         sql("CREATE DATABASE jdd_agent_worker_test OWNER jdd_agent", "postgres")
-    args.report_dir.mkdir(parents=True, exist_ok=True)
+    args.report_dir.mkdir(parents=True, exist_ok=False)
     processes, logs = [], []
     safe_names = ("PATH", "HOME", "USER", "LOGNAME", "SHELL", "TMPDIR", "LANG", "LC_ALL", "JAVA_HOME")
     clean = {key: os.environ[key] for key in safe_names if key in os.environ}
@@ -74,12 +74,12 @@ def main():
             time.sleep(0.1)
         raise RuntimeError("Timed out: " + description)
 
-    def start(label, enabled=True):
+    def start(label, enabled=True, maximum_wait="PT10M"):
         with socket.socket() as available:
             available.bind(("127.0.0.1", 0))
             port = available.getsockname()[1]
         env = {**clean, "SERVER_ADDRESS": "127.0.0.1", "SERVER_PORT": str(port),
-               "JDD_AGENT_WORKER_ENABLED": str(enabled).lower()}
+               "JDD_AGENT_WORKER_ENABLED": str(enabled).lower(), "JDD_AGENT_QUEUE_MAXIMUM_WAIT": maximum_wait}
         log = (args.report_dir / (label + ".log")).open("w")
         logs.append(log)
         process = subprocess.Popen([java, "-jar", str(ROOT / "agent-app/build/libs/app.jar")],
@@ -112,6 +112,11 @@ def main():
         return wait(read, "terminal state")
 
     try:
+        # Accept with a real short persisted deadline, then restart with a longer setting.
+        expired_intake, expired_port = start("expired-intake", False, "PT1S")
+        expired_id, expired_input = submit(expired_port)
+        saved_deadline = sql("SELECT queued_deadline_at FROM agent.investigations WHERE investigation_id=" + literal(expired_id))
+        stop(expired_intake)
         intake, port = start("intake", False)
         interrupted_id, interrupted_input = submit(port)
         queued_id, _ = submit(port)
@@ -131,6 +136,15 @@ def main():
             " WHERE investigation_id=" + literal(interrupted_id) + ";\n"
             "INSERT INTO agent.investigation_evidence VALUES (" + literal(interrupted_id) + "," + literal(evidence_id) + "," + literal(json.dumps(detail)) + ")")
         owner, owner_port = start("owner")
+        expired = terminal(owner_port, expired_id)
+        require(expired["error"]["code"] == "INVESTIGATION_TIMEOUT" and "대기" in expired["error"]["message"],
+                "Restart dispatched an expired queue request")
+        require(expired["progress"] == [] and expired["report"] is None, "Expired queue request executed work")
+        require(sql("SELECT queued_deadline_at FROM agent.investigations WHERE investigation_id=" + literal(expired_id)) == saved_deadline,
+                "Restart or new queue settings extended a persisted deadline")
+        require(http(owner_port, "/api/investigations", expired_input)[1] == {
+                    "investigationId": expired_id, "ticketId": expired_input["ticketId"], "status": "FAILED"},
+                "Replay replaced or restarted an expired investigation")
         recovered = terminal(owner_port, interrupted_id)
         require(recovered["error"]["code"] == "INTERRUPTED", "Restart did not interrupt a previous running job")
         require(recovered["progress"][0]["status"] == "FAILED", "Interrupted tool remained RUNNING")
@@ -151,13 +165,15 @@ def main():
         require(terminal(waiter_port, handoff_id)["error"]["code"] == "LLM_CONFIGURATION_ERROR", "Waiting JVM did not take ownership")
         require("acquired ownership" in (args.report_dir / "waiter.log").read_text(), "Ownership handoff was not observed")
         count = sql("SELECT count(*) FROM agent.model_calls WHERE investigation_id IN (" +
-                    ",".join(literal(value) for value in (interrupted_id, queued_id, new_id, handoff_id)) + ")")
+                    ",".join(literal(value) for value in (expired_id, interrupted_id, queued_id, new_id, handoff_id)) + ")")
         require(count == "0", "Disabled model unexpectedly reserved a paid call")
         report = {"checkedAt": datetime.now(timezone.utc).isoformat(), "verificationProfile": "synthetic-worker-no-model",
-                  "database": DATABASE, "investigationIds": [interrupted_id, queued_id, new_id, handoff_id],
+                  "database": DATABASE, "investigationIds": [expired_id, interrupted_id, queued_id, new_id, handoff_id],
+                  "expiredQueuedInvestigationId": expired_id, "persistedQueueDeadline": saved_deadline,
                   "evidenceId": evidence_id, "modelCalls": 0,
                   "checks": ["durable-queue", "restart-interrupted", "preserved-evidence", "same-key-after-restart",
-                             "exclusive-worker-ownership", "ownership-handoff", "unconfigured-model-fails-closed"]}
+                             "exclusive-worker-ownership", "ownership-handoff", "unconfigured-model-fails-closed",
+                             "expired-queue-not-dispatched-after-restart", "queue-deadline-preserved-across-settings"]}
         (args.report_dir / "report.json").write_text(json.dumps(report, indent=2) + "\n")
         print(json.dumps(report))
     finally:

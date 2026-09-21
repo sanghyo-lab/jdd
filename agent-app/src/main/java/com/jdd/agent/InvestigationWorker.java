@@ -73,11 +73,13 @@ public final class InvestigationWorker {
             }
             if (!ownership.valid()) throw new IllegalStateException("Worker ownership connection was lost");
             Instant now = Instant.now();
+            // Waiting deadlines also advance while every running slot is occupied.
+            executions.expireQueued(now);
             executions.expire(now);
             active.values().forEach(task -> { if (!now.isBefore(task.claim().deadline())) task.future().cancel(true); });
             active.values().removeIf(task -> task.finished().get());
             while (active.size() < concurrency) {
-                var next = executions.claimNext(now, maximumRuntime);
+                var next = executions.claimNext(Instant.now(), maximumRuntime);
                 if (next.isEmpty()) break;
                 var claim = next.get();
                 var finished = new AtomicBoolean();
