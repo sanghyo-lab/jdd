@@ -1,11 +1,11 @@
-# 문의 화면과 Vercel 배포 설계
+# 문의 화면과 ngrok 로컬 데모 설계
 
 ## 1. 구성
 
 VOC 티켓 등록·처리 상태, 분석 진행, 답변과 근거를 확인할 프론트 프로젝트 `web`을 추가한다. [김아름](roles/kim-areum-voc.md)이 VOC 서버와 프론트·AI 연동을 담당한다. 이 문서는 설계이며, 프론트 코드나 배포 URL은 아직 생성하지 않았다.
 
 - 프론트: Next.js App Router, React, TypeScript를 기본안으로 한다.
-- 배포: Vercel에서 `web` 프로젝트를 빌드하고 제공한다. Next.js는 Vercel에서 지원하는 프레임워크다. [Vercel Next.js 문서](https://vercel.com/docs/frameworks/full-stack/nextjs)
+- 데모: `web`을 시연 PC에서 빌드·실행하고 ngrok로 HTTPS 진입점 하나를 제공한다. [로컬 데모 절차](ngrok-local-demo.md)를 따른다.
 - 백엔드: Gradle 모듈 10개와 Spring Boot 실행 앱 3개를 사용한다.
 - 통신: 브라우저가 `web`의 같은 출처 API를 호출하고, Next.js Route Handler가 VOC·커머스의 짧은 HTTP 요청을 중계한다. Agent 연동은 VOC 서버에서 수행한다.
 - 조사 실행: Agent의 작업 실행기에서 계속 수행하며, 진행 상태와 결과는 Agent DB에 저장한다. VOC 서버는 티켓·분석 요청과 조사 ID를 연결한다.
@@ -67,7 +67,7 @@ web/
 ```mermaid
 sequenceDiagram
     participant U as 사용자 브라우저
-    participant W as web / Vercel
+    participant W as 로컬 web / ngrok 경유
     participant V as voc-app
     participant A as agent-app
     participant T as 티켓 저장소
@@ -123,10 +123,12 @@ Next.js Route Handler는 HTTP 메서드별 요청 처리를 제공하므로 이 
 
 ```mermaid
 flowchart LR
-    Browser[브라우저] --> Web[web / Vercel]
-    Web -->|HTTPS / 티켓 API| VOC[voc-app]
+    Browser[브라우저] -->|HTTPS| Tunnel[ngrok]
+    Tunnel --> Web[로컬 web]
+    Web -->|로컬 HTTP / 티켓 API| VOC[voc-app]
     VOC -->|내부 HTTP / 조사 API| Agent[agent-app]
-    Web -->|HTTPS / 쇼핑몰 API| Commerce[commerce-app]
+    Web -->|로컬 HTTP / 쇼핑몰 API| Commerce[commerce-app]
+    Agent -->|HTTPS / 서버 전용 키| LLM[OpenAI API / 프로모션 크레딧]
     Agent --> DB[(PostgreSQL)]
     VOC --> DB
     Commerce --> DB
@@ -135,28 +137,28 @@ flowchart LR
     Agent -->|읽기| Source[실행 버전 소스 스냅샷]
 ```
 
-백엔드 배포 기본안은 팀이 사용할 수 있는 호스트에서 Docker Compose로 Spring Boot 세 앱과 PostgreSQL을 실행하는 것이다. 로그 볼륨은 커머스에서 쓰고 에이전트에서 읽으며, 실행 소스 스냅샷은 에이전트에 읽기 전용으로 제공한다. Vercel에서 접근 가능한 VOC·커머스 HTTPS 주소를 준비하고 Agent는 VOC에서 접근 가능한 내부 주소로 연결한다. 프론트의 Vercel 배포와 각 API 연결을 확인한다.
+데모 PC에서 web과 Docker Compose의 Spring Boot 세 앱·PostgreSQL을 실행한다. 로그 볼륨은 커머스에서 쓰고 Agent에서 읽으며 실행 소스·정책도 읽기 전용으로 제공한다. 로컬 web 한 곳만 ngrok에 연결하고, web 서버는 로컬 VOC·commerce API에 접근한다. Agent는 기존 Compose 내부 주소를 사용한다.
 
-여기서 배포를 나누는 목적은 기존 Java 실행 방식, 조사 작업의 수명, 공유 로그·소스 접근을 같은 백엔드 환경에서 관리하기 위해서다. 구체적인 서버 사업자와 주소는 사용할 수 있는 환경을 확인한 뒤 결정한다.
+모델 추론은 로컬 Agent가 OpenAI API로 요청한다. 프로모션 적용 조직·프로젝트의 키와 [데모 비용 정책](planning/demo-llm-policy.md)을 사용한다. ngrok로 실행 위치를 바꿔도 모델 호출 비용·$30 기준은 유지한다.
 
-Vercel 프로젝트 설정안:
+로컬 web 실행 설정안:
 
 | 항목 | 값 |
 | --- | --- |
-| Root Directory | `web` |
+| 실행 디렉터리 | `web` |
 | Framework | Next.js |
 | Install / Build | `web`의 잠금 파일과 `package.json` 스크립트를 기준으로 설정 |
-| Preview | 해커톤 검증용 백엔드 주소에 연결 |
-| Production | 발표용으로 고정한 백엔드 주소에 연결 |
+| 수신 주소 | `127.0.0.1:3000` |
+| 외부 접속 | ngrok가 제공하는 HTTPS URL → 로컬 web |
 
-Vercel은 저장소의 하위 디렉터리를 프로젝트 Root Directory로 지정할 수 있고, 환경 변수를 Preview·Production에 나누어 적용할 수 있다. [모노레포 문서](https://vercel.com/docs/monorepos), [환경 변수 문서](https://vercel.com/docs/environment-variables)
+실행·인증·공개 경로·재연결 검증은 [ngrok 로컬 데모 절차](ngrok-local-demo.md)를 따른다. Vercel 배포는 이번 데모의 선행 조건이 아니다.
 
 서버 환경 변수의 제안 이름:
 
-- `VOC_API_BASE_URL`: `web` 서버에서 호출하는 티켓 백엔드 주소.
-- `COMMERCE_API_BASE_URL`: 쇼핑몰 백엔드 주소.
+- `VOC_API_BASE_URL`: 호스트에서 실행하는 web 서버의 `http://127.0.0.1:8082`. 실제 VOC_PORT에 맞춘다.
+- `COMMERCE_API_BASE_URL`: web 서버의 `http://127.0.0.1:8080`. 실제 COMMERCE_PORT에 맞춘다.
 - `BACKEND_SERVICE_TOKEN`: 중계 서버와 백엔드 간 인증을 사용할 경우의 서버 전용 값.
-- `AGENT_API_BASE_URL`: VOC 서버에서만 사용하는 조사 백엔드 주소.
+- `AGENT_BASE_URL`: VOC 서버에서 사용하는 기존 Compose 설정 `http://agent:8080`.
 - `AGENT_SERVICE_TOKEN`: VOC → Agent 인증에 사용할 경우 VOC 서버에서 관리하는 값.
 
 LLM API 키와 DB 접속 정보는 Spring Boot 백엔드에서 관리한다. Next.js에서는 `NEXT_PUBLIC_` 접두사의 값이 브라우저 번들에 포함될 수 있으므로 서버 전용 값은 해당 접두사를 사용하지 않는다. 내부 도구의 사용자 접근 제어는 화면과 중계 API에 같이 적용하며, 서비스 토큰은 사용자 인증과 별도로 다룬다. [Next.js 환경 변수 문서](https://nextjs.org/docs/app/guides/environment-variables)
@@ -166,7 +168,7 @@ LLM API 키와 DB 접속 정보는 Spring Boot 백엔드에서 관리한다. Nex
 1. 티켓·분석 요청·조사 결과·근거 JSON을 먼저 합의한다.
 2. 김아름이 VOC와 `web`의 티켓·결과 화면을 만들고, 한재홍이 조사 API, 이상효가 커머스 API를 구현한다. UI 개발용 예시 응답은 개발용으로 명확하게 표시한다.
 3. 로컬에서 티켓 → 분석 요청 → Agent 조사 → 상태 조회 → 답변·근거 표시를 한 번 연결한다.
-4. 백엔드 HTTPS 주소를 준비하고 `web`을 Vercel Preview에 배포해 같은 요청을 실행한다.
+4. 로컬 web·중계·접근 제어를 준비하고 ngrok HTTPS URL에서 같은 요청을 실행한다. 내부 서비스 주소와 OpenAI endpoint는 유지한다.
 5. 7개 시나리오와 정보 부족·실패 상태, 중복 요청, 티켓 상태 전이, 새로고침 후 조회를 확인한다.
 
-완료 기준은 Vercel URL에서 입력한 문의가 실제 Spring Boot 에이전트의 조사 결과와 근거로 표시되는 것이다. 프론트 화면만 배포한 상태와 실제 분석까지 연결된 상태를 구분해 기록한다.
+데모 연결 완료 기준은 ngrok URL에서 입력한 문의가 로컬 Spring Boot Agent의 실제 조사 결과와 근거로 표시되는 것이다. 화면 접속만 되는 상태와 실제 분석까지 연결된 상태를 구분해 기록한다.

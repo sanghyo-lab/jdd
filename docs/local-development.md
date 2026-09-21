@@ -38,6 +38,13 @@ agent와 voc의 /internal/dependencies로 읽기 권한·근거 볼륨·서버 �
 초기 구현은 stage=BOOTSTRAP, businessReady=false다. 주문·티켓·LLM 분석 API는 담당별 goal에서 구현한다.
 포트 충돌 시 .env의 *_PORT를 변경한다. 호스트 포트는 127.0.0.1에만 바인딩한다.
 
+## ngrok로 로컬 데모 공유
+
+데모 기본 방식은 이 PC의 web·세 앱·DB를 실행하고 ngrok로 web만 외부에 연결하는 것이다.
+OpenAI 모델 호출은 로컬 Agent에서 수행하며 프로모션 크레딧·데모 전용·$30 기준은 그대로 적용한다.
+[ngrok 로컬 데모 절차](ngrok-local-demo.md)의 주소·실행·검증·종료 기준을 따른다.
+현재 compose에는 web과 ngrok가 없으므로 `scripts/dev up`만으로 공개 데모 URL이 만들어지지는 않는다.
+
 ## 검증과 종료
 
 ```bash

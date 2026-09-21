@@ -25,10 +25,21 @@
 개발·CI·자동 반복 평가 사용 금지와 $30 초과 예상 시 별도 처리 조건을 유지한다. 이번 확인 작업에서도 키·코드 원문을 파일에 저장하거나 모델 API 호출에 사용하지 않았다.
 프로모션 인계 변경은 `python3 scripts/check_docs.py`(로컬 문서 34개·링크 258개·JSON 예제 8개)와 `git diff --check`를 통과했다. 공유 검증에는 키·프로모션 원문이 없는 별도 main clone을 사용한다.
 [데모 키·비용·로컬 실행 규칙](../planning/demo-llm-policy.md)을 AGENTS와 구현 프롬프트에 연결했다. 유료 개발 호출과 $30 초과 예상 사용은 별도 처리한다.
-모델명·계정의 실제 접근·예산 기간/공유 범위는 미확정이며, “엥그로드”의 의미도 확인 중이다. 계정 전체 사용액·한도는 조회하지 않았다.
+데모 방식은 로컬 web·세 앱·DB + ngrok로 반영했다. ngrok는 web 외부 접속에만 사용하고 로컬 Agent는 OpenAI API를 직접 호출한다.
+모델명·계정의 실제 접근·예산 기간/공유 범위·ngrok 계정/공개 URL은 미확정/미검증이다. 계정 전체 사용액·한도는 조회하지 않았다.
 런타임의 유료 호출 차단·영속 비용 예약은 아직 구현되지 않았다. 구현 세션은 모의 모델로 독립 작업을 계속하고 실제 모델 검증은 미완료로 유지한다.
 이번 변경은 문서·인계 기준이며 키를 사용한 모델 API 호출은 0회다. 이전 기록의 키 제공 예정·제공자 미정 상태는 이 내용으로 갱신한다.
 문서 검증은 `python3 scripts/check_docs.py`(로컬 30개 문서·193개 링크·8개 JSON 예제)와 `git diff --cached --check`를 통과했다. 비밀 값이 staged 내용에 포함되지 않았는지 패턴 검사도 수행했다. 공유 검증은 키가 없는 분리한 main clone에서 publish로 수행한다.
+
+## 2026-09-21 — ngrok 로컬 데모 구성 반영
+
+- 사용자 요청: 로컬에서 처리하고 ngrok로 연결하는 방향으로 관련 문서를 수정한다. OpenAI 프로모션 API를 함께 사용할 수 있도록 로컬 Agent의 직접 호출을 유지한다.
+- 반영 범위: [실행 절차](../ngrok-local-demo.md), 데모 정책·Agent 프롬프트·비용/검토/연동 문서, 프론트·아키텍처·로컬 실행·VOC goal·시연 문서. Vercel 기본안을 로컬 web의 단일 ngrok 진입점으로 바꿨다. 기존 구현 초안·v1 DTO·Compose 서비스 주소는 변경하지 않았다.
+- AGENT-NGROK-001 / voc 요청: web의 build/start·127.0.0.1:3000 수신, 고정 API 중계, 화면/API 접근 제어, ngrok 인증/정책과 공개 URL 검증. web 서버의 VOC_API_BASE_URL·COMMERCE_API_BASE_URL은 호스트 포트, VOC의 AGENT_BASE_URL·COMMERCE_BASE_URL은 기존 Compose 주소를 사용한다.
+- AGENT-NGROK-002 / agent 요청: OpenAI 키를 실제 Agent 실행 환경에만 주입하고 ngrok URL을 모델 주소로 사용하지 않는다. 터널 중단·재연결 뒤에도 조사 지속·같은 ID 조회·근거 반환·조회 시 모델 재호출 없음·비용 예약을 검증한다.
+- commerce / lead 인계: 로컬 근거 볼륨·SELECT 전용 권한은 유지한다. 공개 URL에서 실제 티켓→조사→근거를 별도로 확인하고 기존 MVP·팀 완료 기준을 유지한다.
+- 관측·제약: `web/`이 없고 `command -v ngrok`에서 CLI를 찾지 못했다. 공개 터널을 열거나 ngrok 계정/토큰을 설정하지 않았으며 OpenAI 호출도 0회다. 문서의 명령은 web·접근 제어·ngrok 준비 후 실행하는 절차다.
+- 공유·검증: `python3 scripts/check_docs.py` 통과(로컬 문서 36개·링크 279개·JSON 예제 8개), `git diff --check` 통과. 전체 publish 검증은 API 키 없는 별도 main clone에서 수행한다. 외부 URL·실제 모델 검증 또는 상대 세션의 수신·반영 완료를 뜻하지 않는다.
 
 ## 2026-09-21 — 서비스 내부 AI 구현 범위 보완 및 세션 인계
 
