@@ -144,3 +144,8 @@
 - 검증 내용: 실제 VOC HTTP/JDBC와 명시적인 합성 Agent HTTP를 연결했다. 접수 후 응답 절단, 수정 전 입력 재전송, 429 간격/한도/동시 수동 복구, 503/영구 400, 조회 오류/모델 실패 분리, 관측 종료/수동 GET, 16개 동시 점유, 만료 후 재점유/이전 토큰 거절, 소속·리포트 근거 오류를 검사했다. 자동 작업기 실행도 브라우저 조회 없이 완료됨을 확인했다. 합성 보고서를 실제 모델 결과로 계산하지 않는다.
 - 증거: runtime/verification/worker-h2.log·worker-h2-results, worker-postgresql.log·worker-postgresql-before-fix, worker-postgresql-fixed.log·worker-postgresql-results. 실패와 수정 후 결과를 별도 보존했다. 일반 앱 DB를 초기화하지 않았다.
 - 남은 범위: 한재홍의 실제 앱과 재시작·429 소비 인수, 한국어 web·접근 제어·runner·실제 모델·ngrok/MVP 검증이다. businessReady=false/IN_PROGRESS를 유지하며 일반 publish에서 실제 모델을 호출하지 않는다. 리더의 공통 live MVP 실행기 경로를 중복 수정하지 않는다.
+
+## 2026-09-21T21:54:00+09:00 — 공통 MVP 실행기 Windows 인수 요청
+
+- [DISC-commerce-002](../discussions/DISC-20260921-commerce-002-live-mvp-runtime.md)에 VOC-LEAD-MVP-001을 기록했다. scripts/tests/test_live_mvp.py의 네이티브 8개 중 7개는 통과했으며 97행의 ./gradlew 고정 기대값이 실제 gradlew.bat와 달라 1개 실패했다. 리더 소유 회귀 파일의 OS별 기대값 수정과 공유 후 재검증을 요청한다. 기본 선택·비밀 제외·결과/실패 보존 기준을 낮추지 않는다.
+- 실제 JDD_MVP_LIVE=false verify-mvp는 모델/runner 실행 전에 명시 선택 오류로 종료 1이다. worker-live-mvp-windows.log와 worker-live-mvp-cli-rejection.log에 보존했다. 이를 실제 MVP 또는 Windows live 모델 성공으로 표시하지 않는다.

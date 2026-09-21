@@ -12,7 +12,7 @@
 
 | ID / 논의 | 상태 | 정리 담당 | 확인·답변 대기 | 다음 행동 / 막힌 이유 | 해소 근거 | 최종 갱신 |
 | --- | --- | --- | --- | --- | --- | --- |
-| [DISC-20260921-commerce-002 / 실제 MVP 실행 환경](DISC-20260921-commerce-002-live-mvp-runtime.md) | DISCUSSING | 이상효 | 한재홍 제공자 확인·김아름 소비 인수 | 공통 실행기·내부 관측 ab89c30 공유, 실제 mock 거절 2건·호출 0 확인 | 미해소: 담당 인수·runner/실제 모델 검증 필요 | 2026-09-21T21:50:20+09:00 |
+| [DISC-20260921-commerce-002 / 실제 MVP 실행 환경](DISC-20260921-commerce-002-live-mvp-runtime.md) | DISCUSSING | 이상효 | 한재홍 제공자 확인·김아름 runner 인수, 리더 Windows 검사 보완 | ab89c30 관측 공유·VOC 네이티브 7/8 통과/OS 기대값 실패·실제 opt-in 거절 확인 | 미해소: VOC-LEAD-MVP-001·제공자/runner 인수·실제 모델 검증 필요 | 2026-09-21T21:54:00+09:00 |
 | [DISC-20260921-agent-005 / 대기열 한도](DISC-20260921-agent-005-queue-limits.md) | AGREED | 한재홍 | Agent 제공자 확인·VOC 소비 검증 | f1d6082 전체 publish·리더 PostgreSQL 인수 통과, 담당 소비 확인 | 미해소: 담당 확인·전달/조회/화면 검증 필요 | 2026-09-21T21:17:00+09:00 |
 | [DISC-20260921-agent-001 — 모델 설정·장애·예산 오류](DISC-20260921-agent-001-llm-errors.md) | AGREED | 한재홍 | VOC 소비자 검증 | 제공자 비용 한도 429 구분·응답 유실 복구 공유. VOC 화면·재조사 검증 대기 | 미해소: 소비자 구현·검증 필요 | 2026-09-21T19:49:00+09:00 |
 | [DISC-20260921-commerce-001 / 재고 재현·근거](DISC-20260921-commerce-001-inventory-evidence.md) | AGREED | 이상효 | VOC runner 검증 | 제공자 PC의 일곱 소비 8도구·300근거·333필드/로그 비교 통과 | 미해소: VOC 소비자 검증 필요 | 2026-09-21T19:32:00+09:00 |

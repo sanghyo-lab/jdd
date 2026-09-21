@@ -9,9 +9,9 @@
 | 정리 담당 | 이상효 |
 | 영향받는 역할 | commerce·lead, agent, voc |
 | 필수 합의자 | 이상효(리더), 한재홍(모델 실행), 김아름(공통 실행·runner) |
-| 확인·답변 대기 | 한재홍 제공자 변경 확인·김아름 실행기/runner 소비 인수 |
-| 생성 시각 / 최종 갱신 | 2026-09-21T21:17:00+09:00 / 2026-09-21T21:50:20+09:00 |
-| 다음 행동 / 담당 | 리더 실행기 보완, 제공자·소비자 실행 순서 확인 |
+| 확인·답변 대기 | 한재홍 제공자 변경 확인·김아름 runner 인수, 리더 Windows 회귀 검사 보완 |
+| 생성 시각 / 최종 갱신 | 2026-09-21T21:17:00+09:00 / 2026-09-21T21:54:00+09:00 |
+| 다음 행동 / 담당 | 리더 Windows 검사 기대값 보완, 제공자 관측·VOC runner 인수 |
 
 ## 결정할 질문
 
@@ -103,12 +103,22 @@
 - 내부 관측 보완 ab89c30의 전체 publish·세 앱 실제 연결이 통과했다. 실제 Agent는 test/mock/mock과 businessReady=false를 응답하며, live 누락/준비되지 않은 runtime의 거절 두 경우 모두 앱·모델을 활성화하지 않았다. API/OAuth 호출 행은 0이다. 원문·집계·현재 buildId는 commerce 상태의 같은 시각 기록에 있다.
 - 한재홍은 제공자 코드·관측 계약과 수용량 변경 인수를, 김아름은 현재 공통 실행·Windows/runner 소비 결과를 직접 기록해 달라. 실제 모델 응답 모델/usage·VOC 흐름·MVP가 남아 있으며 다른 PC의 로그인 성공을 이 PC의 인증·모델 검증으로 계산하지 않는다. 논의는 DISCUSSING이다.
 
+### 김아름 — Windows 실행기 검사 인수
+
+2026-09-21T21:54:00+09:00 / 김아름 / voc / P1
+
+- `24da847`을 포함한 코드에서 Windows 네이티브 Python으로 `python -m unittest discover -s scripts/tests -p test_live_mvp.py -v`를 실행했다. 8개 중 7개 통과·1개 실패다. test_prepared_local_runtime_is_preserved_and_reports_are_archived의 97행이 args[0]을 ./gradlew로 고정하지만 실제 실행기는 Windows의 gradlew.bat를 선택했다. 구현이 POSIX 명령을 실행한 실패와 구분한다.
+- VOC-LEAD-MVP-001: 공통 실행기·회귀를 맡은 리더에게 위 기대값을 운영체제별 명령과 맞춰 달라고 요청한다. 다른 단언·live 조건·모델/보고서 기준은 유지해야 한다. 같은 소스를 중복 편집하지 않았으며 공유 뒤 동일 네이티브 검사를 다시 수행한다. 원문 runtime/verification/worker-live-mvp-windows.log에 실패를 보존했다.
+- 실제 CLI는 JDD_MVP_LIVE=false에서 verify-mvp를 실행해 명시 선택 요구로 종료 1임을 확인했다. 원문 runtime/verification/worker-live-mvp-cli-rejection.log. 이 거절 검증을 실제 모델·runner·MVP 성공으로 기록하지 않는다. VOC worker/근거 소비 구현은 독립 진행한다.
+
 ## 결정·실행·검증
 
-이상효와 김아름이 P1을 직접 수락했다. 한재홍의 provider/model 관측·실행 순서 확인이 남아 DISCUSSING이다. 실제 모델 미검증·runner 미구현 상태와 소스/흐름 검사를 구분하며 구현 인수 전 해소하지 않는다.
+이상효와 김아름이 P1을 직접 수락했다. 한재홍의 provider/model 관측·실행 순서 확인과 Windows 회귀 검사 기대값 보완이 남아 DISCUSSING이다. 실제 모델 미검증·runner 미구현 상태와 소스/흐름 검사를 구분하며 구현 인수 전 해소하지 않는다.
 
 ## 해소 또는 재개 이력
 
 2026-09-21T21:17:00+09:00 / 이상효: OPEN 등록. 모델 호출이나 타인의 수락·완료를 대신하지 않았다.
 
 2026-09-21T21:21:00+09:00 / 김아름: P1 직접 수락·공통 실행 소유 조율·runner 영향 확인. 한재홍 답변과 구현/실제 인수가 남아 DISCUSSING으로 갱신.
+
+2026-09-21T21:54:00+09:00 / 김아름: Windows 검사 7/8 통과·OS 고정 기대값 실패와 실제 CLI opt-in 거절을 기록. VOC-LEAD-MVP-001 회귀 검사 보완 요청, DISCUSSING 유지.
