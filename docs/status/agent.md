@@ -1,12 +1,12 @@
 # 한재홍 — AI Agent 작업 상태
 
-- 상태: 서비스 내부 AI 구현 요구를 goal·프롬프트에 연결해 공유 준비 중. 로컬에 다른 세션의 조사 접수 API 초안이 있으며 실제 실행기·모델·조회 도구 연결은 관측 시점에 미구현이다. 해당 세션의 goal 실행 여부는 이 세션에서 직접 확인하지 못했다.
+- 상태: 서비스 내부 AI 구현 요구를 goal·프롬프트에 연결해 main에 공유했다. 로컬에 다른 세션의 조사 접수 API 초안이 있으며 실제 실행기·모델·조회 도구 연결은 관측 시점에 미구현이다. 해당 세션의 goal 실행 여부는 이 세션에서 직접 확인하지 못했다.
 - 담당자: 한재홍 (역할 A)
 - GitHub 계정: 공유받은 뒤 기입
 - 작업 브랜치: `main`
 - 완료 선언: [agent.json](agent.json)의 IN_PROGRESS. 실제 검증 후 자기 DONE을 공유하고 [세 담당자 완료 기준](../team-completion.md)이 충족될 때까지 goal을 유지한다.
 - 시작 지침: [agent goal](../goals/agent.md), [필수 구현 프롬프트](../prompts/implement-voc-investigation-agent.md), [공통 실행](../local-development.md)
-- 작업 Issue·공유 커밋: 시작 후 기입
+- 작업 Issue·공유 커밋: 문서 보완 `3a8068e`(전체 publish 검증 통과). OpenAI 키 별도 제공의 후속 확인도 문서에 반영했다.
 - 담당 경로: `agent-app/`, `agent-core/`, `agent-infra/`
 - 준비된 자료: [구현 범위](../roles/han-jaehong-agent.md), [VOC·Agent 계약](../integration-contract.md), [커머스 조회 계약](../commerce-interface.md)
 - 다음 작업: 진행 중인 접수 구현을 검증·공유하고, 저장된 작업의 실행기·LLM API·서비스 시스템 프롬프트·실제 조회 도구·보고서 검증 및 반환을 연결한다.
@@ -32,5 +32,6 @@
 - 별도 확인할 계약: 모델 미구성·인증·호출 제한 등 내부 분류를 외부 ApiError·retryable에 어떻게 매핑할지 정해 VOC 소비자와 함께 검증한다.
 - 의존성 없이 진행할 작업: 실행기·설정 검증·조회 도구·저장·보고서 검증·실패 복구. 모델 인증과 실제 상대 구현을 사용한 평가는 준비되기 전까지 미검증으로 유지한다.
 - 검토 규모: 총괄 1개와 읽기 전용 전문 검토 에이전트 3개가 실행·계약·협업 경로를 검토했다. 1,000개 이상 사용 요청은 충족하지 못했으며 서비스 런타임의 에이전트 수 요구로 전환하지 않았다.
-- 검증·공유: `python3 scripts/check_docs.py` 통과(29개 Markdown·178개 로컬 링크·8개 JSON 예제), `git diff --check` 통과. 전체 publish 검증은 진행 중인 구현과 분리한 임시 main clone·별도 Compose 프로젝트/포트에서 수행한다. 서비스 AI 구현·실제 모델 평가는 이 보완 세션에서 수행하지 않았다.
+- 검증·공유: `python3 scripts/check_docs.py`와 `git diff --check` 통과. 분리한 main clone·Compose 프로젝트·포트에서 Java 21을 지정한 `scripts/dev publish` 통과: 협업 테스트 21개, 공유 커밋 기준 문서 27개·링크 171개·JSON 예제 8개, 전체 Gradle check, PostgreSQL·세 앱의 DB/HTTP/SELECT 전용 권한·근거 볼륨 smoke 확인. 원격 품질 기준 `34cdca3`를 통합·재검증해 `3a8068e`로 공유했다. buildId는 `3a8068ef77c7-29e903424201`이다.
+- 환경 실패·조치: 최초 publish는 기본 Java 26 환경에서 Java 21 toolchain을 찾지 못해 실패했다. 기존 `/Users/jaehonghan/.local/share/jdd/jdk-21/Contents/Home`을 JAVA_HOME으로 지정한 검증 프로세스에서 해결했다. 서비스 AI 구현·실제 모델 평가는 이 보완 세션에서 수행하지 않았다.
 - 다른 세션의 접수: 미확인. 현재 도구에 기존 독립 세션으로 직접 메시지를 전달하는 경로가 없어 공유 파일에 남겼다. 구현 세션은 읽은 뒤 수신·반영 범위·다음 산출물을 이 파일에 기록한다.
