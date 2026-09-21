@@ -1,5 +1,8 @@
 # 이상효의 commerce·개발리더 goal
 
+실행할 때 [상세 goal 프롬프트](../prompts/implement-commerce-and-lead.md)도 전체 지시문으로 적용한다.
+GitHub 변경 확인·반영, 구현·데이터·검증, 리더 검토, 비용 제한과 제출 자료의 구체적인 기준을 포함한다.
+
 ## 목표
 
 [담당 구현 범위](../roles/lee-sanghyo-commerce.md)와 [커머스 계약](../commerce-interface.md)에 따라

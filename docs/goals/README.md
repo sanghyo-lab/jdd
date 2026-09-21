@@ -29,7 +29,7 @@ cd jdd
 
 | 담당자 | goal 문서 | Codex 입력 |
 | --- | --- | --- |
-| 이상효 | [commerce·리더](commerce.md) | `/goal AGENTS.md와 docs/goals/commerce.md, docs/goals/lead.md에 따라 이상효의 커머스와 개발리더 역할을 수행해. 세 담당자의 DONE 이후에도 전체 코드·실제 동작을 직접 검사하고 모든 영역의 문제를 수정·재검증해. GitHub에 유효한 리더 APPROVED까지 공유하고 team-check가 성공할 때만 종료해.` |
+| 이상효 | [commerce·리더](commerce.md), [상세 프롬프트](../prompts/implement-commerce-and-lead.md) | `/goal AGENTS.md와 docs/prompts/implement-commerce-and-lead.md 전체를 읽고 이상효의 커머스 구현·개발리더 목표를 수행해. GitHub main을 계속 확인·반영·공유하며 구현·검증·수정을 이어가. 데모용 LLM 정책을 따르고, 세 유효한 DONE·독립 검토에 근거한 리더 APPROVED·필수 산출물과 검증을 모두 갖추고 team-check가 성공할 때만 완료해.` |
 | 김아름 | [voc](voc.md) | `/goal docs/goals/voc.md와 AGENTS.md를 읽고 김아름의 VOC·연동을 구현·검증하고 main에 계속 공유해. 자기 DONE 이후에도 리더의 검토·수정 요청에 대응해. GitHub에 세 유효한 DONE과 리더 APPROVED가 있고 team-check가 성공할 때까지 계속해.` |
 | 한재홍 | [agent](agent.md) | `/goal docs/goals/agent.md, docs/prompts/implement-voc-investigation-agent.md와 AGENTS.md를 읽고 한재홍의 서비스 내부 AI로 VOC를 조사하고 결과를 반환하는 에이전트를 구현·검증하고 main에 계속 공유해. LLM API·서비스 시스템 프롬프트·실제 도구 호출·근거 저장·보고서 검증·VOC 결과 반환을 모두 포함해. 자기 DONE 이후에도 리더의 검토·수정 요청에 대응해. GitHub에 세 유효한 DONE과 리더 APPROVED가 있고 team-check가 성공할 때까지 계속해.` |
 
@@ -73,7 +73,8 @@ PC와 실행 세션이 계속 동작하고 외부 의존성이 준비돼 있어�
 ## 4. 진행 확인
 
 - 각 에이전트는 다른 두 담당자의 소스·계약·[상태 문서](../status/commerce.md)를 원격 main에서 확인한다.
-- `./scripts/dev status`로 최신 커밋과 세 상태 파일, 원격 완료 판정을 함께 읽는다.
+- `./scripts/dev status`로 최근 다섯 커밋과 세 담당자·리더 상태, 원격 완료 판정을 함께 읽는다.
+  마지막 확인 SHA 이후의 전체 커밋·파일 변경은 별도로 검토한다. 최근 다섯 개 출력이 전체 변경 목록은 아니다.
 - `./scripts/dev team-status`로 GitHub main의 담당별 DONE과 리더 APPROVED 유효성을 확인한다.
 - `./scripts/dev watch`는 60초마다 fetch하고 상태를 출력한다. 작업 파일은 변경하지 않는다.
 - 실제 반영은 깨끗한 커밋 경계에서 `./scripts/dev sync`, 공유는 `./scripts/dev publish`로 한다.

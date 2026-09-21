@@ -16,7 +16,7 @@
 
 **[세 PC의 최초 준비와 역할별 goal 시작 명령](docs/goals/README.md)** 을 먼저 읽는다.
 
-- 이상효: [commerce·개발리더 goal](docs/goals/commerce.md), [리더 최종 검증 단계](docs/goals/lead.md)
+- 이상효: [commerce·개발리더 goal](docs/goals/commerce.md), [상세 시작 프롬프트](docs/prompts/implement-commerce-and-lead.md), [리더 최종 검증 단계](docs/goals/lead.md)
 - 김아름: [voc goal](docs/goals/voc.md)
 - 한재홍: [agent goal](docs/goals/agent.md)
 
