@@ -1,6 +1,6 @@
 # 김아름 — VOC 티켓·AI 연동 작업 상태
 
-- 상태: 김아름의 개발 Goal 시작. 티켓 저장·조회·수정과 버전 충돌 처리를 첫 구현 단위로 진행한다. 화면·실제 분석 연동은 아직 미구현이다.
+- 상태: 티켓 저장·조회·수정과 버전 충돌의 첫 구현·HTTP/DB 검증 완료, 전체 검증·공유 진행. 화면·실제 분석 연동은 다음 단위다.
 - 담당자: 김아름 (역할 C)
 - GitHub 계정: `AhReumKim-ar`
 - 작업 브랜치: `main`
@@ -9,7 +9,7 @@
 - 작업 Issue·공유 커밋: 시작 후 기입
 - 담당 경로: `voc-app/`, `voc-core/`, `voc-infra/`, `web/`, `scenario-runner/`
 - 준비된 자료: [구현 범위](../roles/kim-areum-voc.md), [VOC·Agent 계약](../integration-contract.md), [커머스 계약](../commerce-interface.md), [프론트 설계](../frontend-deployment.md)
-- 다음 작업: 준비된 공통 실행 틀 확인, v1 티켓·분석 요청 기록과 예제 JSON을 사용하는 화면 구현
+- 다음 작업: 티켓 단위 공유 후 분석 요청 스냅샷·영속 전달/조회·실제 Agent 접수 연결, 한국어 화면 구현
 - 필요한 입력: 한재홍의 실제 분석 API, 이상효의 시드·재현 방법, 배포 환경
 - 검증 결과: 준비 PC에서 전체 Gradle check와 세 앱의 Docker 기동·smoke 통과. VOC에서 Agent·커머스 진단 API의 HTTP 200 확인. 실제 티켓·프론트·시나리오는 미검증.
 - 연동 요청: 한재홍의 분석 API와 이상효의 재현 입력을 연결할 예정. scenario-runner는 미구현을 알리는 실패 종료 골격이다.
@@ -43,3 +43,13 @@
 - 건별 문서에 김아름의 답변을 남기고 목록을 함께 갱신했다. 동시 공유된 이상효의 수락도 보존해 전원 P1 수락을 확인했다. AGREED이며 실제 구현·소비자 검증이 남아 있으므로 해소하지 않았다.
 - 원격 `b2b46ef`의 실제 조사 접수·조회 API 제공을 확인했다. QUEUED 상태의 영속 접수이며 조사 실행·리포트 완성은 아니다. 티켓 다음 단위에서 실제 접수 연결을 진행한다.
 - 현재 티켓 단위 검증: HTTP/H2 계약 5개·기존 앱 테스트 1개와 Linux의 기존 협업 테스트 31개 통과. PostgreSQL과 전체 앱 smoke는 진행 중이다. 이 문서 공유를 코드·모델·MVP 완료로 기록하지 않는다.
+
+## 2026-09-21 — 영속 티켓 API 첫 전달 단위
+
+- 제공: [VOC API 안내](../../voc-app/README.md)의 생성·목록·상세·수정·담당자 API. PostgreSQL 저장, 상태/담당자 필터·안정적 정렬, PATCH의 생략/null/빈 context, 버전 비교 SQL을 구현했다.
+- 저장 안전성: 같은 expectedVersion의 동시 수정은 200 한 건·409 한 건이며 덮어쓰지 않는다. 조사 대상 occurredAt은 UTC로 정규화하고 소수점 정밀도를 그대로 저장한다. 생성/수정 시각은 DB 정밀도에 맞춘다.
+- 실제 검증: `gradlew.bat :voc-app:test`의 HTTP/H2 계약 5개·기존 앱 1개, 별도 PostgreSQL 17.6의 동일 HTTP 계약 5개 통과. 시각 정밀도 보존을 보강한 뒤 PostgreSQL 5개를 다시 통과했다. 테스트 DB는 `jdd_voc_contract_test`로 한정했다.
+- 공통 환경: 공식 SHA-256으로 검증한 Gradle 9.3.1 배포본을 Wrapper 캐시에 준비했다. Windows의 심볼릭 링크 권한 제한은 테스트를 생략하지 않고 Linux에서 기존 협업 테스트 31개를 그대로 실행해 통과했다.
+- 공유 절차: 사용자 미추적 `docs/ralphthon-readiness.md`는 보존한다. 깨끗한 main 복사본에서 기존 publish의 전체 검사·3개 앱 기동·smoke·일반 push를 수행한다. 전체 실행·공유 결과는 확인 후 추가한다.
+- 범위: analyses는 아직 빈 배열이고 businessReady=false다. Agent 실제 조사·분석 요청·웹·MVP·DONE은 완료하지 않았다. 데모 모델 호출은 수행하지 않았다.
+- 소비자 인계: 티켓 수정 응답의 version을 새 분석에 사용한다. 재전송 키·스냅샷·조사 이력은 다음 단위에서 제공한다. 원격 Agent 접수 및 실행 저장소 변경을 통합했다.
