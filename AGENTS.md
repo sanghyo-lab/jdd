@@ -9,10 +9,12 @@
 1. docs/autonomous-development.md, docs/team-completion.md와 docs/local-development.md
 2. docs/roles/README.md, 현재 역할의 구현 문서와 docs/goals 문서
 3. docs/integration-contract.md, docs/commerce-interface.md, docs/business-policy.md
-4. docs/status의 세 담당자 파일
+4. docs/status의 세 담당자 파일과 lead.md, lead-review.json, lead.json
 
 현재 역할은 goal의 지정 또는 로컬 .jdd-role로 확인한다.
 commerce = 이상효, agent = 한재홍, voc = 김아름이다.
+이상효는 commerce와 개발리더(lead)를 겸한다. docs/roles/lee-sanghyo-lead.md와 docs/goals/lead.md도 적용한다.
+리더 단계는 commerce goal에서 이어 수행하며, 별도 인원·세션·goal을 시작하지 않는다.
 agent 역할은 docs/prompts/implement-voc-investigation-agent.md도 필수 구현 기준으로 읽는다.
 한재홍의 범위에는 서비스 내부 LLM의 실제 VOC 조사·도구 실행·근거 저장·검증된 결과 반환이 포함된다.
 개발을 분담하는 에이전트와 서비스에서 VOC를 조사하는 AI를 구분하고, 접수 API만으로 완료하지 않는다.
@@ -32,6 +34,9 @@ agent 역할은 docs/prompts/implement-voc-investigation-agent.md도 필수 구�
 - agent: agent-app/core/infra, docs/status/agent.md와 agent.json
 - voc: voc-app/core/infra, web, scenario-runner, docs/status/voc.md와 voc.json
 - 공통 Gradle·Compose·scripts·CI·인터페이스: 기본 유지 담당은 voc. 변경 시 소비자 구현·문서·검증을 함께 맞춘다.
+- 개발리더 이상효는 전체 코드·테스트·인프라·계약을 검사하고 모든 담당 영역을 직접 수정·보완할 권한이 있다.
+  다른 담당자의 진행 상태를 확인해 중복 편집을 피하고, 변경 대상·이유·검증·계약 영향을 docs/status/lead.md에 공유한다.
+  리더의 지적·검토·승인 기록은 lead.md, lead-review.json, lead.json에 작성한다. 타인의 DONE은 대신 작성하지 않는다.
 - 모든 역할은 모든 소스·테스트·계약을 읽고 전체 앱을 실행한다.
   다른 담당 경로의 변경이 필요하면 자신의 상태 파일에 대상·필드·실패 명령·필요한 변경을 기록한다.
   이미 진행 중인 변경과 중복 구현하지 않는다. 깨진 공통 빌드의 작은 수정은 직접 반영하고 영향을 기록한다.
@@ -51,8 +56,10 @@ agent 역할은 docs/prompts/implement-voc-investigation-agent.md도 필수 구�
 6. 충돌 시 양쪽 변경과 계약을 읽어 해결하고 rebase를 완료한 뒤 publish를 다시 실행한다.
    강제 push, 공유 이력 재작성, reset --hard, 사용자 변경 삭제로 해결하지 않는다.
 7. 역할의 다음 완료 조건으로 계속 진행한다. 자기 기능이 끝나면 role-done <role>로 실제 MVP 검증 후
-   자기 완료 기록만 커밋·publish한다. 세 담당자의 완료가 모두 모일 때까지 goal을 유지한다.
+   자기 완료 기록만 커밋·publish한다. 세 담당자의 완료와 리더의 독립 검토·최종 승인까지 goal을 유지한다.
    먼저 끝난 역할은 약 60초마다 원격 변경·요청을 확인하고 필요한 연동·재검증을 계속한다.
+8. 세 담당자의 DONE이 모이면 이상효는 개발리더로 전체 코드 검사와 실제 통합 검증을 새로 수행한다.
+   지적 사항을 직접 수정하거나 담당자에게 요청하고, 수정·담당자 완료 갱신·리더 재검증 후 최종 승인한다.
 
 ## 실행과 완료 판정
 
@@ -61,16 +68,26 @@ agent 역할은 docs/prompts/implement-voc-investigation-agent.md도 필수 구�
 - scripts/dev verify: check + 3개 앱 기동 + 실제 DB·HTTP·근거 볼륨 연결 검증.
 - scripts/dev verify-mvp: 위 검증과 실제 모델을 사용하는 7개 VOC 및 정상·정보 부족·재전송·복구 검증.
 - scripts/dev role-done <role>: 최신 공유 코드의 실제 MVP 검증 후 자기 docs/status/<role>.json에 DONE 작성.
-- scripts/dev team-status: 원격 main의 세 완료 기록과 현재 코드에 대한 유효성 확인.
-- scripts/dev team-check: 깨끗한 최신 main에서 세 담당자의 유효한 DONE이 모두 있을 때만 성공.
+- scripts/dev roles-check: 깨끗한 최신 main에서 세 담당자의 유효한 DONE 확인. 리더 검토의 시작 조건이다.
+- scripts/dev lead-approve: 공유된 코드 검토 기록과 지적 해결·반복 재현을 확인하고 전체 verify-mvp를 새로 실행한 뒤 리더 승인 작성.
+- scripts/dev lead-reopen: 리더 최종 승인을 철회한다. 새 문제를 기록·공유하고 수정·재검증한다.
+- scripts/dev team-status: 원격 main의 세 완료 기록과 리더 승인 유효성 확인.
+- scripts/dev team-check: 깨끗한 최신 main에서 세 유효한 DONE과 독립 검토에 근거한 리더 APPROVED가 모두 있을 때만 성공.
 - 기동 골격의 businessReady=false는 정상이다. 도메인 구현이 완료되기 전 true로 바꾸지 않는다.
-- 모든 역할의 goal 종료 조건은 GitHub main에 이상효·한재홍·김아름의 유효한 DONE이 모두 존재하는 것이다.
+- 완료는 경과 시간이나 작업량으로 판단하지 않는다. 예상 16~24시간과 해커톤 일정은 계획용 추정이다.
+  정한 필수 기능·데이터·정상/예외 흐름의 실제 검증이 모두 통과하고, 의도한 VOC-01~07 외의
+  알려진 미해결 오류·불안정한 재현·미처리 필수 연동 요청이 없어야 DONE을 기록한다.
+  docs/team-completion.md의 품질 기준을 적용하며, 시간을 맞추려고 범위·검증을 줄이거나 실패를 숨기지 않는다.
+- 모든 역할의 goal 종료 조건은 GitHub main에 세 담당자의 유효한 DONE과 개발리더 이상효의 유효한 APPROVED가 모두 존재하는 것이다.
   자기 역할 완료만으로 goal을 complete로 처리하지 않는다. docs/team-completion.md에 따라
   마지막 scripts/dev team-check가 종료 코드 0일 때만 goal을 완료한다.
   역할 완료 기록에는 검증한 커밋·내용 해시·모델·시나리오 결과가 필요하며, 각 담당자의 위임받은 에이전트가 자기 기록만 작성한다.
   docs/status/ 밖의 추적 내용이 바뀌면 기존 DONE은 STALE로 제외되므로 다시 검증한다.
   코드가 그대로여도 실패·미해결 요청이 발견되면 role-reopen <role>로 자기 완료를 철회하고 이유와 함께 공유한다.
   docs/status/에는 상태 기록만 두며 코드·검증 기준을 넣어 완료 판정을 우회하지 않는다.
+  리더 승인에는 전체 검토 영역의 파일·판단 근거, 필수 검사·반복 재현 결과, 지적 해결과 재검증 기록이 필요하다.
+  리더는 다른 담당자의 성공 기록을 믿고 종료하지 않고 자신의 PC에서 verify-mvp를 새로 실행한다.
+  코드·검토 기록·담당자 완료 기록이 바뀌면 기존 리더 승인도 무효화되어 새 검증이 필요하다.
 - 모델 키·GitHub 인증·외부 서버 권한이 없으면 독립 구현을 계속한다.
   남은 작업이 그 입력에만 막힌 경우 실제 사유를 남기고 goal 실행기의 blocked 규칙을 따른다.
   다른 PC를 이 세션이 실행·설정했다고 가정하지 않는다.

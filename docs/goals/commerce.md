@@ -1,19 +1,28 @@
-# 이상효의 commerce goal
+# 이상효의 commerce·개발리더 goal
+
+실행할 때 [상세 goal 프롬프트](../prompts/implement-commerce-and-lead.md)도 전체 지시문으로 적용한다.
+GitHub 변경 확인·반영, 구현·데이터·검증, 리더 검토, 비용 제한과 제출 자료의 구체적인 기준을 포함한다.
 
 ## 목표
 
 [담당 구현 범위](../roles/lee-sanghyo-commerce.md)와 [커머스 계약](../commerce-interface.md)에 따라
 7개 VOC 결함이 재현되는 이커머스를 구현하고, 다른 두 에이전트가 DB·로그·실행 소스를 조사하고 HTTP로 재현할 수 있게 한다.
+개발리더를 겸하며 [리더 책임](../roles/lee-sanghyo-lead.md)과 [최종 검증 단계](lead.md)에 따라
+모든 담당자의 코드를 검사하고 전체 동작을 새로 검증한다. 필요한 수정·보완은 모든 모듈에서 직접 수행할 수 있다.
 시작 후 사용자에게 매 단계의 승인이나 다음 작업을 묻지 않고 AGENTS.md의 반복 절차로 진행한다.
+예상 시간이 지나도 완료를 선언하지 않는다. [공통 필수 품질 기준](../team-completion.md)에 따라
+실제 재현·정상/예외·연동 검증을 통과하고 의도한 7개 결함 외의 알려진 미해결 오류를 모두 해결한다.
 
 ## 시작과 순서
 
-1. AGENTS.md, 세 역할의 상태, 두 인터페이스, 업무 정책과 VOC 시나리오를 읽는다.
+1. AGENTS.md, 세 역할과 리더의 상태, 두 인터페이스, 업무 정책과 VOC 시나리오, 리더 책임을 읽는다.
+   이 clone의 로컬 .jdd-role을 commerce로 설정한다. 이 파일은 Git에 공유하지 않는다.
 2. 원격 main을 반영하고 `./scripts/dev up`, `./scripts/dev smoke`로 앱 세 개를 확인한다.
 3. commerce 모듈에서 DDL·상품·주문·재고·추적 로그와 VOC-07을 먼저 구현한다.
 4. fixtures/commerce에 독립 초기화·재현 입력·대조 사례를 제공한다. Agent 검색에는 평가 정답을 노출하지 않는다.
 5. 나머지 결제·쿠폰·취소·환불과 VOC-01~06을 구현한다.
 6. 한재홍의 조회 요구와 김아름의 HTTP 재현을 실제로 연결해 실패를 보완한다.
+7. 세 담당자의 DONE이 모이면 리더 단계로 이어 전체 코드·실제 동작을 독립적으로 검사하고 수정·재검증한다.
 
 ## 계속 공유할 것
 
@@ -21,6 +30,7 @@
 전달할 ID·로그 event·DB 컬럼 변경은 계약과 함께 반영한다.
 커밋한 뒤 `./scripts/dev publish`로 전체 실행을 확인하고 main에 공유한다.
 다른 담당자가 아직 구현 중이면 정상 대조 사례·독립 재현·근거 생성 검증을 계속한다.
+리더의 지적·다른 영역 수정·검토 결과는 docs/status/lead.md와 lead-review.json으로 공유한다.
 
 ## 담당 기능 완료 조건
 
@@ -36,7 +46,9 @@
 ## 세 담당자 공통 goal 종료 조건
 
 위 조건을 통과하고 코드를 공유한 뒤 `./scripts/dev role-done commerce`로 실제 MVP를 검증한다.
-생성된 자기 완료 JSON을 커밋·publish해 GitHub에 DONE을 전달한다. 이 시점에도 goal을 유지한다.
+생성된 자기 완료 JSON을 커밋·publish해 GitHub에 DONE을 전달한다. 세 담당자가 모두 DONE이어도 goal을 유지한다.
 [세 담당자 완료 기준](../team-completion.md)에 따라 다른 담당자의 요청·변경을 확인하며 연동·수정·재검증을 계속한다.
 소스·계약·검증 기준이 바뀌면 최신 코드에서 자기 완료를 갱신한다. 문제가 발견되면 role-reopen commerce로 철회한다.
-GitHub main의 commerce·agent·voc가 모두 유효한 DONE이고 `./scripts/dev team-check`가 성공해야 goal을 완료한다.
+세 담당자의 DONE은 `./scripts/dev roles-check`로 확인하고 개발리더 최종 검토를 시작한다.
+리더 지적이 모두 해결되고 전체 검증을 통과하면 검토 기록을 공유하고 `./scripts/dev lead-approve`를 실행한다.
+GitHub main에 세 유효한 DONE과 리더 APPROVED를 모두 공유한 뒤 `./scripts/dev team-check`가 성공해야 goal을 완료한다.

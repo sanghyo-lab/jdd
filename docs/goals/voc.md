@@ -5,6 +5,8 @@
 [담당 구현 범위](../roles/kim-areum-voc.md)와 [연동 계약](../integration-contract.md)에 따라
 VOC 티켓·AI 분석 연동·리포트와 해결방안 화면을 구현하고 세 앱의 실제 전체 흐름을 검증한다.
 시작 후 사용자에게 매 단계의 승인이나 다음 작업을 묻지 않고 AGENTS.md의 반복 절차로 진행한다.
+예상 시간이 지나도 완료를 선언하지 않는다. [공통 필수 품질 기준](../team-completion.md)에 따라
+실제 API·화면·정상/예외·연동 검증을 통과하고 알려진 미해결 오류를 모두 해결한다.
 
 ## 시작과 순서
 
@@ -42,4 +44,6 @@ cases의 id에는 VOC-01~07, NORMAL, NEEDS_INPUT, IDEMPOTENCY, RECOVERY가 각�
 생성된 자기 완료 JSON을 커밋·publish해 GitHub에 DONE을 전달한다. 이 시점에도 goal을 유지한다.
 [세 담당자 완료 기준](../team-completion.md)에 따라 다른 담당자의 요청·변경을 확인하며 연동·수정·재검증을 계속한다.
 소스·계약·검증 기준이 바뀌면 최신 코드에서 자기 완료를 갱신한다. 문제가 발견되면 role-reopen voc로 철회한다.
-GitHub main의 commerce·agent·voc가 모두 유효한 DONE이고 `./scripts/dev team-check`가 성공해야 goal을 완료한다.
+세 담당자의 DONE 이후에도 개발리더 이상효의 독립 검토·지적 처리·재검증을 지원한다.
+docs/status/lead.md와 lead-review.json을 확인하고, 리더의 수정이 반영되면 최신 코드에서 자기 DONE을 갱신한다.
+GitHub main의 세 유효한 DONE과 리더 APPROVED가 모두 있고 `./scripts/dev team-check`가 성공해야 goal을 완료한다.

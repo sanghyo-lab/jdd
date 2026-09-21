@@ -16,7 +16,7 @@
 
 **[세 PC의 최초 준비와 역할별 goal 시작 명령](docs/goals/README.md)** 을 먼저 읽는다.
 
-- 이상효: [commerce goal](docs/goals/commerce.md)
+- 이상효: [commerce·개발리더 goal](docs/goals/commerce.md), [상세 시작 프롬프트](docs/prompts/implement-commerce-and-lead.md), [리더 최종 검증 단계](docs/goals/lead.md)
 - 김아름: [voc goal](docs/goals/voc.md)
 - 한재홍: [agent goal](docs/goals/agent.md)
 
@@ -29,7 +29,8 @@
 설치 조건과 검증 범위는 [로컬 개발 안내](docs/local-development.md)에 있다.
 자동 개발은 [AGENTS.md](AGENTS.md)와 [협업 반복 규칙](docs/autonomous-development.md)을 따른다.
 원격 확인은 `./scripts/dev status`, 소스 반영은 `./scripts/dev sync`, 검증 후 공유는 `./scripts/dev publish`다.
-모든 goal은 **GitHub main에서 세 담당자의 유효한 완료 기록이 모두 확인될 때** 종료한다.
+모든 goal은 **GitHub main에 세 담당자의 유효한 DONE과 개발리더 이상효의 독립 검토·최종 APPROVED가 모두 있을 때** 종료한다.
+세 DONE 이후에도 이상효는 전체 코드를 직접 검사하고 실제 통합 검증·수정·보완을 계속한다.
 자기 기능 완료 후에도 연동·검증·수정을 계속하며, 최종 판정은 `./scripts/dev team-check`로 확인한다.
 완료 공유·재검증 절차는 [세 담당자 완료 기준](docs/team-completion.md)을 따른다.
 
@@ -37,7 +38,7 @@
 
 | 담당자 | 만들 결과 | 작업 기준 |
 | --- | --- | --- |
-| 이상효 | 7개 문제가 재현되는 이커머스, 조사용 DB·로그·소스 | [이커머스 구현 범위](docs/roles/lee-sanghyo-commerce.md) |
+| 이상효 | 이커머스·조사 근거, 전체 코드 검사·수정·최종 검증 | [이커머스](docs/roles/lee-sanghyo-commerce.md), [개발리더](docs/roles/lee-sanghyo-lead.md) |
 | 김아름 | VOC 티켓 관리, AI 분석 연동, 리포트·해결방안 화면 | [VOC·연동 구현 범위](docs/roles/kim-areum-voc.md) |
 | 한재홍 | 소스·로그·DB 기반 원인 분석과 해결안 생성 | [AI Agent 구현 범위](docs/roles/han-jaehong-agent.md) |
 

@@ -14,6 +14,8 @@ import sys
 import time
 from urllib.request import urlopen
 
+from lead_review import LEAD_OWNER, REVIEW_PATH, validate_lead_review
+
 
 class WorkflowError(RuntimeError):
     pass
@@ -89,7 +91,7 @@ class Repository:
         # Fetch does not replace working files; safe to inspect between edit steps.
         self.git("fetch", "origin", "main")
         print(self.git("log", "-5", "--format=%h %s", "origin/main"), flush=True)
-        for role in ("commerce", "agent", "voc"):
+        for role in ("commerce", "agent", "voc", "lead"):
             text = self.git("show", "origin/main:docs/status/" + role + ".md", check=False)
             print("\n" + text, flush=True)
         self.team_status(fetch=False)
@@ -107,12 +109,14 @@ class Repository:
     def completion_problem(self, record, role, tip, fingerprint):
         if not isinstance(record, dict) or record.get("schemaVersion") != 1:
             return "INVALID: unsupported completion record"
-        if record.get("role") != role or record.get("owner") != TEAM_ROLES[role]:
+        owner = LEAD_OWNER if role == "lead" else TEAM_ROLES[role]
+        if record.get("role") != role or record.get("owner") != owner:
             return "INVALID: role/owner mismatch"
         if record.get("status") == "IN_PROGRESS":
             return "IN_PROGRESS"
-        if record.get("status") != "DONE":
-            return "INVALID: expected IN_PROGRESS or DONE"
+        expected_status = "APPROVED" if role == "lead" else "DONE"
+        if record.get("status") != expected_status:
+            return "INVALID: expected IN_PROGRESS or " + expected_status
         commit = record.get("verifiedCommit")
         if not isinstance(commit, str) or not re.fullmatch(r"[0-9a-f]{40}", commit):
             return "INVALID: missing verified commit"
@@ -134,11 +138,29 @@ class Repository:
             if not isinstance(build_id, str) or not re.fullmatch(commit[:12] + r"-[0-9a-f]{12}", build_id):
                 return "INVALID: verification build does not match the verified commit"
             validate_mvp_result(verification, build_id)
+            if role == "lead":
+                expected_records = {name: self.git("rev-parse", tip + ":docs/status/" + name + ".json", check=False)
+                                    for name in TEAM_ROLES}
+                verified_records = {name: self.git("rev-parse", commit + ":docs/status/" + name + ".json", check=False)
+                                    for name in TEAM_ROLES}
+                if record.get("roleRecords") != expected_records or expected_records != verified_records:
+                    return "STALE: role completion records changed after leader verification"
+                review_blob = self.git("rev-parse", tip + ":" + REVIEW_PATH, check=False)
+                if (record.get("reviewBlob") != review_blob
+                        or review_blob != self.git("rev-parse", commit + ":" + REVIEW_PATH, check=False)):
+                    return "STALE: leader review evidence changed after approval"
+                validate_lead_review(self, json.loads(self.git("show", tip + ":" + REVIEW_PATH)), commit)
         except (TypeError, ValueError, WorkflowError) as error:
             return "INVALID: " + str(error)
         return None
 
     def team_status(self, fetch=True):
+        return self.completion_status(fetch, include_lead=True)
+
+    def roles_status(self, fetch=True):
+        return self.completion_status(fetch, include_lead=False)
+
+    def completion_status(self, fetch, include_lead):
         if fetch:
             self.git("fetch", "origin", "main")
         # Read every record from one immutable remote commit, never local unpushed files.
@@ -146,24 +168,34 @@ class Repository:
         fingerprint = self.completion_fingerprint(tip)
         complete = True
         print("Team completion on origin/main:", tip[:12], flush=True)
-        for role, owner in TEAM_ROLES.items():
+        print("contentSha256:", fingerprint, flush=True)
+        owners = {**TEAM_ROLES, **({"lead": LEAD_OWNER} if include_lead else {})}
+        for role, owner in owners.items():
             raw = self.git("show", tip + ":docs/status/" + role + ".json", check=False)
             try:
                 problem = self.completion_problem(json.loads(raw), role, tip, fingerprint) if raw else "MISSING"
             except (ValueError, WorkflowError) as error:
                 problem = "INVALID: " + str(error)
             complete = complete and problem is None
-            print("  " + role + " (" + owner + "): " + (problem or "DONE"), flush=True)
-        print("ALL_DONE" if complete else "TEAM_INCOMPLETE: keep the role goal active.", flush=True)
+            print("  " + role + " (" + owner + "): " + (problem or ("APPROVED" if role == "lead" else "DONE")), flush=True)
+        success = "TEAM_COMPLETE" if include_lead else "ROLES_READY: development lead review is still required."
+        print(success if complete else "TEAM_INCOMPLETE: keep the role goal active.", flush=True)
         return complete
 
     def team_check(self):
+        self.check_completion(include_lead=True)
+
+    def roles_check(self):
+        self.check_completion(include_lead=False)
+
+    def check_completion(self, include_lead):
         self.require_clean_main()
-        complete = self.team_status()
+        complete = self.completion_status(fetch=True, include_lead=include_lead)
         if self.git("rev-parse", "HEAD") != self.git("rev-parse", "origin/main"):
             raise WorkflowError("Sync main and publish any local commits before ending the goal.")
         if not complete:
-            raise WorkflowError("All three owners must publish valid DONE records for the same current content.")
+            raise WorkflowError("All three owners must publish valid DONE records for the same current content."
+                                + (" Independent development lead approval is also required." if include_lead else ""))
 
     def role_done(self, role):
         self.sync()
@@ -174,15 +206,50 @@ class Repository:
         self.require_clean_main()
         if self.git("rev-parse", "HEAD") != commit:
             raise WorkflowError("HEAD changed during verification; verify again.")
+        self.write_role_record(role, self.completion_record(role, commit, data))
+        print("Commit and publish your completion record. Keep the goal active through development lead review until team-check passes.", flush=True)
+
+    def completion_record(self, role, commit, data):
         verification = {key: data[key] for key in ("buildId", "mode", "model")}
         verification["command"] = "./scripts/dev verify-mvp"
         # Only a sanitized result summary is shared. Raw logs, prompts and DB rows stay local.
         verification["cases"] = [{key: case[key] for key in ("id", "status", "mocked")} for case in data["cases"]]
-        record = {"schemaVersion": 1, "role": role, "owner": TEAM_ROLES[role], "status": "DONE",
-                  "verifiedCommit": commit, "contentSha256": self.completion_fingerprint(commit),
-                  "verifiedAt": datetime.now(timezone.utc).isoformat(), "verification": verification}
-        self.write_role_record(role, record)
-        print("Commit and publish your completion record, then run scripts/dev team-check. Your goal remains active until ALL_DONE.", flush=True)
+        return {"schemaVersion": 1, "role": role, "owner": LEAD_OWNER if role == "lead" else TEAM_ROLES[role],
+                "status": "APPROVED" if role == "lead" else "DONE", "verifiedCommit": commit,
+                "contentSha256": self.completion_fingerprint(commit),
+                "verifiedAt": datetime.now(timezone.utc).isoformat(), "verification": verification}
+
+    def require_lead(self):
+        identity = self.root / ".jdd-role"
+        if not identity.exists() or identity.read_text().strip() != "commerce":
+            raise WorkflowError("Leader actions belong to 이상효's commerce clone; its local .jdd-role must be commerce.")
+
+    def lead_approve(self):
+        self.require_lead()
+        self.sync()
+        self.roles_check()
+        commit = self.git("rev-parse", "HEAD")
+        review = json.loads(self.git("show", commit + ":" + REVIEW_PATH))
+        validate_lead_review(self, review, commit)
+        # Run the full pipeline here. A peer's DONE or an old runtime JSON is insufficient.
+        data = self.verify_mvp()
+        self.require_clean_main()
+        self.git("fetch", "origin", "main")
+        if self.git("rev-parse", "HEAD") != commit or self.git("rev-parse", "origin/main") != commit:
+            raise WorkflowError("main changed during leader verification; sync and revalidate before approving.")
+        record = self.completion_record("lead", commit, data)
+        record["reviewBlob"] = self.git("rev-parse", commit + ":" + REVIEW_PATH)
+        record["roleRecords"] = {role: self.git("rev-parse", commit + ":docs/status/" + role + ".json")
+                                 for role in TEAM_ROLES}
+        self.write_role_record("lead", record)
+        print("Publish the leader approval, then run scripts/dev team-check before ending any goal.", flush=True)
+
+    def lead_reopen(self):
+        self.require_lead()
+        self.write_role_record("lead", {"schemaVersion": 1, "role": "lead", "owner": LEAD_OWNER,
+                                       "status": "IN_PROGRESS", "verifiedCommit": None, "contentSha256": None,
+                                       "verifiedAt": None, "verification": None, "reviewBlob": None, "roleRecords": {}})
+        print("Leader approval withdrawn locally; publish the finding and revised review record.", flush=True)
 
     def role_reopen(self, role):
         self.write_role_record(role, {"schemaVersion": 1, "role": role, "owner": TEAM_ROLES[role],
@@ -387,7 +454,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=["setup", "up", "down", "smoke", "check", "verify",
                                           "verify-mvp", "sync", "publish", "status", "watch", "snapshot",
-                                          "team-status", "team-check", "role-done", "role-reopen"])
+                                          "team-status", "team-check", "role-done", "role-reopen",
+                                          "roles-status", "roles-check", "lead-approve", "lead-reopen"])
     parser.add_argument("role", nargs="?", choices=list(TEAM_ROLES))
     args = parser.parse_args()
     if (args.command in ("role-done", "role-reopen")) != (args.role is not None):
