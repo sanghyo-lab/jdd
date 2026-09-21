@@ -14,6 +14,28 @@ public final class LlmRuntimeConfiguration {
         InvestigationModel api(String key, OpenAiInvestigationModel.Settings settings, PaidModelGate gate, JsonMapper json, Clock clock);
     }
     private LlmRuntimeConfiguration() {}
+    /** Runs before Spring creates database/network beans as well as at adapter selection. */
+    public static void validateRuntime(Function<String, String> env) {
+        String runtime = env.apply("APP_RUNTIME"), provider = env.apply("LLM_PROVIDER");
+        if ("test".equals(runtime) && "mock".equals(provider)) return;
+        if ("local".equals(runtime) && "codex_oauth".equals(provider)) {
+            model(env.apply("CODEX_MODEL"), "CODEX_MODEL");
+            String path = env.apply("CODEX_AUTH_FILE");
+            try {
+                if (path == null || path.isBlank() || !Path.of(path).isAbsolute()) throw new IllegalArgumentException();
+            } catch (RuntimeException invalid) { throw invalid("CODEX_AUTH_FILE requires an absolute project-specific path"); }
+            return;
+        }
+        if ("deployed".equals(runtime) && "openai_api".equals(provider)) {
+            model(env.apply("OPENAI_MODEL"), "OPENAI_MODEL");
+            String key = env.apply("OPENAI_API_KEY"), profile = env.apply("JDD_AGENT_API_PROFILE");
+            if (key == null || key.isBlank() || key.length() > 8192 || key.chars().anyMatch(Character::isISOControl))
+                throw invalid("OPENAI_API_KEY deployment secret is required");
+            if (profile == null || profile.isBlank()) throw invalid("JDD_AGENT_API_PROFILE is required");
+            return;
+        }
+        throw invalid("required pairs: APP_RUNTIME=local/LLM_PROVIDER=codex_oauth, deployed/openai_api, test/mock");
+    }
     public static InvestigationModel create(Function<String, String> env, ModelCallLedger ledger, JsonMapper json, Clock clock) {
         return create(env, ledger, json, clock, OAuthCallJournal.NONE);
     }
@@ -28,6 +50,7 @@ public final class LlmRuntimeConfiguration {
         });
     }
     public static InvestigationModel create(Function<String, String> env, ModelCallLedger ledger, JsonMapper json, Clock clock, Clients clients) {
+        validateRuntime(env);
         String runtime = env.apply("APP_RUNTIME"), provider = env.apply("LLM_PROVIDER");
         if ("test".equals(runtime) && "mock".equals(provider)) {
             diagnostics(runtime, provider, "mock", false);

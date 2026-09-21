@@ -18,6 +18,14 @@
 작업 단위가 끝날 때 제공 가능한 기능, 변경한 계약, 실제 검증 명령·결과, 다음 작업을 갱신한다. 실패와 막힌 이유도 함께 기록한다.
 
 
+
+## 2026-09-21T20:59:43+09:00 — OAuth/API 분리 전체 공유와 시작 오류 검증
+
+- `56cadd5`를 scripts/dev publish로 main에 공유했다. Python 51개·JUnit 146개(실패/오류 0, 조건부 건너뜀 9), 문서·Gradle check, 세 앱/실제 PostgreSQL/읽기 전용 근거 연결 통과. buildId `56cadd53eb47-5e968d60e7e8`, Agent MOCK. 원문 `runtime/submission/agent-20260921/oauth-api-publish.log`·json·publication-junit.json이다. 사용 인증 없는 환경 허용 목록으로 실행했고 실제 OAuth/API 호출은 0회다.
+- 최종 검토 보완: runtime/provider·필수 모델/인증 설정의 기본 검사를 Spring 초기화 전에 넣어 잘못된 조합이 DB 연결보다 먼저 종료되게 했다. 실제 jar를 잘못된 조합·조합 누락·배포 key 누락으로 기동한 세 경우 모두 종료 1/명확한 설정 오류·DB TCP 접속 0회였다. `runtime/llm-early-startup-results.json`과 각 startup 로그. 최초 검사기의 Python 3.9 socket.timeout 처리 누락으로 감시 스레드가 종료된 관측은 `llm-early-startup-invalid-harness-results.json`으로 제외했고, 수정된 살아 있는 socket 감시기로 세 경우를 다시 통과했다.
+- 같은 보완의 환경 격리 7개·bootJar, 스크립트 6개 통과. 로그인 자식 프로세스의 Windows 사용자 환경과 Gradle wrapper 분기는 준비했으나 Windows 실제 OAuth 검증은 미수행이다. 배포 jar에 auth.json/.codex/.env가 없음을 확인했다.
+- DISC-agent-004에 최신 사용자 지시를 P2로 공유했다. 상대의 기존 로컬 API 예산 수락을 새 배포 범위 수락으로 재사용하지 않는다. CODEX_MODEL/프로젝트 최초 로그인은 아직 미준비라 실제 OAuth 호출·품질은 미검증이다. role DONE은 보류한다.
+
 ## 2026-09-21 — 사용자 지시: local OAuth / deployed API / test mock 구현
 
 - 최신 사용자 지시를 적용해 기존 로컬 API 데모 설정을 교체했다. APP_RUNTIME/LLM_PROVIDER를 명시하고 local/codex_oauth, deployed/openai_api, test/mock 외에는 시작 오류다. OAuth 실패·만료·429·권한·timeout에 API fallback하지 않으며 배포는 OAuth 설정/파일을 읽지 않는다.

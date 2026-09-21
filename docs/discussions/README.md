@@ -17,7 +17,7 @@
 | [DISC-20260921-commerce-001 / 재고 재현·근거](DISC-20260921-commerce-001-inventory-evidence.md) | AGREED | 이상효 | VOC runner 검증 | 제공자 PC의 일곱 소비 8도구·300근거·333필드/로그 비교 통과 | 미해소: VOC 소비자 검증 필요 | 2026-09-21T19:32:00+09:00 |
 | [DISC-20260921-agent-002 / build별 정책 사본](DISC-20260921-agent-002-policy-snapshot.md) | AGREED | 한재홍 | Agent 새 생성기 직접 인수·해소 확인 | VOC 실제 파일 소비·commerce 35소스/정책/25근거 DB·HTTP 인수 통과 | 미해소: Agent 직접 인수/정리 답변 필요 | 2026-09-21T20:52:00+09:00 |
 | [DISC-20260921-agent-003 / 선택 ID 공백 입력](DISC-20260921-agent-003-empty-context.md) | AGREED | 한재홍 | VOC 화면·영속 전달, Agent 인수 | 8d80786 HTTP 연결과 리더 PostgreSQL 계약 7개 통과 | 미해소: 화면·worker·기존 티켓 오류 처리 필요 | 2026-09-21T20:52:00+09:00 |
-| [DISC-20260921-agent-004 / 데모 예산 배분](DISC-20260921-agent-004-demo-allocation.md) | AGREED | 한재홍 | 사용자 데모 범위·각 PC 활성화 조건 | P1 전원 수락·각 PC 장부 확인 기록. 실제 활성화/사용 없음 | 미해소: 승인 범위·실제 배분/설정 확인 필요 | 2026-09-21T20:39:02+09:00 |
+| [DISC-20260921-agent-004 / 데모 예산 배분](DISC-20260921-agent-004-demo-allocation.md) | DISCUSSING | 한재홍 | 김아름·이상효 P2 영향 확인·배포 범위 | 사용자 지시 local OAuth/deployed API 구현·56cadd5 전체 publish 통과. P1 로컬 API 활성화 중단 | 미해소: 배포 예산·직접 영향 확인·실제 모델 검증 필요 | 2026-09-21T20:59:43+09:00 |
 | [DISC-20260921-voc-001 / runner 선택 메타데이터](DISC-20260921-voc-001-runner-metadata.md) | RESOLVED | 김아름 | 없음 | 기존 필수 계약 유지·선택 확장 보류, 관측 DTO는 후속 제안 | 전원 P1 수락·계획 eafb8ac의 원격 포함 확인 | 2026-09-21T20:39:02+09:00 |
 
 새 건은 이 표에 한 행으로 등록한다. 미해소 건을 먼저, RESOLVED 건을 뒤에 놓고 해소된 행도 삭제하지 않는다.

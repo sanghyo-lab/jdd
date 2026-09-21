@@ -66,7 +66,8 @@ def login(args):
     path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
     path.parent.chmod(0o700)
     # CODEX_HOME is set only for this official CLI login child, never for this coding session.
-    names = {"PATH", "HOME", "USER", "LOGNAME", "SHELL", "TMPDIR", "LANG", "LC_ALL", "SYSTEMROOT"}
+    names = {"PATH", "HOME", "USER", "LOGNAME", "SHELL", "TMPDIR", "LANG", "LC_ALL", "SYSTEMROOT",
+             "USERPROFILE", "APPDATA", "LOCALAPPDATA", "PROGRAMDATA", "PATHEXT", "HOMEDRIVE", "HOMEPATH", "TEMP", "TMP"}
     child = {k: v for k, v in os.environ.items() if k in names}
     child["CODEX_HOME"] = str(path.parent)
     command = ["codex", "-c", 'cli_auth_credentials_store="file"', "-c", 'forced_login_method="chatgpt"']
@@ -89,11 +90,12 @@ def run_local(args):
     if not config["authConfigured"]:
         fail("로컬 로그인 명령 ./scripts/llm login 을 먼저 실행하세요")
     env = local_env(os.environ)
-    env.update(JDD_CODEX_AUTH_DIR=str(auth_path(env).parent), JDD_LOCAL_UID=str(os.getuid()), JDD_LOCAL_GID=str(os.getgid()))
-    if os.getuid() == 0:
+    uid, gid = (os.getuid(), os.getgid()) if hasattr(os, "getuid") else (10001, 10001)
+    env.update(JDD_CODEX_AUTH_DIR=str(auth_path(env).parent), JDD_LOCAL_UID=str(uid), JDD_LOCAL_GID=str(gid))
+    if uid == 0:
         fail("Run local OAuth as the developer account, not root")
     # Ordinary up is explicitly offline; then select the local adapter for Agent only.
-    subprocess.run([str(ROOT / "scripts/dev"), "up"], cwd=ROOT, env=env, check=True)
+    subprocess.run([sys.executable, str(ROOT / "scripts/jdd.py"), "up"], cwd=ROOT, env=env, check=True)
     return subprocess.run(["docker", "compose", "--env-file", ".env", "--env-file", "runtime/build.env",
                            "-f", "compose.yaml", "-f", "agent-app/compose.local-oauth.yaml",
                            "up", "--detach", "--no-build", "--no-deps", "--wait", "agent"], cwd=ROOT, env=env).returncode
@@ -102,7 +104,8 @@ def run_local(args):
 def smoke_local(args):
     if configuration(os.environ)["runtime"] != "local":
         fail("smoke-local requires local/codex_oauth; no API key is accepted")
-    return subprocess.run([str(ROOT / "gradlew"), ":agent-app:oauthSmoke", "--console=plain"],
+    wrapper = "gradlew.bat" if os.name == "nt" else "gradlew"
+    return subprocess.run([str(ROOT / wrapper), ":agent-app:oauthSmoke", "--console=plain"],
                           cwd=ROOT, env=local_env(os.environ)).returncode
 
 
