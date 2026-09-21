@@ -88,7 +88,16 @@ public final class SourceEvidenceTools {
         if (input.section() != null) {
             String heading = "## " + input.section();
             start = lines.indexOf(heading);
-            if (start < 0) throw unavailable();
+            if (start < 0) {
+                // A missing section is a selection miss, not unavailable or untrusted policy.
+                // Only expose headings after the requested build/version/hash have been checked.
+                var headings = lines.stream().filter(line -> line.startsWith("## "))
+                        .map(line -> line.substring(3)).limit(8)
+                        .map(value -> value.length() <= 128 ? value : value.substring(0, 128) + "…").toList();
+                return new Outcome(List.of(), "검증된 정책에서 요청한 정확한 제목을 찾지 못했습니다. 정책 근거는 저장하지 않았습니다. "
+                        + "제목 목록(최대 8개·각 128자, 일부일 수 있음): " + headings
+                        + "; section=null로 전체 정책을 조회하거나 실제 확인한 정확한 제목으로 다시 조회하세요.");
+            }
             for (int index = start + 1; index < lines.size(); index++) {
                 if (lines.get(index).startsWith("## ")) { end = index; break; }
             }

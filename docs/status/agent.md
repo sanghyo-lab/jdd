@@ -1,5 +1,14 @@
 # 한재홍 — AI Agent 작업 상태
 
+## 2026-09-21T23:36:00+09:00 — NORMAL 실제 정책 조회 실패 보존·없는 제목의 재조회 안내
+
+- 김아름의 후속 공유를 기다리는 동안 별도 정상 대조 한 건을 실제 local/codex_oauth로 수동 조사했다. 보존한 커머스 정상 대조 주문/상품/고객 ID와 중립적인 문의만 전달했으며 기대 정답·재현 파일은 모델 입력에서 제외했다. 같은 Agent build `9d1bb86d7351-c8c49a025b79`에서 조사 `f0c31cd2-20e9-4fce-a5d1-18a87ab1f3a9`가 readBusinessPolicy 실행 중 TOOL_EXECUTION_FAILED가 됐다. 16개 근거는 저장·재조회됐지만 보고서는 없으며 NORMAL 품질 성공으로 계산하지 않는다.
+- 티켓 `4de46d91-1d32-4027-a1bc-6575f2e85e29`, 분석 `ac5b9992-7c41-476c-adc7-5267c098a887`. OAuth 4회에서 입력 27,517·출력 551·캐시 입력 2,560·reasoning 233(각 입력/출력의 일부), cache write 0을 관측했다. 이 스택 OAuth 누적 22행·API/배포 예산 행 0이다. 원문 `followup-oauth-normal-01/`, `followup-oauth-normal-run-01.log/json`을 보존한다.
+- 실제 보관 policy의 demo-v1·SHA-256 일치와 네 제목을 확인했다. 당시 모델 도구 인자는 저장하지 않았으므로 이번 실제 실패의 정확한 인자 원인은 확정하지 않는다. 별도 모의 재현으로 없는 section 제목을 조회하면 검증된 정상 파일에서도 조사 전체가 종료되는 경로를 확인했다. 수정 전 EvidenceFileToolsTest 15개 중 해당 2개 실패를 `followup-policy-section-before.log/xml`로 보존한다.
+- 제공 도구 v2: 정확한 제목을 모르면 section=null로 읽도록 안내한다. 파일·build·버전·해시 검증 후 제목만 없으면 근거를 만들지 않고 제한된 실제 제목 목록/재조회 안내를 반환한다. 최대 8개·각 128자이고 잘림 가능성을 명시한다. 현재 정책 자동 대체·해시/버전 검증 완화·무제한 재시도는 없다. 이 보완이 실제 실패 원인이었거나 NORMAL을 해결했다고 아직 단정하지 않는다.
+- 수정 후 파일/정책 15·실행기 11·인증 격리 9, 합계 35개 성공·실패/제외 0. 보관 파일 우선·없는 제목의 근거 0/전체 재조회·긴 제목 제한·변조 시 안내도 차단함을 포함한다. 원문 `followup-policy-section-after.log/json`, `followup-policy-section-results/`. 자동 테스트 실제 모델 호출 0이며 전체 publish 후 같은 티켓의 새 키로 확인한다.
+- 실제 개발 세션 이벤트 1,867건을 `session/20260921T142431Z/`에 중간 캡처했다. 실제 기록과 요약을 구분하고 비밀 값/이메일을 가린 산출물·원본 prefix와 산출물 SHA를 manifest에 보존했다. Git에는 원시 세션이나 비밀 파일을 넣지 않는다.
+
 ## 2026-09-21T23:15:43+09:00 — 실제 VOC-07 보고서 완료·근거 검수·화면 인수 대기
 
 - `9d1bb86`을 전체 publish 종료 0으로 공유했다(`followup-concise-publish.log/json`). Python 67개·web 13개/production build·전체 Gradle check·세 앱/실제 PostgreSQL/HTTP/근거 연결이 통과했다. 일반 검증의 실제 모델 호출은 없다.

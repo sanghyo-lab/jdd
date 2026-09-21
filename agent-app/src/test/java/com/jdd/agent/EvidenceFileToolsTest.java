@@ -103,7 +103,26 @@ class EvidenceFileToolsTest {
         assertThat(observed.content().toString()).contains("재고는 음수가").doesNotContain("결제 정책");
         assertThat(observed.source()).containsKey("sha256").containsEntry("binding", "manifest-version-and-current-policy-hash");
         assertThatThrownBy(() -> run("readBusinessPolicy", Map.of("buildId", BUILD, "version", "old"))).isInstanceOf(IllegalStateException.class);
-        assertThatThrownBy(() -> run("readBusinessPolicy", Map.of("buildId", BUILD, "version", "demo-v1", "section", "없는 정책"))).isInstanceOf(IllegalStateException.class);
+        var missing = run("readBusinessPolicy", Map.of("buildId", BUILD, "version", "demo-v1", "section", "없는 정책"));
+        assertThat(missing.observations()).isEmpty();
+        assertThat(missing.summary()).contains("찾지 못했습니다", "재고", "결제", "section=null")
+                .doesNotContain("재고는 음수가", "결제 정책");
+    }
+    @Test void unknownPolicySectionOffersBoundedVerifiedHeadingsWithoutInventingEvidence() throws Exception {
+        String text = "적용 버전은 `demo-v1`이다.\n## 재고\n보관 정책 내용\n"
+                + java.util.stream.IntStream.range(0, 30).mapToObj(i -> "## " + "x".repeat(200) + i + "\n").collect(java.util.stream.Collectors.joining());
+        archive(BUILD, "demo-v1", text);
+        Files.writeString(policy, "적용 버전은 `demo-v1`이다.\n## 추측한 제목\n현재 정책 대체 금지\n");
+        var missing = run("readBusinessPolicy", Map.of("buildId", BUILD, "version", "demo-v1", "section", "추측한 제목"));
+        assertThat(missing.observations()).isEmpty();
+        assertThat(missing.summary()).contains("재고", "일부", "section=null").doesNotContain("현재 정책", "보관 정책 내용", "x".repeat(129));
+        assertThat(missing.summary().length()).isLessThan(1400);
+        var retry = run("readBusinessPolicy", Map.of("buildId", BUILD, "version", "demo-v1"));
+        assertThat(retry.observations()).hasSize(1);
+        assertThat(retry.observations().getFirst().content().toString()).contains("보관 정책 내용").doesNotContain("현재 정책 대체 금지");
+        Files.writeString(sources.resolve(BUILD).resolve("policy/business-policy.md"), text + "tampered");
+        assertThatThrownBy(() -> run("readBusinessPolicy", Map.of("buildId", BUILD, "version", "demo-v1", "section", "추측한 제목")))
+                .isInstanceOf(IllegalStateException.class);
     }
     @Test void policySnapshotsKeepTheirOriginalVersionAfterTheCurrentFileChangesOrDisappears() throws Exception {
         String first = Files.readString(policy);

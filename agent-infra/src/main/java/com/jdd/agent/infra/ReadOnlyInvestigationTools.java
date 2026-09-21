@@ -12,7 +12,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 /** The model selects a named read, never SQL, commands, arbitrary paths or business writes. */
 public final class ReadOnlyInvestigationTools implements InvestigationTools {
-    public static final String SCHEMA_VERSION = "commerce-evidence-v1";
+    public static final String SCHEMA_VERSION = "commerce-evidence-v2";
     private final CommerceDataTools data;
     private final LogEvidenceTools logs;
     private final SourceEvidenceTools source;
@@ -31,7 +31,7 @@ public final class ReadOnlyInvestigationTools implements InvestigationTools {
                         "buildId?", "requestId?", "orderId?", "productId?", "checkoutKey?", "from@?", "to@?", "limit#?"),
                 define("searchCode", "buildId의 해시가 일치하는 실행 소스에서 리터럴을 찾고 주변 줄과 manifest의 policyVersion을 반환합니다. 테스트·시드·재현 제어는 제외합니다.", "buildId", "query", "limit#?"),
                 define("readCode", "동일 buildId manifest의 허용 경로를 1부터 시작하는 줄 번호로 최대 300줄 읽습니다.", "buildId", "path", "startLine#", "endLine#"),
-                define("readBusinessPolicy", "searchCode/readCode가 반환한 policyVersion과 buildId로 정상 정책을 읽습니다. 새 manifest는 보관 사본·해시를 검증하며 기존 형식은 한계를 명시합니다. section은 정확한 2단계 제목 또는 null입니다.", "buildId", "version", "section?")
+                define("readBusinessPolicy", "searchCode/readCode가 반환한 policyVersion과 buildId로 정상 정책을 읽습니다. 새 manifest는 보관 사본·해시를 검증하며 기존 형식은 한계를 명시합니다. section은 실제 확인한 정확한 2단계 제목이며 모르면 null로 전체를 읽으세요. 없는 제목은 정책 근거 없이 제한된 제목 목록을 반환합니다.", "buildId", "version", "section?")
         );
     }
     @Override public List<ToolDefinition> definitions() { return definitions; }

@@ -214,7 +214,7 @@ DB 설정은 지정한 clone의 `.env`에서 읽는다. 임시 JVM에는 DB·Jav
 
 ## 읽기 전용 조사 도구
 
-실행기는 `commerce-evidence-v1`의 여덟 도구를 제공한다: `findOrders`, `getOrderContext`,
+실행기는 `commerce-evidence-v2`의 여덟 도구를 제공한다: `findOrders`, `getOrderContext`,
 `getCouponContext`, `getInventoryContext`, `searchLogs`, `searchCode`, `readCode`, `readBusinessPolicy`.
 도구 인자는 엄격한 JSON 타입·알려진 필드·범위로 검증하며 모델이 SQL·명령·임의 파일을 실행하지 않는다.
 환경은 기존 Compose의 `EVIDENCE_DB_URL/USERNAME/PASSWORD`, `SOURCE_ROOT`, `LOG_ROOT`, `POLICY_PATH`를 사용한다.
@@ -227,6 +227,7 @@ DB 계정은 Agent 저장 계정과 별개이며 계약 10개 테이블의 SELEC
 - 소스는 지정 buildId의 manifest와 SHA-256이 일치하는 허용 Java·migration 파일만 읽는다. 검색은 최대 512파일·4MiB·30구간, 직접 읽기는 최대 300줄이다. 심볼릭 링크·경로 이탈·테스트·재현 제어·fixtures를 차단한다.
 - 정책은 새 manifest의 `policy: {version, path, sha256}`와 해당 build 안의 고정 `policy/business-policy.md`를 대조한다. 사본이 선언되어 있으면 누락·변조·다른 버전·경로 이탈 때 현재 파일로 대체하지 않는다. 기존 policy 필드 없는 manifest만 현재 정책을 읽는 한계를 명시한다. 이미 저장한 근거 원문은 파일 변경과 무관하게 DB에서 조회한다.
 - searchCode/readCode의 출처와 검색 요약에 manifest의 policyVersion을 제공한다. 모델은 이 값으로 readBusinessPolicy를 호출하며 정책 버전을 추측할 필요가 없다. 정책 사본을 코드 검색 허용 경로에 추가하지 않는다.
+- 정책의 정확한 2단계 제목을 모르면 `section=null`로 전체를 읽는다. build·버전·해시 검증을 통과한 정책에 요청한 제목만 없는 경우에는 근거 없이 최대 8개·각 128자의 제목 목록과 재조회 안내를 반환한다. 다른 제목이나 현재 정책으로 자동 대체하지 않으며 파일/버전/해시 오류는 여전히 실패다. 재조회도 기존 모델·도구 횟수 제한에 포함한다.
 - 빈 검색의 범위와 한도는 도구 실행 요약에도 저장한다. 존재하지 않는 근거 ID를 만들어 빈 검색을 인용하지 않는다.
 
 `EvidenceFileToolsTest`는 경로·해시·필드 타입·부분/중복 로그를 검사한다.
