@@ -7,6 +7,7 @@
 - 실제 gpt-5.6-luna OAuth 8회 모두 HTTP 200 completed·usage 관측. 입력 합계 62,444·출력 644, reasoning 235는 출력의 일부, cached/cache write 0, 모델 요청 지연 합계 32,018ms다. OAuth를 API USD로 환산하지 않는다. 해당 스택 API 호출·예산 행은 전후 0이고 이전 별도 배포 장부는 그대로다. 원문 `runtime/submission/agent-20260921/followup-oauth-voc07/`와 `followup-oauth-voc07-run.log`를 보존했다.
 - 보완 범위는 Agent 내부 실행/전송/프롬프트다. 공식 함수 호출 문서와 기존 확인 Codex 소스에서 `parallel_tool_calls`를 확인했다. 서로 독립적인 조회를 한 모델 응답에 허용하되 실제 서버 도구는 순서대로 검증/저장한다. 서버의 남은 모델·도구 횟수를 전달하고 마지막 응답은 보고서 전용으로 남긴다. 모델/도구 상한 8/24·보고서 검증·provider 분리/비용 장부를 약화하지 않는다. 새 프롬프트 v3를 버전 리소스로 추가하고 기존 v1/v2를 보존한다.
 - 모의 회귀: InvestigationRunnerTest 11·ResponsesSseTest 5·OpenAiTransportTest 24·LlmRuntimeIsolationTest 9, 합계 49개 통과·실패/제외 0. 다중 도구의 저장 후 보고서 연결·각 call ID 보존·마지막 도구 거절·한 응답의 도구 한도 초과 보존/차단을 포함한다. 원문 `followup-budget-aware-tests.log`, `followup-budget-aware-results/`다. 수정 후 실제 OAuth 재조사는 아직 수행하지 않았고 전체 publish 후 새 키로 한 번 검증한다.
+- 전체 publish 첫 실행은 새 공통 test_web_workflow.py의 macOS `/var`→`/private/var` 실제 경로와 임시 경로 문자열 비교로 67개 중 1개 실패했다. AGENTS의 작은 공통 빌드 수정 범위로 테스트 입력 root만 `.resolve()`해 실제 Repository 경로와 맞췄다. 환경·npm 순서·실패 차단 단언은 유지하고 네이티브 관련 검사 2개를 통과했다. `followup-budget-aware-publish.log`의 실패와 `followup-web-native-fix.log`를 모두 보존하고 전체 publish를 다시 수행한다.
 - 김아름의 새 웹은 로그인·티켓/이력 단계이며 분석 요청/보고서/근거·shop·runner는 진행 중이다. Node 24.21.0에서 web npm ci/test(13개)/production build를 직접 통과했다. 원문 `followup-web-ci.log`, `followup-web-check.log`. 실제 PC/모바일 화면 인수를 이어가며 타인의 진행 경로를 중복 수정하지 않는다.
 
 ## 2026-09-21T22:46:02+09:00 — 김아름 공유 구현의 Agent 직접 인수·후속 대기
