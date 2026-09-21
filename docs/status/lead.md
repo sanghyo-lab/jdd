@@ -11,6 +11,16 @@
 
 다른 담당자의 DONE을 대신 작성하지 않는다. 전체 코드 수정 권한으로 직접 보완한 내용과 영향을 여기에 공유한다.
 
+
+## 2026-09-21T21:17:00+09:00 — 수용량 공유·VOC 영속 요청 독립 인수·LEAD-018
+
+- 수용량 보완 `f1d6082`의 전체 publish 종료 0/195.993초. Python 57개, Java 158개(149통과·9조건부 제외·실패/오류 0), 세 앱 재기동·PostgreSQL/HTTP/근거 연결을 통과했다. buildId `f1d60822a48e-c5c367ca49d9`, Agent MOCK. 원문 `commands/20260921T121144.138721Z-queue-admission-publish.log`, `queue-admission-publication-junit-runtime.json`이다.
+- 실제 PostgreSQL 검사 소스와 공유 파일을 대조했다. 코드/설정 8개는 같고 계약 머리말만 VOC `4de1a98` 변경으로 다르다. 처음 9파일 해시 단언 실패를 숨기지 않고 diff 검토와 `queue-admission-published-source-comparison.json`에 보존했다. DISC-agent-005의 제공자/소비자 확인은 대기다.
+- `4de1a98`의 분석 API·서비스·행 잠금/입력 사본·V3·8개 HTTP 테스트를 직접 읽고 이 PC의 격리 PostgreSQL에서 티켓/분석 15개를 새로 실행해 모두 통과했다. 동시 동일 키 8건, 수정 경쟁 12회, 소속/버전/형식·재전송·응답 유실 복구를 확인했다. 전달/조사 실패 분기는 합성 DB 상태이며 실제 worker 성공이 아니다.
+- 명령 `python3 runtime/submission/run_recorded.py voc-analysis-postgresql python3 runtime/submission/check_voc_analysis_postgresql.py` 종료 0/17.382초. 실제 Gradle HTTP 계약 15개·실패/건너뜀 0, `voc-analysis-postgresql-01/` XML/result와 `commands/20260921T121551.096901Z-voc-analysis-postgresql.log`다. 제출 자료 기준 경로는 `runtime/submission/commerce-20260921-resumed/`이며 실제 API/OAuth 모델 호출 0회다.
+- LEAD-018: verify-mvp가 기본 verify/up을 실행해 선택한 OAuth Agent를 mock으로 바꾸는 경로를 발견했다. 부작용 없는 실제 함수 흐름 검사와 소스 SHA는 `mvp-runtime-before.json`에 보존했다. [DISC-commerce-002](../discussions/DISC-20260921-commerce-002-live-mvp-runtime.md)로 실행 환경 보존·명시 활성화·현재 빌드 확인 P1과 리더 보완 범위를 공유한다. 실제 OAuth 실패를 실행한 것으로 기록하지 않는다.
+- VOC 담당자는 실제 전달/조회·근거 중계·화면을 진행 중이다. 해당 경로를 중복 편집하지 않으며 모든 DONE·최종 APPROVED는 미작성이다.
+
 ## 2026-09-21T21:11:00+09:00 — LEAD-017 수용량 보완·제공자 검증
 
 - DISC-agent-005의 전원 P1 합의·사전 공유 이후 리더가 접수 저장소·V8 잠금·429/설정·실제 동시 검사·계약을 직접 보완했다. Agent의 새 인증/Responses·실행기와 VOC 분석/화면 소스는 편집하지 않았다. 공유 Compose/환경 예제는 새 수용량 설정만 전달한다.
