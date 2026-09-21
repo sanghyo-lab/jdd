@@ -229,4 +229,12 @@
 - 일곱 근거 소비 검사 단위를 `0ba2862`로 전체 publish 종료 0 후 공유했다. 원문 `runtime/submission/agent-20260921/seven-handoff-publish.log`. 총 근거 300건은 모의 모델과 실제 PostgreSQL/파일을 사용한 결과이며 실제 AI 품질 결과가 아니다.
 - [DISC-20260921-agent-004](../discussions/DISC-20260921-agent-004-demo-allocation.md)에 Agent $5 / VOC $10 / commerce·lead 합산 $15의 누적 배분과 후보 Luna·호출/시간 제한·수동 첫 검증을 제안했다. 사용자 범위·팀 배분·실제 장부 확인 전 활성화하지 않는다. 제안만으로 다른 PC에 배분을 적용했다고 기록하지 않는다.
 - 미확정 관측·가격/모델 불일치·예산 소진 때 다음 호출을 멈추며 같은 키/조회에는 추가 호출을 하지 않는 구현을 사용한다. 원격 확인과 일반 publish의 유료 호출은 계속 0회다.
+
+## 2026-09-21 — 영속 모델 장부의 읽기 전용 내보내기
+
+- `agent-app/scripts/export_model_calls.py`를 추가했다. 기존 Compose DB에 Agent 계정으로 연결해 REPEATABLE READ READ ONLY 한 스냅샷을 읽는다. 개별 HTTP 시도의 실제 모델/usage·요금·프롬프트/도구 버전·상태·시각과 설치 전체의 확정/미확정/예약 금액을 로컬 파일로 내보낸다. 모델·앱 기동·접수·장부 변경은 하지 않는다.
+- 조사 필터를 적용해도 예산 합계는 설치 전체다. 없는 조사와 호출 0건, null 미관측과 관측한 0, 예약 책임액과 실제 요금 계산을 구분한다. 1,000건 초과는 명시적으로 거절하며 문의/프롬프트 원문·요청 옵션·프로필·키를 내보내지 않는다. 기존 파일 덮어쓰기를 거절하고 새 파일은 0600으로 작성한다.
+- 별도 실제 PostgreSQL `jdd_agent_export_test`에만 합성 상태 5종을 준비해 필터/총합/미확정/누락 ID/민감 본문 제외/덮어쓰기/잘못된 ID/행 불변/파일 모드/1,000건 경계를 통과했다. 원문 `runtime/submission/agent-20260921/ledger-export/20260921T103000Z/verification.json`, `ledger-export-postgres-final.log`.
+- 기본 앱 DB의 장부 미설정·호출 0건도 실제 내보냈고, 기존 도메인 테스트가 작성한 `jdd_agent_budget_test`를 추가로 읽었다. `ledger-export/default-no-calls.json`, `ledger-export/domain-test-ledger.json`. 합성 장부 검증이며 제공자 청구·실제 모델 사용 기록이 아니다.
+- 이 내보내기는 로컬 검수용이다. runner의 선택 관측 DTO/조회 경로 또는 최종 모델 판정을 임의로 확정하지 않았다. 실제 데모 승인·팀 예산 합의·모델 품질 검증은 아직 남아 있다.
 - 실제 개발 세션의 사용자/응답/도구 이벤트 852건을 `runtime/submission/agent-20260921/session/20260921T100624Z/`에 중간 캡처했다. 이메일·비밀 값 검사/가림과 원문 prefix/산출물 SHA·제외 유형을 manifest에 남겼다. 요약이나 미가림 원본과 구분하고 진행 종료 시 갱신한다. Git에는 원시 세션/개인정보를 공유하지 않는다.
