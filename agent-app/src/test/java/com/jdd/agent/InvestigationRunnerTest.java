@@ -52,7 +52,7 @@ class InvestigationRunnerTest {
     @Test void runsToolStoresEvidenceThenReturnsReportAndRepeatedHttpReadsDoNotCallModel() throws Exception {
         var claim = start();
         var runner = runner(request -> {
-            assertThat(request.prompt().version()).isEqualTo("investigation-system-v2");
+            assertThat(request.prompt().version()).isEqualTo("investigation-system-v3");
             assertThat(request.prompt().sha256()).hasSize(64);
             assertThat(request.prompt().text()).contains("같은 조사에 실제 저장한 관측", "requiresHumanAction");
             if (request.iteration() == 1) return toolReply("read-1", "getInventoryContext", "{}");
@@ -93,6 +93,42 @@ class InvestigationRunnerTest {
         assertThat(view(claim).status()).isEqualTo(Status.NEEDS_INPUT);
         assertThat(modelCalls).hasValue(2);
         assertThat(toolCalls).hasValue(0);
+    }
+
+    @Test void batchesIndependentReadsAndReservesTheLastModelCallForStoredEvidenceReport() {
+        var claim = start();
+        runner(request -> {
+            if (request.iteration() == 1) {
+                assertThat(request.remaining()).isEqualTo(new Remaining(2, 2));
+                assertThat(request.tools()).hasSize(1);
+                return new Reply(null, List.of(new ToolCall("read-a", "getInventoryContext", "{}"),
+                        new ToolCall("read-b", "getInventoryContext", "{}")));
+            }
+            assertThat(request.remaining()).isEqualTo(new Remaining(1, 0));
+            assertThat(request.tools()).isEmpty();
+            var saved = request.history().stream().filter(message -> message.kind() == MessageKind.TOOL)
+                    .flatMap(message -> message.observations().stream()).toList();
+            assertThat(saved).hasSize(2);
+            saved.forEach(evidence -> assertThat(repository.findEvidence(claim.investigationId(), evidence.evidenceId())).contains(evidence));
+            return reportReply(new AnalysisReport("1.0", "합성 두 관측 확인", List.of(new Fact("f1", "두 저장 관측",
+                    saved.stream().map(EvidenceDetail::evidenceId).toList())), List.of(), List.of(), List.of(), List.of()));
+        }, tools(false), 2, 2).run(claim);
+        assertThat(view(claim).status()).isEqualTo(Status.COMPLETED);
+        assertThat(modelCalls).hasValue(2);
+        assertThat(toolCalls).hasValue(2);
+        assertThat(view(claim).evidence()).hasSize(2);
+    }
+
+    @Test void multipleToolCallsCannotBypassTheSharedExecutionLimit() {
+        var claim = start();
+        runner(request -> new Reply(null, List.of(new ToolCall("a", "getInventoryContext", "{}"),
+                new ToolCall("b", "getInventoryContext", "{}"), new ToolCall("c", "getInventoryContext", "{}"))),
+                tools(false), 8, 2).run(claim);
+        assertThat(view(claim).error().code()).isEqualTo("INVESTIGATION_BUDGET_EXCEEDED");
+        assertThat(view(claim).report()).isNull();
+        assertThat(modelCalls).hasValue(1);
+        assertThat(toolCalls).hasValue(2);
+        assertThat(view(claim).evidence()).hasSize(2);
     }
 
     @Test void rejectsRepeatedInventedEvidenceWithoutPublishingReport() {
@@ -149,7 +185,7 @@ class InvestigationRunnerTest {
         runner(request -> toolReply("read-" + request.iteration(), "getInventoryContext", "{}"), tools(false), 2, 24).run(claim);
         assertThat(view(claim).error().code()).isEqualTo("INVESTIGATION_BUDGET_EXCEEDED");
         assertThat(modelCalls).hasValue(2);
-        assertThat(toolCalls).hasValue(2);
+        assertThat(toolCalls).hasValue(1);
         var next = start();
         runner(request -> toolReply("read-" + request.iteration(), "getInventoryContext", "{}"), tools(false), 8, 1).run(next);
         assertThat(view(next).error().code()).isEqualTo("INVESTIGATION_BUDGET_EXCEEDED");

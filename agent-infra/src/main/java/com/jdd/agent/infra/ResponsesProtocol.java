@@ -30,11 +30,20 @@ public final class ResponsesProtocol {
                 case FEEDBACK -> input.add(Map.of("role", "user", "content", message.text()));
             }
         }
+        if (request.remaining() != null) {
+            input.add(Map.of("role", "user", "content", "서버 실행 한도: 이번 응답을 포함해 모델 응답 "
+                    + request.remaining().modelCalls() + "회, 추가 조회 도구 " + request.remaining().toolCalls()
+                    + "회가 남았습니다. 마지막 모델 응답은 저장된 근거로 보고서를 작성하는 데 사용합니다. "
+                    + "서로 의존하지 않는 필요한 조회는 한 응답에서 함께 요청하세요. 도구가 제공되지 않으면 "
+                    + "추가 조회 없이 보고서를 반환하고 확인하지 못한 범위를 명시하세요. 한도 부족을 사용자 입력 부족으로 바꾸지 마세요."));
+        }
         var body = new LinkedHashMap<String, Object>();
         body.put("model", model); body.put("instructions", request.prompt().text()); body.put("input", input);
         body.put("tools", request.tools().stream().map(tool -> Map.of("type", "function", "name", tool.name(),
                 "description", tool.description(), "parameters", json.readTree(tool.inputSchemaJson()), "strict", true)).toList());
-        body.put("tool_choice", "auto"); body.put("parallel_tool_calls", false);
+        body.put("tool_choice", request.tools().isEmpty() ? "none" : "auto");
+        // One model response may request multiple allowed reads; the service still executes them sequentially.
+        body.put("parallel_tool_calls", true);
         body.put("store", false); body.put("stream", true); body.put("include", List.of("reasoning.encrypted_content"));
         body.put("text", Map.of("format", Map.of("type", "json_schema", "name", "investigation_report",
                 "strict", true, "schema", reportSchema())));

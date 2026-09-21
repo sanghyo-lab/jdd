@@ -32,8 +32,15 @@ public interface InvestigationModel {
             return new Message(MessageKind.FEEDBACK, message, List.of(), null, null, List.of());
         }
     }
+    /** Remaining service limits include the current model request, not new provider quota. */
+    record Remaining(int modelCalls, int toolCalls) {}
     record Request(String investigationId, InvestigationInput input, Prompt prompt, int iteration,
-                   List<ToolDefinition> tools, List<Message> history) {}
+                   List<ToolDefinition> tools, List<Message> history, Remaining remaining) {
+        public Request(String investigationId, InvestigationInput input, Prompt prompt, int iteration,
+                       List<ToolDefinition> tools, List<Message> history) {
+            this(investigationId, input, prompt, iteration, tools, history, null);
+        }
+    }
 
     Reply next(Request request);
 }

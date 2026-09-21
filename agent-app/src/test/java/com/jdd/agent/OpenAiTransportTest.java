@@ -99,7 +99,7 @@ class OpenAiTransportTest {
         assertThat(sent.path("tools").get(0).path("strict").asBoolean()).isTrue();
         assertThat(sent.path("text").path("format").path("strict").asBoolean()).isTrue();
         assertThat(sent.path("text").path("format").path("schema").path("required").size()).isEqualTo(7);
-        assertThat(sent.path("parallel_tool_calls").asBoolean()).isFalse(); assertThat(sent.path("store").asBoolean()).isFalse();
+        assertThat(sent.path("parallel_tool_calls").asBoolean()).isTrue(); assertThat(sent.path("store").asBoolean()).isFalse();
         var row = entry(); assertThat(row.state()).isEqualTo(ModelCallLedger.State.CONFIRMED);
         assertThat(row.receipt().usage()).isEqualTo(new ModelUsage(100L, 40L, 20L, 30L, 10L));
         assertThat(row.receipt().providerRequestId()).isEqualTo("request-synthetic");

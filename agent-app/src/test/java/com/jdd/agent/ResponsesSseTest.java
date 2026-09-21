@@ -45,6 +45,23 @@ class ResponsesSseTest {
             assertThatThrownBy(() -> ResponsesSse.read(fragmented(bad, 1), json, ignored -> {})).isInstanceOf(IOException.class);
         }
     }
+    @Test void multipleCallsKeepTheirOwnOutputsAndTheFinalRequestDisablesFurtherTools() {
+        var protocol = new ResponsesProtocol(json);
+        var reply = protocol.reply(json.valueToTree(Map.of("status", "completed", "output", List.of(
+                Map.of("type", "function_call", "call_id", "a", "name", "findOrders", "arguments", "{}"),
+                Map.of("type", "function_call", "call_id", "b", "name", "getInventoryContext", "arguments", "{}")))));
+        var request = new InvestigationModel.Request("test", new InvestigationInput("1.0", "ticket", 1, "key", "문의", null, null),
+                InvestigationPromptLoader.load(), 2, List.of(), List.of(InvestigationModel.Message.assistant(reply),
+                InvestigationModel.Message.tool(reply.toolCalls().get(0), List.of(), "주문 관측"),
+                InvestigationModel.Message.tool(reply.toolCalls().get(1), List.of(), "재고 관측")),
+                new InvestigationModel.Remaining(1, 0));
+        var payload = json.valueToTree(protocol.payload(request, "explicit-model"));
+        assertThat(payload.path("tool_choice").asText()).isEqualTo("none");
+        assertThat(payload.path("tools").size()).isZero();
+        assertThat(payload.path("input").get(3).path("call_id").asText()).isEqualTo("a");
+        assertThat(payload.path("input").get(4).path("call_id").asText()).isEqualTo("b");
+        assertThat(payload.path("input").get(5).path("content").asText()).contains("모델 응답 1회", "조회 도구 0회", "사용자 입력 부족으로 바꾸지");
+    }
     @Test void terminalFailureAndIncompleteRemainFailuresEvenAfterTextDeltas() throws Exception {
         for (String state : List.of("failed", "incomplete")) {
             var response = ResponsesSse.read(fragmented(event(Map.of("type", "response.output_text.delta", "delta", "partial"))

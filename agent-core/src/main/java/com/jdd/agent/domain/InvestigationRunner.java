@@ -61,12 +61,17 @@ public final class InvestigationRunner {
         int executedTools = 0, repairedReports = 0, repairedArguments = 0;
         for (int iteration = 1; iteration <= limits.modelCalls(); iteration++) {
             if (!active(claim)) return;
+            int remainingModels = limits.modelCalls() - iteration + 1;
+            int remainingTools = limits.toolCalls() - executedTools;
+            // Reserve the final inference for a report; no new evidence can be consumed afterwards.
+            var available = remainingModels == 1 || remainingTools == 0 ? List.<ToolDefinition>of() : definitions;
             var reply = model.next(new Request(claim.investigationId(), claim.stored().input(), prompt, iteration,
-                    definitions, List.copyOf(history)));
+                    available, List.copyOf(history), new Remaining(remainingModels, remainingTools)));
             if (!active(claim)) return;
             if (reply == null || reply.toolCalls() == null) throw reportFailure();
             history.add(Message.assistant(reply));
             if (!reply.toolCalls().isEmpty()) {
+                if (available.isEmpty()) throw limitFailure();
                 for (var call : reply.toolCalls()) {
                     if (!active(claim)) return;
                     if (call == null || call.id() == null || call.id().isBlank() || !seenCallIds.add(call.id()))
