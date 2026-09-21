@@ -171,6 +171,20 @@ class InvestigationApiTest {
         assertThat(jdbc.queryForObject("SELECT count(*) FROM agent.model_calls", Long.class)).isEqualTo(calls);
     }
 
+    @Test void unmappedMethodsAndPathsKeepTheErrorContractWithoutCreatingWork() throws Exception {
+        long investigations = jdbc.queryForObject("SELECT count(*) FROM agent.investigations", Long.class);
+        long calls = jdbc.queryForObject("SELECT count(*) FROM agent.model_calls", Long.class);
+        var unsupported = http.send(HttpRequest.newBuilder(uri("")).DELETE().build(), HttpResponse.BodyHandlers.ofString());
+        assertThat(body(unsupported).hasNonNull("code")).as(unsupported.body()).isTrue();
+        assertError(unsupported, 405, "INVALID_REQUEST");
+        var absent = http.send(HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + "/api/missing-route"))
+                .GET().build(), HttpResponse.BodyHandlers.ofString());
+        assertThat(body(absent).hasNonNull("code")).as(absent.body()).isTrue();
+        assertError(absent, 404, "NOT_FOUND");
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM agent.investigations", Long.class)).isEqualTo(investigations);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM agent.model_calls", Long.class)).isEqualTo(calls);
+    }
+
     private String input(String ticket, String key, String extra) {
         return "{\"schemaVersion\":\"1.0\",\"ticketId\":\"" + ticket + "\",\"ticketVersion\":1,"
                 + "\"requestKey\":\"" + key + "\",\"message\":\"문의\"" + (extra.isEmpty() ? "" : "," + extra) + "}";

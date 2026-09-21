@@ -66,7 +66,7 @@ DB·Agent·commerce·VOC의 포트를 각각 공개하지 않으며 web에서 �
 OpenAI 키는 Agent에만, ngrok authtoken은 ngrok 실행 환경에만 둔다. 웹 번들·브라우저·터널 요청으로 키를 전달하지 않는다.
 실행 순서·주소·검증·종료는 [ngrok 로컬 데모 절차](../ngrok-local-demo.md)를 따른다.
 
-현재 web과 실제 모델 실행기는 구현 전이며, 이 문서 변경으로 공개 터널이나 실제 모델 연결이 검증된 것은 아니다.
+현재 Agent의 [명시적 데모 실행 설정](../../agent-app/README.md)은 구현됐다. 기본 유료 호출 금지이며 web·공개 터널·실제 모델 품질은 미검증이다.
 [ngrok 공식 CLI 안내](https://ngrok.com/docs/gateway/agent/cli)에 따라 실제 계정·접근 제어·앱이 준비되면 실행한다.
 
 ## 인계와 확인 기준

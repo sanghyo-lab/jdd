@@ -120,3 +120,9 @@
 - `5d59fee`의 전체 publish가 종료 0이었다. 원격 `07aeadd`·`1e179f3`를 통합하며 전체 검사·세 앱 재빌드/재기동·smoke를 다시 수행했다. 원문 `commands/20260921T095623.187863Z-publish-lead-protocol-recovery.log`(646.894초)에 동시 push에 따른 반복도 보존했다.
 - 실제 buildId `72f11203f5f8-01d782b91e1a`의 세 앱에서 잘못된 방식/형식/경로 9건 모두 405/415/404였다. `http-protocol-errors-after.json`과 `commands/20260921T100542.201823Z-deployed-http-protocol-verification.log`. Agent의 405/없는 경로 404는 아직 Spring 기본 본문이므로 공통 오류 DTO 보완을 이어 진행한다.
 - [DISC-20260921-agent-003](../discussions/DISC-20260921-agent-003-empty-context.md) P1 영향 없음·수락을 직접 답변했다. VOC 생성/PATCH·화면·기존 티켓 처리와 Agent 직접 소비 검증은 남아 있다.
+
+## 2026-09-21T19:11:17+09:00 — 리더 HTTP 보완과 실행 준비
+
+- LEAD-010으로 Agent 오류 본문을 공통 계약에 맞췄다. HTTP 10개와 실제 PostgreSQL 비용 장부 12개를 통과했고 상세 실패·수정·검증·계약 영향은 [리더 상태](lead.md)에 기록했다. 타인의 상태/DONE을 대신 작성하지 않았다.
+- 기존 `container-lifecycle-recovery-02.json`의 결제/환불 시각 6개가 DB와 같음을 추가 대조했다. 원본 SHA와 비교는 `runtime/submission/commerce-20260921-resumed/payment-refund-container-precision-review.json`에 있다.
+- 시연 준비용 ngrok 3.39.11을 설치했으나 로컬 인증 설정이 없고 web도 아직 공유 전이다. 터널은 실행하지 않았다. 실제 모델 호출 0회이며 필요한 구현·모의 검증을 계속한다.

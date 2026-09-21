@@ -159,7 +159,7 @@
       "status": "VERIFIED",
       "description": "Opt-in reproduction environment leaked into disabled-mode HTTP tests and failed publish.",
       "resolution": "Explicit jdd.reproduction-enabled=false in both commerce test contexts preserves the two 404 assertions independently of host environment.",
-      "verification": "COMMERCE_REPRODUCTION_ENABLED=true :commerce-app:test passed 19 tests; commands/20260921T092412.221394Z-reproduction-mode-test-isolation.log. Failed publish and JUnit XML retained; full publish retry pending."
+      "verification": "COMMERCE_REPRODUCTION_ENABLED=true :commerce-app:test passed 19 tests; commands/20260921T092412.221394Z-reproduction-mode-test-isolation.log. Failed publish and JUnit XML retained; Full publish passed and was shared as 5d59fee; all failures retained."
     },
     {
       "id": "LEAD-006",
@@ -167,7 +167,7 @@
       "status": "VERIFIED",
       "description": "Payment and refund responses retained nanoseconds while the DB rounded to microseconds; deterministic fixed-clock HTTP tests exposed both differences.",
       "resolution": "PaymentService truncates payment/cancel timestamps to ChronoUnit.MICROS before persistence; database-response equality assertions preserved.",
-      "verification": "Two failed tests retained in payment-refund-precision-before-fix.xml and 20260921T093532.197102Z command log. All 19 commerce tests passed with reproduction enabled in 20260921T093612.189803Z-commerce-precision-integrated-regression.log; container PostgreSQL follow-up pending."
+      "verification": "Two failed tests retained in payment-refund-precision-before-fix.xml and 20260921T093532.197102Z command log. All 19 commerce tests passed with reproduction enabled in 20260921T093612.189803Z-commerce-precision-integrated-regression.log; Six actual HTTP/PostgreSQL timestamp comparisons from c1276d472e74-17642d53be51 are equal in payment-refund-container-precision-review.json (retained recovery evidence reviewed, not a new run)."
     },
     {
       "id": "LEAD-007",
@@ -175,7 +175,7 @@
       "status": "VERIFIED",
       "description": "Actual Agent POST with text/plain returned 500 INTERNAL_ERROR for unsupported content type.",
       "resolution": "InvestigationExceptionHandler returns 415 INVALID_REQUEST without creating investigations or model reservations.",
-      "verification": "Actual pre-fix HTTP saved in http-protocol-errors-before.json; InvestigationApiTest 9 passed including row invariants in http-protocol-regression XML. Post-publish container verification pending."
+      "verification": "Actual pre-fix HTTP saved in http-protocol-errors-before.json; InvestigationApiTest 9 passed including row invariants in http-protocol-regression XML. Actual 72f11203f5f8-01d782b91e1a server verification returned expected status codes in http-protocol-errors-after.json; final publish shared as 5d59fee."
     },
     {
       "id": "LEAD-008",
@@ -183,7 +183,7 @@
       "status": "VERIFIED",
       "description": "Actual VOC unsupported HTTP method/content type and missing route were incorrectly classified as 500.",
       "resolution": "ApiExceptionHandler preserves standard error DTO with 405, 415 and 404; no ticket creation on rejected protocol input.",
-      "verification": "Actual pre-fix responses in http-protocol-errors-before.json; TicketHttpContractTest 6 passed including protocol/status and no-write assertions. Post-publish container verification pending."
+      "verification": "Actual pre-fix responses in http-protocol-errors-before.json; TicketHttpContractTest 6 passed including protocol/status and no-write assertions. Actual 72f11203f5f8-01d782b91e1a server verification returned expected status codes in http-protocol-errors-after.json; final publish shared as 5d59fee."
     },
     {
       "id": "LEAD-009",
@@ -192,6 +192,14 @@
       "description": "Recovery verification connected immediately after Docker restart before HTTP readiness and failed with RemoteDisconnected.",
       "resolution": "Only connection establishment waits up to 30 seconds with bounded request timeouts; response/build checks and business mutations are not retried. README loads build.env and separates recovery from deployments.",
       "verification": "Failed container-lifecycle-recovery-20260921.json preserved. After publisher ended, same c1276d472e74-17642d53be51 restart passed in container-lifecycle-recovery-02.json, including 18 NOT_READY attempts followed by READY, concurrent replay and unchanged DB."
+    },
+    {
+      "id": "LEAD-010",
+      "owner": "agent",
+      "status": "VERIFIED",
+      "description": "Unmapped method/path returned the Spring default body instead of the common code/message/retryable error DTO.",
+      "resolution": "Use global Agent exception advice for dispatcher errors; explicitly map unsupported method to 405 INVALID_REQUEST and missing resource to 404 NOT_FOUND.",
+      "verification": "Actual prior bodies in http-protocol-errors-after.json; failing regression retained in agent-error-envelope/before-fix.xml and 20260921T100845.593157Z log. Fixed InvestigationApiTest 10 passed with no new investigation/call rows, and actual PostgreSQL ModelCallLedgerTest 12 passed in agent-postgresql-ledger-transport-02. Container follow-up after publish remains pending."
     }
   ]
 }

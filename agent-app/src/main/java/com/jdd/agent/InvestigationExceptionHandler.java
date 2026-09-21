@@ -7,10 +7,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
-@RestControllerAdvice(assignableTypes = InvestigationController.class)
+@RestControllerAdvice
 public class InvestigationExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(InvestigationExceptionHandler.class);
 
@@ -32,6 +34,16 @@ public class InvestigationExceptionHandler {
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
     ResponseEntity<ApiError> unsupportedMediaType() {
         return ResponseEntity.status(415).body(new ApiError("INVALID_REQUEST", "Request content type is not supported", false));
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    ResponseEntity<ApiError> unsupportedMethod() {
+        return ResponseEntity.status(405).body(new ApiError("INVALID_REQUEST", "HTTP method is not supported for this resource", false));
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    ResponseEntity<ApiError> missingResource() {
+        return ResponseEntity.status(404).body(new ApiError("NOT_FOUND", "Resource was not found", false));
     }
 
     @ExceptionHandler(Exception.class)

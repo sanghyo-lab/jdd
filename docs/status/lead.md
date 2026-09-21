@@ -72,3 +72,11 @@
 - 원격 `07aeadd` OpenAI 전송과 `1e179f3` 명시 활성화·V5 누적 호출 한도의 전체 코드·테스트·설정·상태를 읽었다. 단일 전송/예약·실제 usage·미확정 차단과 기본 DISABLED를 대조했다. 최종 독립 전 영역 검토·실제 모델 품질 완료를 뜻하지 않는다.
 - 이 PC의 별도 PostgreSQL에서 ModelCallLedgerTest 10개와 InvestigationExecutionTest 7개, 실패/건너뜀 0이었다. 원문 `agent-postgresql-state-01/`와 `commands/20260921T095748.070459Z-independent-agent-postgresql-state.log`. 이는 총 호출 한도 V5 이전 검증이며 새 12개 장부 검사는 별도로 이어 수행한다. 실제 유료 호출은 0회다.
 - 선택 ID 공백 불일치는 [DISC-20260921-agent-003](../discussions/DISC-20260921-agent-003-empty-context.md)에서 P1을 수락했다. 담당자의 진행 중 입력/화면·소비 작업과 중복 수정하지 않는다.
+
+## 2026-09-21T19:11:17+09:00 — LEAD-010 오류 본문과 누적 호출 제한
+
+- 대상: Agent의 지원하지 않는 DELETE·없는 경로 GET은 405/404였지만 공통 code/message/retryable 대신 Spring 기본 오류 본문이었다. 실제 응답은 `http-protocol-errors-after.json`, 먼저 실패한 HTTP 회귀는 `agent-error-envelope/before-fix.xml`·`commands/20260921T100845.593157Z-agent-error-envelope-before-fix.log`에 보존했다.
+- 수정: controller 선택 전에 발생한 오류도 처리하도록 Agent 예외 advice를 전역에 적용하고 405 INVALID_REQUEST·404 NOT_FOUND를 명시했다. 기존 415/400/409/500 의미를 유지하며 API DTO 추가/삭제는 없다. 한재홍이 진행 중인 정책 소비 경로와 겹치지 않는 API·테스트만 리더 권한으로 보완했다.
+- 검증: InvestigationApiTest 10개와 별도 실제 PostgreSQL ModelCallLedgerTest 12개 모두 실패/건너뜀 0. 오류 요청의 조사/비용 행 불변과 V5 총 호출 한도의 8개 동시 예약·새 조사/설정 우회 거절을 확인했다. `agent-postgresql-ledger-transport-02/`, `commands/20260921T100922.967043Z-agent-error-envelope-and-pg-call-limit.log`(21.027초). 실제 모델 호출은 0회다.
+- LEAD-006 후속: 기존 실제 컨테이너 복구 기록의 결제 2건·환불 1건 생성/변경 시각 6개를 대조해 HTTP와 PostgreSQL이 일치함을 확인했다. `payment-refund-container-precision-review.json`은 원본 SHA를 포함한 보존 자료 검토이며 새 실행인 것처럼 기록하지 않는다.
+- ngrok CLI 3.39.11 설치·버전 확인 완료. `ngrok config check`는 기본 설정 파일 없음으로 종료 1이었다. 인증·접근 정책·공개 URL·PC/모바일 화면·실제 모델 통합은 미검증이다.
