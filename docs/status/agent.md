@@ -246,4 +246,11 @@
 - 확대 검증 중 토크나이저 사전을 모델 인스턴스마다 적재해 기본 테스트 JVM에서 Java heap space가 발생했다. `billing-errors-final.log`, `billing-errors-executor-failure.xml`, 원인 stacktrace `billing-errors-diagnose.log`를 보존했다. 힙 한도나 검사 기준을 낮추지 않고 thread-safe lazy registry를 재사용하고 테스트 클라이언트를 닫도록 수정했다. 특수 토큰 형태의 문자열도 삭제 없이 일반 텍스트로 추정한다.
 - 수정 후 OpenAiTransportTest 21개·InvestigationRunnerTest 9개, 실패/건너뜀 0(`billing-errors-memory-fixed.log`). 가격/상한 예약은 그대로이며 실제 OpenAI 호출은 0회다.
 - `4a2aeed`의 리더 일곱 근거 독립 인수·예산 P1 직접 수락을 읽었다. 같은 300근거·333필드 검사가 공급자 PC에서도 통과했지만 VOC/web·실제 모델 검증을 대신하지 않는다. 김아름의 답변·생성기/연동과 사용자 데모 범위 확인을 기다리며 독립 작업을 계속한다.
+
+## 2026-09-21 — 접수 응답 유실과 백그라운드 조사 지속
+
+- 과금 오류/사전 재사용을 `4c20c9a`로 전체 publish 종료 0 후 공유했다(`billing-errors-publish.log`). 전체 협업·문서·Gradle·세 앱 PostgreSQL/HTTP 검증이 통과했으며 일반 publish의 유료 호출은 0회다.
+- `ClientDisconnectionTest`로 실제 TCP 접수 본문을 보낸 뒤 202 응답을 읽지 않고 연결을 닫았다. 별도 PostgreSQL `jdd_agent_disconnect_test`의 실제 배타 worker가 도구 근거를 저장하고 RUNNING인 동안 새 HTTP 클라이언트가 같은 키로 원래 ID를 회복했다. 저장 근거 조회 뒤 원래 실행을 완료하고 반복 조회해도 조사 1건·근거 1건·모의 모델 2회·유료 호출 0회가 유지됐다.
+- 실제 검사 1개 통과·실패/건너뜀 0. 조사 ID `53ab819e-cdef-4ea5-932c-126b93e2867c`. 모의 모델·합성 도구와 실제 PostgreSQL/HTTP/worker를 구분한다. 원문 `runtime/submission/agent-20260921/client-disconnection/result.json`, `client-disconnection-postgres.log`와 JUnit XML. 공개 URL 변경/OAuth/web/ngrok 외부 검증으로 계산하지 않는다.
+- 이 PC에 ngrok 3.39.11을 설치하고 버전을 확인했다. `ngrok config check`는 로컬 기본 설정 파일 없음으로 종료 1이다. `ngrok-install.log`, `ngrok-version.log`, `ngrok-config-check.log`를 보존했으며 터널·공개 URL을 생성하지 않았다. 인증·허용 대상·web 공유와 실제 외부 검증은 준비 후 이어 수행한다.
 - 실제 개발 세션의 사용자/응답/도구 이벤트 852건을 `runtime/submission/agent-20260921/session/20260921T100624Z/`에 중간 캡처했다. 이메일·비밀 값 검사/가림과 원문 prefix/산출물 SHA·제외 유형을 manifest에 남겼다. 요약이나 미가림 원본과 구분하고 진행 종료 시 갱신한다. Git에는 원시 세션/개인정보를 공유하지 않는다.

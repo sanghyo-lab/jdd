@@ -228,6 +228,17 @@ python3 agent-app/scripts/check_worker.py --compose-dir /path/to/verification-cl
 DB 설정은 지정한 clone의 `.env`에서 읽는다. 임시 JVM에는 DB·Java·로컬 포트 설정만 전달하며 모델 키를 전달하지 않는다.
 검증한 네트워크 호출은 로컬 HTTP/PostgreSQL이다. 실제 OpenAI·ngrok·VOC 업무 검증은 별도다.
 
+`ClientDisconnectionTest`는 실제 백그라운드 worker와 PostgreSQL에서 접수 응답을 읽지 않고 TCP 연결을 닫는다.
+관측이 저장된 RUNNING 중 새 HTTP 클라이언트가 같은 키로 ID를 회복하고 근거를 조회한 뒤,
+원래 조사의 완료·반복 조회·단일 조사/근거와 모의 모델 2회 유지 여부를 확인한다.
+비어 있는 전용 `jdd_agent_disconnect_test` DB, `JDD_DISCONNECT_TEST_DB_URL`,
+`JDD_DISCONNECT_TEST_DB_PASSWORD`, 결과 파일 `JDD_DISCONNECT_TEST_REPORT`를 준비해 명시적으로 실행한다.
+서비스 DB를 지정하지 않는다. 모델과 관측 도구는 명시적 테스트 대역이며 ngrok/OAuth·web 화면 검증이 아니다.
+
+```bash
+./gradlew :agent-app:test --tests com.jdd.agent.ClientDisconnectionTest --rerun-tasks
+```
+
 ## 읽기 전용 조사 도구
 
 실행기는 `commerce-evidence-v1`의 여덟 도구를 제공한다: `findOrders`, `getOrderContext`,
