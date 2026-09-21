@@ -1,6 +1,6 @@
 # 이상효 — 이커머스 구현과 개발리더 작업 상태
 
-- 상태: 상품·주문·결제·쿠폰·재고·취소·환불·JSONL을 구현했다. HTTP/H2 19개, 실제 PostgreSQL VOC-01~06 각 3회·VOC-07 20회와 정상·중복·복구 대조를 통과했다. 실제 AI 조사·화면·소비자 통합과 팀 완료는 진행 중이다.
+- 상태: 상품·주문·결제·쿠폰·재고·취소·환불·JSONL을 구현했다. HTTP/H2 19개·같은 업무 계약의 실제 PostgreSQL 18개, VOC-01~06 각 3회·VOC-07 20회와 정상·중복·복구 대조를 통과했다. 실제 AI 조사·화면·소비자 통합과 팀 완료는 진행 중이다.
 - 담당자: 이상효 (역할 B)
 - 겸임 책임: [개발리더](../roles/lee-sanghyo-lead.md). 세 담당자 DONE 이후에도 전체 코드 검사·실제 검증·수정을 수행하며 [리더 상태](lead.md)에 기록한다.
 - GitHub 계정: `sanghyo-lab`
@@ -10,12 +10,20 @@
 - 작업 Issue·공유 커밋: 시작 후 기입
 - 담당 경로: `commerce-app/`, `commerce-core/`, `commerce-infra/`, `fixtures/commerce/`
 - 준비된 자료: [구현 범위](../roles/lee-sanghyo-commerce.md), [커머스 계약](../commerce-interface.md), [업무 정책](../business-policy.md), [7개 시나리오](../voc-scenarios.md)
-- 다음 작업: 별도 PostgreSQL의 전체 HTTP 경계·롤백 검사, 새 정책 사본·VOC runner·화면 인수, 독립 리더 검토와 실제 모델 검증 범위 준비
+- 다음 작업: 새 정책 사본·VOC runner·화면 인수, 독립 리더 검토와 실제 모델 검증 범위 준비
 - 필요한 입력: 김아름의 정책 snapshot·VOC 분석/화면·재현 runner 소비 결과, 사용자 데모 사용 범위·비밀 설정
 - 검증 결과: 기본 Compose의 실제 PostgreSQL에서 일곱 업무 반복·로그/소스 해시·SELECT 권한과 재시작 복구를 확인했다. 일곱 재현의 Agent 8종 도구·300근거 저장/원문 재조회도 이 PC에서 검증했다. 모의 모델이며 실제 AI 품질·VOC 화면·최종 통합은 남아 있다. 아래 기록의 buildId별 결과를 구분한다.
 - 연동 요청: COMMERCE-001/002로 v1 DDL·API·업무 로그·재현 자료를 제공하고 소비자 접수·검증을 추적한다.
 
 작업 단위가 끝날 때 제공 가능한 기능, 변경한 계약, 실제 검증 명령·결과, 다음 작업을 갱신한다. 실패와 막힌 이유도 함께 기록한다.
+
+## 2026-09-21T19:38:00+09:00 — 같은 HTTP 계약의 실제 PostgreSQL 검증
+
+- `fixtures/commerce/check_http_postgresql.py`와 CommerceHttpTest의 명시적 외부 DB 모드를 추가했다. 기존 18개 HTTP 계약의 입력·동시성·롤백·시각 정밀도 단언을 그대로 사용한다. 전용 로컬 DB `jdd_commerce_http_test`만 허용하고 초기화 직전에 실제 DB/스키마를 확인한다. 기본 H2도 유지하며 Gradle 입력에 DB 모드를 반영해 서로의 실행 결과를 재사용하지 않는다.
+- 실제 PostgreSQL 17.6에서 18/18 통과·실패/건너뜀 0, 명령 종료 0/21.924초. 빈/잘못된 숫자·없는/중복 상품·금액 overflow·쿠폰 경계/소유/기간/동시 사용, 결제/취소 4개 동시 재전송, 강제 DB 오류의 주문/쿠폰/재고/성공 로그 롤백과 저장 시각을 확인했다. 의도한 일곱 결함과 앱 API/DDL은 변경하지 않았다.
+- 보호 검증: 잘못된 대상 `.../jdd?currentSchema=commerce`와 비밀이 아닌 무효 비밀번호로 한 계약을 실행해 datasource 초기화 전 전용 DB 제한 예외·Gradle 종료 1을 확인했다. 기대한 거절이며 성공으로 숨기지 않는다. 이 XML/로그는 별도로 보존했다. 이후 기본 H2 19/19·실패/건너뜀 0을 새로 실행했다.
+- 원문: `runtime/submission/commerce-20260921-resumed/commerce-http-postgresql-01/`, `commerce-http-application-db-rejection/`, `commerce-http-default-h2/`. 명령 로그는 같은 디렉터리의 `commands/20260921T103553.828071Z-commerce-http-postgresql.log`, `20260921T103643.991921Z-commerce-http-application-db-rejection.log`, `20260921T103740.097162Z-commerce-http-default-h2.log`다. 테스트 buildId는 `http-test`이며 실제 앱 재현 buildId와 구분한다.
+- `85e3f72`의 Agent 장부 내보내기 전체를 읽고 기본 DB를 읽기 전용 스냅샷으로 내보냈다. `default-model-ledger-export.json`의 선택 호출 0건·미설정 budget을 확인했으며 원문은 로컬 0600 파일이다. 실제 모델 호출/요금 관측 또는 다른 PC의 장부로 해석하지 않는다.
 
 ## 2026-09-21T19:32:00+09:00 — 일곱 Agent 소비 인수와 데모 배분 답변
 

@@ -14,3 +14,7 @@ dependencies {
     testRuntimeOnly 'com.h2database:h2'
 }
 tasks.named('bootJar') { archiveFileName = 'app.jar' }
+tasks.named('test') {
+    // A previous isolated PostgreSQL run must not stand in for the default H2 execution.
+    inputs.property('isolatedPostgresContracts', providers.environmentVariable('JDD_COMMERCE_HTTP_TEST_DB_URL').isPresent())
+}

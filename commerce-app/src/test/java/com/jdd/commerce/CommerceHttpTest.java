@@ -24,6 +24,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import tools.jackson.databind.JsonNode;
@@ -32,8 +34,7 @@ import static org.assertj.core.api.Assertions.*;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
     "jdd.reproduction-enabled=false",
-    "spring.datasource.url=jdbc:h2:mem:commerce-http;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1",
-    "spring.datasource.username=sa", "spring.datasource.password=", "spring.flyway.create-schemas=true",
+    "spring.flyway.create-schemas=true",
     "jdd.build-id=http-test", "jdd.commerce-log-root=build/test-evidence", "jdd.log-publish-delay-ms=60000"
 })
 @Import(CommerceHttpTest.PreciseClock.class)
@@ -53,7 +54,28 @@ class CommerceHttpTest {
     final JsonMapper json = JsonMapper.builder().build();
     final HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(3)).build();
 
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry properties) {
+        String url = System.getenv("JDD_COMMERCE_HTTP_TEST_DB_URL");
+        // These tests clear data and inject constraints. Only this dedicated local database is allowed.
+        if (url != null && !url.matches("jdbc:postgresql://(?:127[.]0[.]0[.]1|localhost):[1-9][0-9]{0,4}/jdd_commerce_http_test[?]currentSchema=commerce")) {
+            throw new IllegalArgumentException("JDD_COMMERCE_HTTP_TEST_DB_URL must name the isolated local jdd_commerce_http_test database");
+        }
+        String password = System.getenv("JDD_COMMERCE_HTTP_TEST_DB_PASSWORD");
+        if (url != null && (password == null || password.isBlank())) {
+            throw new IllegalArgumentException("JDD_COMMERCE_HTTP_TEST_DB_PASSWORD is required for the isolated PostgreSQL test");
+        }
+        properties.add("spring.datasource.url", () -> url == null
+                ? "jdbc:h2:mem:commerce-http;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1" : url);
+        properties.add("spring.datasource.username", () -> url == null ? "sa" : "jdd_commerce");
+        properties.add("spring.datasource.password", () -> url == null ? "" : password);
+    }
+
     @BeforeEach void seed() {
+        if (System.getenv("JDD_COMMERCE_HTTP_TEST_DB_URL") != null) {
+            assertThat(jdbc.queryForObject("SELECT current_database()", String.class)).isEqualTo("jdd_commerce_http_test");
+            assertThat(jdbc.queryForObject("SELECT current_schema()", String.class)).isEqualTo("commerce");
+        }
         refundFault.pending.clear();
         for (String table : List.of("event_outbox", "order_operations", "inventory_movements", "coupon_usages",
                 "refunds", "payments", "order_items", "orders", "customer_coupons", "coupons", "product_stock", "products")) {

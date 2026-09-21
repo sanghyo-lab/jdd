@@ -16,6 +16,19 @@
 검증은 HTTP 입력·저장·목록/상세, 순차 재고 거절, 금액 범위, DB 저장 실패의 전체 롤백,
 기본 설정의 재현 API 비노출을 포함한다. H2 검사는 실제 PostgreSQL 동시성 검증을 대체하지 않는다.
 
+동일한 HTTP 계약 18개를 실제 PostgreSQL에서 검사하려면 Java 21과 실행 중인 이 저장소의 Compose DB를 준비한 뒤 실행한다.
+
+```bash
+python3 fixtures/commerce/check_http_postgresql.py
+```
+
+이 명령은 전용 `jdd_commerce_http_test` DB를 생성하거나 재사용하고 그 안의 테스트 데이터를 초기화한다.
+기본 앱 DB·보존한 VOC 재현 데이터·실행 중인 세 앱은 변경하지 않는다. 대상은 로컬의 고정된 테스트 DB 이름으로 제한하며
+초기화 직전 DB·스키마도 확인한다. 빈/잘못된 숫자·금액 경계·쿠폰 동시 사용·결제/취소 재전송·DB 실패 롤백과
+나노초 Clock의 저장/재조회 일치를 같은 단언으로 검사한다. 기존 H2와 이 검사를 모두 유지한다.
+명령/시각/종료 코드·신규 JUnit XML·검증 소스 해시는 `runtime/submission/commerce-reproductions/*-http-postgresql/`에 보존한다.
+`--report-dir`로 새 경로를 지정할 수 있으며 기존 결과를 덮어쓰지 않는다. 유료 모델은 호출하지 않는다.
+
 [VOC-02 경계값](../fixtures/commerce/VOC-02/README.md)과 [VOC-03 정률 계산](../fixtures/commerce/VOC-03/README.md)은
 `reproduce_commerce.py --scenario VOC-02 --runs 3`처럼 선택할 수 있다. 정액 할인·상한·소유/기간/사용 상태도 함께 확인한다.
 발급 쿠폰 행을 잠근 상태에서 검증·사용하며 주문·사용 기록·재고를 같은 트랜잭션으로 저장한다.

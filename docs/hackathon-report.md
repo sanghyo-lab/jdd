@@ -158,9 +158,13 @@ flowchart LR
 `c09694cde1cd-643370744894`의 JVM 복구는 `lifecycle-recovery-20260921.json`, `c1276d472e74-17642d53be51`의 Docker 복구는 `container-lifecycle-recovery-02.json`이다.
 정상 카드 결제·환불, 쿠폰 경계·소유·기간·상한, 충분한 재고·순차 재고 부족·대기 시간 초과 롤백/복구도 통과했다.
 정보 부족 문의, 실제 AI 조사, PC·모바일 화면은 미검증이다. HTTP/H2 입력·동시성·DB 실패 롤백 검사는 19개를 통과했다.
+그중 업무 HTTP 계약 18개를 같은 단언으로 별도 PostgreSQL 17.6 DB에서도 실행해 모두 통과했다.
+애플리케이션 DB를 잘못 지정한 경우에는 연결 초기화 전에 거절했다. 원문은 `runtime/submission/commerce-20260921-resumed/commerce-http-postgresql-01/`과 `commerce-http-application-db-rejection/`에 구분해 보존했다.
 
-Agent 담당자의 별도 PC에서는 실제 커머스의 8개 도구 결과 25건 저장·원문 HTTP 재조회와 같은 접수 키의 동일 ID를 검증했다.
-이는 모의 모델 2회이며 실제 AI 품질 검증은 아니다. [COMMERCE-002 인수 기록](discussions/DISC-20260921-commerce-001-inventory-evidence.md)에 담당자·조사 ID·산출물 위치를 남겼다.
+이상효 PC에서도 `0ba2862`의 공통 소비 검사로 같은 buildId의 VOC-01~07을 실제 8종 도구로 읽었다.
+총 300근거 저장·원문 HTTP 재조회·동일 접수 키·새로고침, 01~06의 DB 333필드와 업무 로그 원문 비교가 통과했다.
+모의 모델 총 20회·유료 0회이며 실제 AI 품질 검증은 아니다. 원문은 `runtime/submission/commerce-20260921-resumed/seven-agent-handoff-01/`에 있다.
+[COMMERCE-002 인수 기록](discussions/DISC-20260921-commerce-001-inventory-evidence.md)에 각 담당자의 별도 PC 검증·조사 ID·산출물 위치를 남겼다.
 
 실패 기록도 보존했다. 기본 DB의 TEMP 권한 의존, 지원하지 않는 HTTP 방식의 500 응답,
 혼합 주문 초기화의 이웃 이력 삭제, 재현 설정을 상속한 단위 테스트 실패, 결제·환불 시각 정밀도 차이를 발견해 수정·재검증했다.
