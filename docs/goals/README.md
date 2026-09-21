@@ -30,7 +30,23 @@ cd jdd
 | --- | --- | --- |
 | 이상효 | [commerce](commerce.md) | `/goal docs/goals/commerce.md와 AGENTS.md를 읽고 이상효의 이커머스를 구현·검증하고 main에 계속 공유해. docs/team-completion.md에 따라 GitHub에서 세 담당자가 모두 유효한 DONE이고 team-check가 성공할 때까지 연동·검증·수정을 계속해.` |
 | 김아름 | [voc](voc.md) | `/goal docs/goals/voc.md와 AGENTS.md를 읽고 김아름의 VOC·연동을 구현·검증하고 main에 계속 공유해. docs/team-completion.md에 따라 GitHub에서 세 담당자가 모두 유효한 DONE이고 team-check가 성공할 때까지 연동·검증·수정을 계속해.` |
-| 한재홍 | [agent](agent.md) | `/goal docs/goals/agent.md와 AGENTS.md를 읽고 한재홍의 AI Agent를 구현·검증하고 main에 계속 공유해. docs/team-completion.md에 따라 GitHub에서 세 담당자가 모두 유효한 DONE이고 team-check가 성공할 때까지 연동·검증·수정을 계속해.` |
+| 한재홍 | [agent](agent.md) | `/goal docs/goals/agent.md, docs/prompts/implement-voc-investigation-agent.md와 AGENTS.md를 읽고 한재홍의 서비스 내부 AI로 VOC를 조사하고 결과를 반환하는 에이전트를 구현·검증하고 main에 계속 공유해. LLM API·서비스 시스템 프롬프트·실제 도구 호출·근거 저장·보고서 검증·VOC 결과 반환을 모두 포함해. docs/team-completion.md에 따라 GitHub에서 세 담당자가 모두 유효한 DONE이고 team-check가 성공할 때까지 연동·검증·수정을 계속해.` |
+
+이미 한재홍의 구현 goal이 진행 중이면 새 goal을 만들지 않고 기존 세션에 다음 보완 지시를 전달한다.
+
+```text
+현재 agent goal을 유지하고 AGENTS.md, docs/goals/agent.md,
+docs/prompts/implement-voc-investigation-agent.md, docs/status/agent.md를 다시 읽어.
+서비스 내부 AI의 VOC 조사·결과 반환 구현을 필수 범위로 반영해.
+접수 API 다음으로 영속 실행기 → 실제 LLM 도구 호출 → DB·로그·실행 소스·정책 조회 →
+근거 저장 → 모델 후속 요청 → 보고서 검증·저장 → VOC의 결과·근거 조회를 연결해.
+서비스 모델용 시스템 프롬프트와 LLM API 설정도 실제 실행 경로에 적용해.
+다른 세션의 진행 중인 파일을 확인해 중복 구현을 피하고, 이 요청의 접수·산출물별 진행·실제 검증을
+docs/status/agent.md에 기록해. 실제 모델 인증이나 상대 구현이 없으면 독립 구현을 계속하고 미검증을 명시해.
+최종 종료는 기존 team-check 기준을 유지해.
+```
+
+위 지시는 저장소에 기록된 전달문이다. 다른 세션의 수신·반영은 해당 세션의 상태 기록이나 커밋으로 확인한다.
 
 해당 환경에 slash 명령이 없지만 goal 도구가 있다면 같은 문구를 “이 목표를 goal로 생성하고 수행해”로 전달한다.
 Codex의 goal 기능은 검증 가능한 목표를 여러 턴에 걸쳐 수행하는 용도다. goal 기능이 보이지 않는 CLI에서는 `codex features enable goals`로 활성화할 수 있다. [OpenAI 공식 goal 안내](https://learn.chatgpt.com/use-cases/follow-goals)

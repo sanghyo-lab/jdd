@@ -13,6 +13,9 @@
 
 현재 역할은 goal의 지정 또는 로컬 .jdd-role로 확인한다.
 commerce = 이상효, agent = 한재홍, voc = 김아름이다.
+agent 역할은 docs/prompts/implement-voc-investigation-agent.md도 필수 구현 기준으로 읽는다.
+한재홍의 범위에는 서비스 내부 LLM의 실제 VOC 조사·도구 실행·근거 저장·검증된 결과 반환이 포함된다.
+개발을 분담하는 에이전트와 서비스에서 VOC를 조사하는 AI를 구분하고, 접수 API만으로 완료하지 않는다.
 공통 실행 기반을 만드는 명시적 작업은 세 영역의 골격·빌드·인프라를 함께 수정할 수 있다.
 
 ## 소유 범위
