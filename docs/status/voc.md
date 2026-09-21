@@ -1,6 +1,6 @@
 # 김아름 — VOC 티켓·AI 연동 작업 상태
 
-- 상태: 티켓·분석 저장과 Agent 전달/조회·근거 중계를 main에 공유했다. 실제 Agent 429·재시작 후 전달/조회 복구·설정 오류 분리를 검증했으며 화면·접근 제어·runner는 진행 대상이다.
+- 상태: 티켓·분석 저장과 Agent 전달/조회·근거 중계를 main에 공유했다. 실제 Agent 429·재시작 후 전달/조회 복구·설정 오류 분리를 검증했으며 로그인·티켓 웹 화면의 로컬 검증을 마쳤고 분석 화면·shop·runner는 진행 중이다.
 - 담당자: 김아름 (역할 C)
 - GitHub 계정: `AhReumKim-ar`
 - 작업 브랜치: `main`
@@ -9,9 +9,9 @@
 - 공유 커밋: 티켓 `d8246e9`, 주문 시각 정밀도 `1d29d20`, 분석 저장 `4de1a98`, 영속 전달/조회/근거 `f5064c8`, Windows 인수 요청 `4d412ec`
 - 담당 경로: `voc-app/`, `voc-core/`, `voc-infra/`, `web/`, `scenario-runner/`
 - 준비된 자료: [구현 범위](../roles/kim-areum-voc.md), [VOC·Agent 계약](../integration-contract.md), [커머스 계약](../commerce-interface.md), [프론트 설계](../frontend-deployment.md)
-- 다음 작업: 한국어 web의 티켓·분석·리포트·근거/오류 화면과 접근 제어, 이후 VOC-07 순차 runner 구현
+- 다음 작업: web 분석 요청·진행/리포트/근거·shop, 서버 간 인증 연동, 이후 VOC-07 순차 runner 구현
 - 제공받은 입력: Agent 조사 API·실행기·8개 조회 도구, commerce VOC-07/02/03 재현 자료. 실제 모델 검증 허용 범위·배포 환경은 별도다.
-- 검증 결과: 티켓·분석 HTTP/H2와 실제 PostgreSQL 계약, 전체 Gradle check, 세 앱 Docker 기동·smoke와 앱 재생성 후 티켓·분석 입력/이력/동일 키 보존 통과. 프론트·VOC runner·실제 모델은 미검증.
+- 검증 결과: 티켓·분석 HTTP/H2와 실제 PostgreSQL 계약, 전체 Gradle check, 세 앱 Docker 기동·smoke와 앱 재생성 후 티켓·분석 입력/이력/동일 키 보존 통과. 티켓 웹은 실제 브라우저로 검증했고 분석 화면·VOC runner·실제 모델은 미검증.
 - 연동 요청: 아래 논의의 P1 수락과 공통 생성기 책임을 기록했다. scenario-runner는 아직 미구현을 알리는 실패 종료 골격이다.
 
 작업 단위가 끝날 때 제공 가능한 기능, 변경한 계약, 실제 검증 명령·결과, 다음 작업을 갱신한다. 실패와 막힌 이유도 함께 기록한다.
@@ -159,3 +159,15 @@
 - 기본 복원·수동 복구: Agent/VOC를 기본 test/mock 설정으로 복원한 뒤 두 번째 같은 키를 수동 POST했다. 같은 분석 ID·v2 입력으로 접수됐고 두 조사는 서로 다른 ID다. 실제 Agent의 LLM_CONFIGURATION_ERROR는 SUBMITTED 안의 조사 FAILED로 표시되며 전달/조회 오류는 null, 티켓은 v2/OPEN을 유지한다. 두 키 재전송·두 이력·실제 Agent GET과 VOC 캐시 동일성을 확인했다. 이는 모델 비활성 오류 소비 검증이며 실제 모델 보고서 성공은 아니다.
 - 원문: runtime/verification/worker-runtime-handoff.log와 worker-runtime-handoff.json. JSON SHA-256 e543d353e4bf640320904cef289af415b168fe641d23f99cfd4313b57ab9a74d. 마지막 Agent는 workerEnabled=true, investigationModel=MOCK, llm={runtime:test, provider:mock, configuredModel:mock}다. 임시 검증 설정을 복원했고 일반 앱 DB·이전 근거를 삭제하지 않았다.
 - 협업: DISC-agent-005에 실제 backend 소비 결과, DISC-agent-001에 설정 오류 분리를 직접 기록했다. UI/실제 모델/전체 runner가 남아 논의를 해소하지 않는다. VOC-LEAD-MVP-001의 Windows 기대값 수정은 리더 인수 대기다. AGENT-LEAD-019의 최근 로그 후보 선택은 리더가 맡고 있으며 후속 근거/runner 인수에서 추적한다. 타인의 완료·리더 승인 JSON은 수정하지 않는다.
+
+
+## 2026-09-21T22:37:00+09:00 — 로그인·한국어 티켓 웹과 고정 API 중계
+
+- web에 Next.js 16.3.5·React 19.3.0·TypeScript와 잠금 파일을 추가했다. 로그인·티켓 등록/목록/페이지·상태/담당자 필터·상세 수정/배정/상태 전이·버전 충돌 비교·저장 분석 이력 요약을 실제 VOC API에 연결했다. 화면은 한국어이며 7개 문의 예시에는 평가 정답/장애 원인을 넣지 않는다. 분석 요청·진행·보고서/근거 패널과 shop은 다음 단위이며 완성된 MVP로 표시하지 않는다.
+- 화면과 API 각각 서명 세션을 확인하고 설정 누락은 503, 인증 누락은 401로 거절한다. 8시간 HttpOnly/Strict·HTTPS Secure, 동일 origin 쓰기/수동 갱신 검증, 로그인 프로세스 단위 20회/분 제한을 적용했다. 서버 전용 환경만 사용하며 모델/OAuth/DB 비밀을 읽지 않는다. ngrok 허용 계정/공개 URL은 별도 입력·검증으로 남았다.
+- 중계는 계약의 VOC/commerce 업무 경로·메서드·query만 허용한다. Agent/관리 API/임의 URL·사용자 인증 헤더 전달을 차단하고 JSON 요청 64KiB·응답 스트림 4MiB·12초 제한/no-store/redirect 거절을 적용했다. POST를 자동 재전송하지 않는다. BACKEND_SERVICE_TOKEN의 선택 전송은 준비했으나 수신 서비스 검증까지 완료됐다고 주장하지 않는다.
+- npm test 13개(실패/제외 0)·production build/TypeScript 검사 통과. runtime/verification/web-security-tests.log와 web-build.log. npm install audit는 당시 알려진 취약점 0을 반환했다. 공통 check에 native npm.cmd/ci/test/build를 연결하고 실제 네이티브 Python의 새 검사 2개를 통과했다. main push CI를 추가했으며 원격 실행 결과는 push 후 확인한다.
+- 이 PC의 실제 f5064c8 test/mock 백엔드와 최종 web 빌드(127.0.0.1:3100)를 연결했다. 브라우저에서 합성 티켓 생성·김아름 배정·동시 수정 409 시 입력 보존/최신 비교·재저장·상태 전이·새로고침 복원을 확인했다. 390×844 모바일에서 상세/필터/빈 목록을 확인했고 로딩·로그인 오류·없는 티켓 404/재조회 경로도 확인했다. 알려진 테스트 자료 외 기존 사용자 티켓은 수정하지 않았다.
+- 실제 브라우저 생성 티켓 e0720129-4425-4d82-ab87-ba3f481fbd91은 최종 v5/RESOLVED/areum이다. 별도 합성 경쟁 수정을 포함하며 최종 상태만 브라우저에서 바꾼 뒤 occurredAt=2026-09-21T01:02:03.123456Z의 마이크로초도 그대로였다. HTTP 원문 요약은 runtime/verification/web-http-results.json이며 인증 없는 업무 API 401·임의 관리 경로 404·외부 Origin 403·쿠키 속성·실제 VOC 재조회 결과를 포함한다. 모델 호출은 0회이고 실제 AI/공개 URL 성공이 아니다.
+- VOC-LEAD-MVP-001의 원격 9965c73은 OS별 wrapper 기대값만 수정한 것을 확인했다. 안전한 통합 뒤 원래 Windows 8개 검사를 재실행해 회신한다. 140f8d5 로그 발견 수정은 runner 의존성으로 인수하며 같은 경로를 중복 수정하지 않는다.
+- VOC-LEAD-020/LEAD020을 접수했다. 1a4d9f5에서 리더가 HttpAgentGateway 본문 시간/바이트 제한·독립 회귀를 직접 맡았으므로 중복 편집하지 않는다. 공유 뒤 기존 동일 키/429/전달·조회 오류/캐시·복구 소비를 확인한다. 공개 토큰 연동·모델·runner·세 DONE/리더 승인은 남아 Goal active/IN_PROGRESS를 유지한다.

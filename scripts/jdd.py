@@ -496,8 +496,10 @@ class Repository:
         wrapper = "gradlew.bat" if os.name == "nt" else "./gradlew"
         self.run([wrapper, "--no-daemon", "check"], env=env)
         if (self.root / "web/package.json").exists():
-            subprocess.run(["npm", "ci"], cwd=self.root / "web", check=True, env=env)
-            subprocess.run(["npm", "run", "build"], cwd=self.root / "web", check=True, env=env)
+            npm = "npm.cmd" if os.name == "nt" else "npm"
+            subprocess.run([npm, "ci"], cwd=self.root / "web", check=True, env=env)
+            subprocess.run([npm, "test"], cwd=self.root / "web", check=True, env=env)
+            subprocess.run([npm, "run", "build"], cwd=self.root / "web", check=True, env=env)
 
     def verify(self):
         self.check()

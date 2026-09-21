@@ -57,7 +57,8 @@ businessReady는 실제 업무 준비 여부다. 현재 commerce 업무는 준�
 ./scripts/dev down
 ```
 
-check는 Python 협업 도구 테스트·문서 검증·전체 Gradle check와 구현된 web의 npm ci/build를 실행한다.
+check는 Python 협업 도구 테스트·문서 검증·전체 Gradle check와 web의 npm ci/test/build를 실행한다. Windows는 npm.cmd를 선택한다.
+web 로그인/티켓 화면은 [web 실행 안내](../web/README.md)의 서버 전용 설정과 build/start로 별도 실행한다. main push CI도 같은 check를 수행한다.
 verify는 check 후 세 앱을 재빌드·기동하고 smoke를 수행한다.
 일반 up/verify/publish는 Agent를 test/mock으로 기동한다. 실제 모델 검증은 별도로 준비한 런타임에서
 `JDD_MVP_LIVE=true ./scripts/dev verify-mvp`를 명시 실행한다. [실제 MVP 실행 순서](llm-runtime.md#실제-mvp-검증과-완료-명령)를 따른다.
