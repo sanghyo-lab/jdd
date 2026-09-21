@@ -5,7 +5,7 @@
 - GitHub 계정: 공유받은 뒤 기입
 - 작업 브랜치: `main`
 - 완료 선언: [agent.json](agent.json)의 IN_PROGRESS. 실제 검증 후 자기 DONE을 공유하고 [세 담당자 완료 기준](../team-completion.md)이 충족될 때까지 goal을 유지한다.
-- 시작 지침: [agent goal](../goals/agent.md), [필수 구현 프롬프트](../prompts/implement-voc-investigation-agent.md), [공통 실행](../local-development.md)
+- 시작 지침: [agent goal](../goals/agent.md), [복사할 goal 시작문](../prompts/goal-han-jaehong-agent.md), [필수 구현 프롬프트](../prompts/implement-voc-investigation-agent.md), [공통 실행](../local-development.md)
 - 작업 Issue·공유 커밋: 문서 보완 `3a8068e`(전체 publish 검증 통과). OpenAI 키 별도 제공의 후속 확인도 문서에 반영했다.
 - 담당 경로: `agent-app/`, `agent-core/`, `agent-infra/`
 - 준비된 자료: [구현 범위](../roles/han-jaehong-agent.md), [VOC·Agent 계약](../integration-contract.md), [커머스 조회 계약](../commerce-interface.md)
@@ -77,3 +77,12 @@
 - 남은 실행 조건: OpenAI 모델명/주소/실제 접근, $30 기준의 기간·공유 범위와 호출 계획, 로컬 연결 방식·배포 주소, 두 솔루션의 실제 전달물. 모의 모델을 이용한 독립 개발과 실제 데모 선행 조건을 구분했다.
 - 프롬프트 상태: 최종 검수용 후보. 사용자 확정 대기임을 문서 첫머리에 표시했다. 별도로 승인된 다른 구현 세션의 권한을 새로 부여하거나 철회하지 않는다.
 - 기존 작업 보호: 구현 초안 15개 파일의 내용 해시를 보존했고 이번 공유에는 포함하지 않았다. 역할 DONE·리더 승인 기록도 작성하지 않았다.
+
+## 2026-09-21 — 한재홍 goal 시작문 작성
+
+- 사용자 요청: 이상효의 commerce·개발리더 goal 예시를 바탕으로 한재홍의 구현 goal 시작문을 만든다. 이번 작업은 시작문 작성이며 구현 goal을 실제로 생성·실행하지 않는다.
+- 결과물: [goal 시작 프롬프트](../prompts/goal-han-jaehong-agent.md). Agent 책임·8개 도구·영속 실행·근거·보고서, 이상효/김아름 연동, 유료 호출 제한·모델별 비용, 실제 검증·리더 승인까지의 종료 조건을 포함했다.
+- 정책 정합성: 사용자 제공 $50.00 프로모션 적용 금액과 2026-09-21 적용일을 비용 계획·검수 기록에도 반영했다. 잔액·만료일·키 연결은 미확인이며 데모 전용·$30 기준을 유지한다.
+- 문서 검토: 역할·상세 구현 프롬프트·협업 규칙·팀 완료 기준과 대조했다. 커머스 반복 재현과 실제 모델 평가를 구분하고 기존 goal이 있으면 중복 생성하지 않도록 인계했다.
+- 정적 검증: `python3 scripts/check_docs.py` 통과(35개 Markdown·262개 로컬 링크·8개 JSON 예제), `git diff --check` 통과. 서비스 업무·모델 검증 결과로 간주하지 않는다.
+- 구현 상태: 기존 초안은 보존한다. 이번 문서 작성에서 서비스 LLM 호출·역할 DONE·리더 APPROVED를 수행하지 않는다.

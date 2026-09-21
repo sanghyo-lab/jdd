@@ -33,6 +33,8 @@ cd jdd
 | 김아름 | [voc](voc.md) | `/goal docs/goals/voc.md와 AGENTS.md를 읽고 김아름의 VOC·연동을 구현·검증하고 main에 계속 공유해. 자기 DONE 이후에도 리더의 검토·수정 요청에 대응해. GitHub에 세 유효한 DONE과 리더 APPROVED가 있고 team-check가 성공할 때까지 계속해.` |
 | 한재홍 | [agent](agent.md) | `/goal docs/goals/agent.md, docs/prompts/implement-voc-investigation-agent.md와 AGENTS.md를 읽고 한재홍의 서비스 내부 AI로 VOC를 조사하고 결과를 반환하는 에이전트를 구현·검증하고 main에 계속 공유해. LLM API·서비스 시스템 프롬프트·실제 도구 호출·근거 저장·보고서 검증·VOC 결과 반환을 모두 포함해. 자기 DONE 이후에도 리더의 검토·수정 요청에 대응해. GitHub에 세 유효한 DONE과 리더 APPROVED가 있고 team-check가 성공할 때까지 계속해.` |
 
+한재홍의 상세 시작문은 [Agent goal 시작 프롬프트](../prompts/goal-han-jaehong-agent.md)에 있다. 위 짧은 시작문 대신 복사해 사용할 수 있다.
+
 이미 한재홍의 구현 goal이 진행 중이면 새 goal을 만들지 않고 기존 세션에 다음 보완 지시를 전달한다.
 
 ```text
