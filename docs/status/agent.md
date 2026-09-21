@@ -206,4 +206,13 @@
 - 완료 보고서는 저장한 근거를 인용한 사실을 최소 하나 요구하도록 보완했다. 정상 동작 판단도 관측이 필요하다. 정보 부족은 허용된 missingInformation을 반환하는 NEEDS_INPUT으로 구분한다. 가짜 사실을 추가해 구조 검사를 통과시키도록 요구하지 않는다.
 - 시스템 프롬프트는 새 `investigation-system-v2.md`로 적용하고 v1 원문을 보존했다. 실제 모델 요청의 버전/SHA와 비용 장부에 연결된다. 자연어 인과관계/품질까지 자동 검증했다고 주장하지 않는다.
 - 검증: core 13개, 모의 실행기 9개·H2 실행 저장 7개·로컬 HTTP 전송 14개 통과(`grounded-completion-tests.log`, `grounded-report-core-final.log`). 실행 저장 7개는 실제 별도 PostgreSQL에서도 통과했다(`grounded-completion-postgres.log`). 실제 모델 호출 0회다.
+
+## 2026-09-21T19:22:00+09:00 — 이 PC의 일곱 커머스 재현과 근거 재조회
+
+- 무근거 완료 차단·프롬프트 v2는 `cfd36d1`로 전체 publish 종료 0 후 공유했다. 원문 `runtime/submission/agent-20260921/grounded-completion-publish.log`. 원격 문서 갱신을 통합한 뒤 전체 검사·세 앱 재빌드·실제 PostgreSQL/HTTP smoke를 다시 통과했다.
+- 새 합성 접두어와 buildId `cfd36d1c9044-8fd07a02b0f4`에서 제공자 스크립트를 직접 실행했다. `reproduce_commerce.py --runs 3`: VOC-01~06 각각 3/3, `reproduce_inventory.py --runs 20`: VOC-07 20/20과 정상·순차 거절·장벽 복구 대조 통과. `check_fixture_isolation.py` 9건과 `check_recovery.py` prepare → 실제 commerce 재시작 → verify도 종료 0이다.
+- 시작 전에 기본 Agent DB의 QUEUED/RUNNING 0건을 확인했다. 재현부터 근거 저장 종료까지 publish·재초기화를 겹치지 않았다. 복구 검사의 동일 build 재시작은 Agent 인수 전에 수행했다.
+- 유지한 VOC-07 데이터에 실제 8개 도구를 실행해 근거 25건을 별도 Agent PostgreSQL에 저장하고 모든 원문을 HTTP로 재조회했다. 같은 키의 동일 조사 ID·모의 모델 호출 2회 유지 확인. 조사 ID `bb0f38d6-adb3-4ba8-980b-86c0f1880754`. 실제 모델 품질 검증은 아니다.
+- 전체 명령·종료 코드·제공자 원문 경로·조사/근거 원문: `runtime/submission/agent-20260921/seven-commerce-20260921T101653Z/report.json`, `agent-handoff/result.json`. 요약과 실제 응답을 구분한다. 커머스 데이터는 조회 종료 뒤에도 보존했다.
+- 일곱 공급자 재현 성공을 일곱 실제 AI 조사 성공으로 계산하지 않는다. VOC-01~06의 Agent 소비 확장, 새 생성기의 정책 사본, VOC/web/ngrok와 승인된 실제 모델 검증이 남아 있다. 유료 모델 호출 0회, DONE·리더 승인은 보류다.
 - 실제 개발 세션의 사용자/응답/도구 이벤트 852건을 `runtime/submission/agent-20260921/session/20260921T100624Z/`에 중간 캡처했다. 이메일·비밀 값 검사/가림과 원문 prefix/산출물 SHA·제외 유형을 manifest에 남겼다. 요약이나 미가림 원본과 구분하고 진행 종료 시 갱신한다. Git에는 원시 세션/개인정보를 공유하지 않는다.
