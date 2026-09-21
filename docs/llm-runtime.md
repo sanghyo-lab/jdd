@@ -73,7 +73,7 @@ Agent worker·실제 어댑터 모드와 선택한 runtime/provider/설정 모�
 
 Agent 내부 관측은 `llm: {runtime, provider, configuredModel}`로 연결한다([DISC-commerce-002](discussions/DISC-20260921-commerce-002-live-mvp-runtime.md)).
 이 필드는 선택된 설정이며 실제 응답 모델·사용량은 아니다. runner의 기존 `model`은 실제 모델 응답/장부로 확인해야 한다.
-내부 관측 필드는 RuntimeController가 모델 선택에 사용한 같은 Spring Environment에서 기동 시 읽는다. 인증 경로/키/토큰을 읽거나 반환하지 않는다.
+내부 관측 필드는 모델 선택과 같은 Spring Environment에서 기동 시 고정하며 RuntimeController와 조사별 관측 API가 공유한다. 인증 경로/키/토큰을 읽거나 반환하지 않는다.
 제공자/소비자의 관측 필드 인수·runner·실제 모델 검증이 남아 있어 이 명령으로 DONE을 기록할 준비가 완료된 것은 아니다.
 
 자동 check 자식은 test/mock, runner 자식은 앱의 로컬 포트·선택한 실행 정보만 받아 동작한다. OAuth 파일·토큰·API 키·DB 암호를 자식 환경에 전달하지 않는다.
@@ -91,6 +91,9 @@ coordinator는 runner 성공·실패 뒤 모두 종료한다. 일반 check/up/pu
 businessReady는 해당 앱의 도메인 실행 경로 준비 표시다. VOC의 실제 전달 worker가 꺼져 있거나
 Agent가 mock/worker 비활성 상태이면 실제 조사 준비가 아니다. 이 표시 자체는 로그인 성공이나
 보고서 품질 판정이 아니며 최종 완료에는 실제 모델 관측·근거·모든 시나리오 결과가 별도로 필요하다.
+Agent는 실제 worker의 소유권 획득·시작 복구가 끝나야 `workerReady=true`이며, 이 조건과 현재 실제
+어댑터/명시 runtime/provider 조합이 맞아야 businessReady=true다. 인증 파일을 열거나 모델을 호출해
+준비 상태를 판정하지 않는다. 재시작 직후 소유권/복구 대기는 아직 준비되지 않은 상태다.
 
 배포 검증은 배포 호스트에서 미리 준비한 deployed/openai_api와 확정한 scope·모델·예산·만료 아래에서만 명시 실행한다.
 로컬에서 프로모션 API를 검증하는 대체 경로가 아니다. 모델 변경/재기동이나 동시 소스 갱신이 필요하면 진행 중 조사가 끝난 뒤 새 빌드를 준비한다.
@@ -98,6 +101,33 @@ Agent가 mock/worker 비활성 상태이면 실제 조사 준비가 아니다. �
 
 매 runner 실행의 `runtime/mvp/<실행 ID>/`에 전후 관측·새 결과·이전 결과를 보존한다. 실패·불완전 JSON·mock·빌드 변경을 통과 결과로 쓰지 않는다.
 `runtime/scenarios.json`은 전체 검증이 통과했을 때만 갱신하며 이전 파일도 실행 디렉터리에 보관한다. 파일이 있다는 사실만으로 이번 실행이 성공한 것은 아니다.
+
+## 조사별 내부 모델 관측
+
+`GET /internal/investigations/{investigationId}/model-observations`는 로컬 runner의 읽기 전용 경로다.
+web/ngrok에서 직접 공개하거나 중계하지 않는다. 응답은 `schemaVersion: "1.0"`, `investigationId`,
+현재 기동 설정의 `runtime`, `provider`, 그리고 `calls` 배열이다. 현재 설정과 과거 호출의 provider는 별개다.
+존재하는 조사에 호출 행이 없으면 빈 배열이며, 조사 자체가 없으면 `404 NOT_FOUND`다. `Cache-Control: no-store`를 보낸다.
+
+| calls 필드 | 의미 |
+| --- | --- |
+| callId / requestedModel / actualModel | 저장된 호출 ID·요청 모델·관측 응답 모델. 미관측 actualModel은 null |
+| provider | 호출 장부의 codex_oauth 또는 openai_api. 현재 설정으로 과거 행을 바꾸지 않음 |
+| outcome | 저장된 HTTP/중단 결과. API receipt가 없으면 RESERVED/DISPATCHED/CANCELLED 같은 저장 상태 |
+| ledgerState | API의 RESERVED/DISPATCHED/CONFIRMED/UNKNOWN/CANCELLED. OAuth에는 해당 장부 상태가 없어 null |
+| usage | 기존 ModelUsage의 inputTokens/outputTokens/cachedInputTokens/cacheWriteTokens/reasoningTokens. 객체·개별 미관측 값은 null |
+| createdAt / elapsedMillis | 저장 시각과 관측 지연. OAuth가 직접 측정한 값만 반환. API는 HTTP 지연을 저장하지 않아 null |
+
+한 번의 반복 읽기 스냅샷에서 두 장부를 조사 ID로 제한하고 createdAt/provider/callId 순으로 반환한다.
+API 예약·미확정 행도 제외하지 않으며 모델 요청을 실행한 성공 건수로 해석하면 안 된다. API 생성/정산
+시각의 차이는 실제 HTTP 지연으로 추정하지 않는다. 합계·성공률·USD 환산을 새로 만들지 않는다.
+캐시 입력/쓰기와 reasoning은 기존 입력/출력의 부분이므로 중복 합산하지 않는다. 요청 옵션·프롬프트·
+원문·인증 설정은 반환하지 않고, 조회 자체는 예산 예약/정산·복구·모델 호출을 하지 않는다.
+자동 검증의 합성 장부 행은 실제 모델 성공 근거가 아니다. runner는 현재 live 실행 조건과 실제 결과를 함께 검증해야 한다.
+
+`ModelObservationHttpTest`는 네트워크 모델 없이 실제 HTTP/SQL의 조사 격리·null·모든 API 장부 상태·
+반복 조회 불변·원문 제외를 확인한다. 기존 전용 `jdd_agent_budget_test` DB와 `JDD_BUDGET_TEST_DB_*`를
+설정하면 같은 검사를 실제 PostgreSQL에서 실행한다. 일반 제품 DB로 지정하지 않는다.
 
 ## 배포 설정과 별도 smoke
 

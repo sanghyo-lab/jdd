@@ -61,6 +61,9 @@ public final class InvestigationWorker {
         scheduler.scheduleWithFixedDelay(this::tick, 0, 500, TimeUnit.MILLISECONDS);
     }
 
+    /** Ownership and startup recovery completed; not a model authentication or quality assertion. */
+    public synchronized boolean isReady() { return ownerReady && !closed; }
+
     private synchronized void tick() {
         if (closed) return;
         try {

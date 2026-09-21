@@ -1,5 +1,13 @@
 # 한재홍 — AI Agent 작업 상태
 
+## 2026-09-22T07:48:13+09:00 — 리더 후속 요청 세 건 구현·직접 검증
+
+- `81fc1c4`에서 Agent 위임 중단과 한재홍 담당 유지 정정을 확인했다. AGENT-LEAD-CITATION-021은 공유 main에서 독립 재현했다. 다른 항목의 CODE 인용 또는 다른 경로/비CODE 근거만으로 prevention.targetPaths가 통과한 회귀 2실패를 보존하고, 해당 prevention.evidenceIds의 CODE 원문 경로와 직접 연결하도록 수정했다. core 15개 통과다. 미공유 `15c804c`를 읽거나 검증했다고 주장하지 않는다. 일반 자연어 주장의 의미적 인용 완전성까지 해결한 것은 아니다.
+- RUNNER-AGENT-OBS-001: 조사별 내부 읽기 API가 OAuth/API 저장 행과 현재 runtime/provider를 구분해 반환한다. 호출 원문·인증 설정 제외, 미관측 usage/지연 null·API 미확정/예약 상태 보존, 반복 조회 무변경이다. API 시각 차이를 HTTP 지연으로 만들지 않는다. 정확한 DTO는 [LLM 관측 계약](../llm-runtime.md#조사별-내부-모델-관측)에 적고 [DISC-commerce-002 P2](../discussions/DISC-20260921-commerce-002-live-mvp-runtime.md)에 소비자 인수를 요청했다.
+- AGENT-LEAD-READINESS-001: 기동 때 선택한 비밀 없는 설정을 두 관측 API가 공유하고, 실제 worker 소유권·시작 복구 완료의 workerReady와 실제 어댑터/명시 조합을 확인해 businessReady를 판정한다. mock/비활성/대기는 false이고 인증·보고서 품질 성공을 뜻하지 않는다.
+- 검증: core 15개·관련 앱 19개 종료0, 모델 관측 실제 HTTP/전용 PostgreSQL 3개 통과·실패/제외0. 최초 앱 검사 1실패는 synchronized mock 메서드에 timeout verify가 잠금을 잡아 생긴 테스트 동기화 문제로 latch로 보완했으며 원문을 보존했다. 자료는 `followup-direct-path-before.log/xml`, `followup-runner-agent-tests.log/json`, `followup-runner-agent-first-results/`, `followup-runner-agent-after.log/json`, `followup-direct-path-results/`, `followup-model-observations-postgres.log/json`, `followup-model-observations-postgres-results/`다.
+- 실제 모델 호출은 0이며 기존 OAuth 44행/실패·직접 인용 주의사항과 API 장부를 보존한다. 최신 main 통합·전체 publish·새 스택의 읽기 검증을 이어 수행하고 VOC 화면/runner 공유를 계속 확인한다. IN_PROGRESS를 유지한다.
+
 ## 2026-09-22T07:28:00+09:00 — 리더 위임 작업 접수·후속 소비자 검증 준비
 
 - 원격 `63f5dab`의 [리더 조율 기록](lead.md)을 전체 차이로 확인하고 깨끗한 main에 동기화했다. LEAD-SUB-AGENT-001의 직접 인용/복구/모델 관측, LEAD-SUB-VOC-001의 분석·보고서·근거 화면, LEAD-SUB-RUNNER-001의 실제 HTTP 검증을 진행 중인 위임 작업으로 접수한다. `100f274`는 아직 이 main에 공유되지 않았으므로 해당 소스나 리더 재검증을 인수했다고 표시하지 않는다.

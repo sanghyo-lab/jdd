@@ -53,6 +53,37 @@ class ReportValidatorTest {
         assertFalse(validator.validate(report(observedFact(), List.of(), List.of(observed)), evidence.subList(0, 1)).isEmpty());
     }
 
+    @Test void preventionCannotBorrowCodeCitedOnlyByAnotherReportItem() {
+        var candidate = new AnalysisReport("1.0", "검토", List.of(
+                new Fact("f", "실행 소스를 확인했습니다.", List.of("code-1"))), List.of(), List.of(),
+                List.of(new Prevention("p", "변경 제안", List.of(sourcePath), List.of("data-1"),
+                        List.of("업무 회귀 검사"))), List.of());
+        assertFalse(validator.validate(candidate, evidence).isEmpty());
+        var withNoCitation = report(observedFact(), List.of(), List.of(
+                new Prevention("p", "변경 제안", List.of(sourcePath), List.of(), List.of("업무 회귀 검사"))));
+        assertFalse(validator.validate(withNoCitation, evidence).isEmpty());
+    }
+
+    @Test void everyPreventionTargetNeedsItsOwnCitedCodeObservation() {
+        String otherPath = "commerce-core/src/main/java/Inventory.java";
+        var observations = new java.util.ArrayList<>(evidence);
+        observations.add(new EvidenceSummary("other-code", EvidenceType.CODE, "Other source", Instant.EPOCH,
+                Map.of("path", otherPath)));
+        observations.add(new EvidenceSummary("data-path", EvidenceType.DATA, "Not code", Instant.EPOCH,
+                Map.of("path", sourcePath)));
+        for (var citations : List.of(List.of("other-code"), List.of("data-path", "other-code"))) {
+            var candidate = report(observedFact(), List.of(), List.of(new Prevention("p", "변경 제안",
+                    List.of(sourcePath, otherPath), citations, List.of("두 경로 회귀 검사"))));
+            assertFalse(validator.validate(candidate, observations).isEmpty());
+        }
+        var supported = report(observedFact(), List.of(), List.of(new Prevention("p", "변경 제안",
+                List.of(sourcePath, otherPath), List.of("code-1", "other-code"), List.of("두 경로 회귀 검사"))));
+        assertTrue(validator.validate(supported, observations).isEmpty());
+        var nullReferences = report(observedFact(), List.of(), List.of(new Prevention("p", "변경 제안",
+                java.util.Arrays.asList((String) null, sourcePath), null, List.of("업무 회귀 검사"))));
+        assertFalse(validator.validate(nullReferences, observations).isEmpty());
+    }
+
     @Test void rejectsServerFaultsAsUserMissingInformation() {
         var candidate = new AnalysisReport("1.0", "검토", List.of(), List.of(), List.of(), List.of(),
                 List.of(new MissingInformation("OPENAI_API_KEY", "API 인증 실패")));

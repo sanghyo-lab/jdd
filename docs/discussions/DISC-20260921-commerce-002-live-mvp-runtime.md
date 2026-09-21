@@ -3,15 +3,15 @@
 | 항목 | 내용 |
 | --- | --- |
 | ID | DISC-20260921-commerce-002 |
-| 상태 | AGREED |
-| 제안 버전 | P1 |
+| 상태 | DISCUSSING |
+| 제안 버전 | P2 |
 | 작성자 / 역할 | 이상효 / commerce·lead |
 | 정리 담당 | 이상효 |
 | 영향받는 역할 | commerce·lead, agent, voc |
 | 필수 합의자 | 이상효(리더), 한재홍(모델 실행), 김아름(공통 실행·runner) |
-| 확인·답변 대기 | 김아름 runner 소비 인수·전체 실제 모델 검증 |
-| 생성 시각 / 최종 갱신 | 2026-09-21T21:17:00+09:00 / 2026-09-21T22:52:00+09:00 |
-| 다음 행동 / 담당 | 세 담당자 P1 합의·Agent 관측·Windows 8/8 직접 인수 완료, runner/실제 모델 검증 |
+| 확인·답변 대기 | 이상효·김아름 P2 관측 응답/worker 준비 상태 인수·runner 실제 검증 |
+| 생성 시각 / 최종 갱신 | 2026-09-21T21:17:00+09:00 / 2026-09-22T07:48:13+09:00 |
+| 다음 행동 / 담당 | P1 합의 이력 유지·P2 Agent 제공 구현/검사, runner 소비 계약 확인 후 실제 모델 검증 |
 
 ## 결정할 질문
 
@@ -36,6 +36,7 @@
 ## 해소 기준
 
 - [x] 세 작업자가 P1을 직접 확인·수락했다.
+- [ ] P2 조사별 관측/worker 준비 상태를 제공자·리더·runner 소비자가 확인·인수했다.
 - [ ] mock/환경 누락/이전 빌드/불일치가 runner 전에 실패하고, 준비된 런타임을 교체하지 않음을 자동 검사했다.
 - [ ] 일반 up/check/publish와 role/lead 완료 게이트 회귀가 통과했다.
 - [ ] 제공자와 runner 소비자가 현재 모델·빌드 관측을 인수했다.
@@ -152,3 +153,11 @@
 
 - 한재홍의 22:46 직접 답변과 김아름의 22:43 Windows 직접 인수를 모두 보존해 통합했다. 세 필수 합의자의 P1 수락을 근거로 AGREED로 갱신한다. 과거 시점의 DISCUSSING 기록은 이력으로 보존한다.
 - runner 소비 인수와 허용 범위의 실제 모델 검증은 남아 미해소다. 타인의 완료 기록이나 리더 승인은 작성하지 않았다.
+
+### 2026-09-22T07:48:13+09:00 — 한재홍 / agent / P2 내부 관측·준비 상태 제공
+
+- `81fc1c4`의 RUNNER-AGENT-OBS-001·AGENT-LEAD-READINESS-001을 접수했다. P1의 runtime 보존 원칙은 유지하고 조사별 응답과 workerReady를 추가하므로 P2로 기록한다. 이전 P1 수락을 새 필드 인수로 대신하지 않으며 DISCUSSING으로 갱신한다.
+- 제공 경로는 `GET /internal/investigations/{id}/model-observations`다. 정확한 응답은 schemaVersion/investigationId/runtime/provider/calls이며 각 call은 callId/requestedModel/actualModel/provider/outcome/ledgerState/usage/createdAt/elapsedMillis다. [관측 계약](../llm-runtime.md#조사별-내부-모델-관측)에 null·API 예약 상태·호출별 provider·정렬·비노출/무변경 범위를 적었다. API의 미측정 지연은 null이며 예약/정산 시각의 차이로 만들지 않는다.
+- workerReady는 실제 worker 소유권 획득·시작 복구가 끝나야 true다. DB가 응답하고 이 조건과 실제 어댑터/명시 runtime/provider가 맞을 때만 businessReady=true다. mock/worker 비활성/소유권 대기는 false다. 조회로 인증 파일을 열거나 모델을 호출하지 않으며 모델 품질 성공도 뜻하지 않는다.
+- 직접 검사: core 15개·관련 Agent 앱 19개 종료0, 같은 모델 관측 HTTP 검사 3개를 실제 전용 PostgreSQL에서도 통과했다. 소속 격리·모든 API 장부 상태·nullable usage/지연·재조회 시 원본 장부 불변·민감 원문 제외를 확인했다. 원문 `runtime/submission/agent-20260921/followup-runner-agent-after.log/json`, `followup-model-observations-postgres.log/json`과 결과 XML이다. 초기 worker 테스트의 동기화 mock 검증 잠금 실패와 수정도 별도 보존한다. 모두 모의 장부/모델이며 실제 호출은 0이다.
+- 이상효·김아름에게 이 응답 필드/준비 의미의 명시 인수와 runner 소비 확인을 요청한다. 전체 publish·실제 실행 스택/보존 조사 GET 인수는 이어 수행하며 일곱 실제 모델 품질·화면/ngrok·DONE은 미완료다.

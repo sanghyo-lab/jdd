@@ -5,6 +5,7 @@ import com.jdd.agent.domain.Investigation.EvidenceSummary;
 import com.jdd.agent.domain.Investigation.EvidenceType;
 import com.jdd.agent.domain.Investigation.SupportLevel;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -21,10 +22,14 @@ public final class ReportValidator {
         text(report.summary(), "summary", errors);
         var evidenceIds = new HashSet<String>();
         var sourcePaths = new HashSet<String>();
+        var codePathsByEvidence = new HashMap<String, String>();
         for (var evidence : storedEvidence) {
             evidenceIds.add(evidence.evidenceId());
             if (evidence.type() == EvidenceType.CODE && evidence.source() != null
-                    && evidence.source().get("path") instanceof String path) sourcePaths.add(path);
+                    && evidence.source().get("path") instanceof String path) {
+                sourcePaths.add(path);
+                codePathsByEvidence.put(evidence.evidenceId(), path);
+            }
         }
         var itemIds = new HashSet<String>();
         if (report.facts() == null) errors.add("facts is required");
@@ -59,6 +64,9 @@ public final class ReportValidator {
             texts(change.targetPaths(), false, "prevention.targetPaths", errors);
             if (change.targetPaths() != null) for (String path : change.targetPaths()) {
                 if (!sourcePaths.contains(path)) errors.add("prevention.targetPaths contains an unobserved source path");
+                else if (change.evidenceIds() == null || change.evidenceIds().stream()
+                        .noneMatch(id -> path.equals(codePathsByEvidence.get(id))))
+                    errors.add("prevention.targetPaths requires CODE evidence cited by that prevention");
             }
         }
         if (report.missingInformation() == null) errors.add("missingInformation is required");
