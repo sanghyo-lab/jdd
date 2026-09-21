@@ -10,12 +10,22 @@
 - 작업 Issue·공유 커밋: 접수 `b2b46ef`, 실행 상태/보고서 `e60fa86`, 비용 장부 `943e961`(각 전체 publish 통과). 모델 오류 논의는 세 역할 P1 수락 후 AGREED다.
 - 담당 경로: `agent-app/`, `agent-core/`, `agent-infra/`
 - 준비된 자료: [구현 범위](../roles/han-jaehong-agent.md), [VOC·Agent 계약](../integration-contract.md), [커머스 조회 계약](../commerce-interface.md)
-- 다음 작업: 새 정책 snapshot 인수, 일곱 업무의 실제 조회·저장과 VOC 분석 전달, 승인된 실제 모델·웹·ngrok 검증을 연결한다. 일반 실행의 유료 차단을 유지한다.
+- 다음 작업: 새 정책 snapshot과 VOC 분석 전달·web·runner를 인수하고 승인된 실제 모델·ngrok 검증을 연결한다. 일곱 업무의 실제 근거 조회·저장·원문 재조회 검사는 통과했다. 일반 실행의 유료 차단을 유지한다.
 - 필요한 입력: 김아름의 정책 생성기·분석/화면 전달과 데모 모델·기간·호출 수·팀/PC 예산 배분·사용 범위 확정. 제공된 데모 키는 저장·설정·호출하지 않았다.
-- 검증 결과: 전체 Gradle check·세 앱 Docker·PostgreSQL/HTTP smoke, 실제 DB 동시성·권한·복구·비용 예약과 커머스 8도구/25근거 저장을 확인했다. 실제 모델·전체 조사 품질·화면은 미검증.
+- 검증 결과: 전체 Gradle check·세 앱 Docker·PostgreSQL/HTTP smoke, 실제 DB 동시성·권한·복구·비용 예약과 일곱 커머스 조사 300근거·333필드/로그 대조를 확인했다. 모의 모델과 실제 모델을 구분하며 실제 모델 품질·화면은 미검증.
 - 연동 요청: 정책 archive 소비자 구현 제공, DISC-20260921-agent-003의 선택 ID 공백 입력 경계 확인. 기본 모델은 DISABLED이며 키 존재만으로 활성화하지 않는다.
 
 작업 단위가 끝날 때 제공 가능한 기능, 변경한 계약, 실제 검증 명령·결과, 다음 작업을 갱신한다. 실패와 막힌 이유도 함께 기록한다.
+
+## 2026-09-21T19:50:00+09:00 — 소비자 인계와 실제 검증의 남은 조건
+
+- 외부 DB 검증 재사용 수정은 `620654f`로 전체 publish 종료 0/98.720초 후 공유했다. Python 38개·문서·전체 Gradle check·3앱 재기동·DB/HTTP/SELECT/근거 smoke를 통과했다. 세 앱의 실제 buildId `620654f403b1-4d37d5d26309`가 일치하며 Agent 모델은 DISABLED다. 원문은 `gradle-db-mode-publish.*`, `runtime-after-db-mode-publish.json`이다.
+- 깨끗하고 동기화된 `620654f`에서 `./scripts/dev team-check`는 종료 1을 반환했다. commerce·agent·voc·lead 모두 IN_PROGRESS이며 원문은 `team-check-after-agent-source.*`다. 리더가 공유한 `6a01656`의 같은 응답 유실 테스트 독립 성공도 읽었으나 최종 APPROVED로 해석하지 않는다.
+- [DISC-agent-001](../discussions/DISC-20260921-agent-001-llm-errors.md)에 `4c20c9a`의 제공자 비용 한도 오류 구분과 `fbb43be`의 클라이언트 응답 유실 복구를 인계했다. 소비자 화면·재조사 동작은 김아름이 검증해야 하므로 AGREED를 유지한다. 원격 `9b1933d`의 commerce/lead 상태와 전체 변경도 읽었다.
+- [DISC-agent-004](../discussions/DISC-20260921-agent-004-demo-allocation.md)의 이상효 수락을 확인했고 내 PC 기본 DB의 예산 0행·호출 0행·QUEUED/RUNNING 0행을 읽기 전용으로 기록했다. 이 PC $5·88회·11종·최대 24시간 범위는 사용자 답변 대기이며 김아름의 배분 답변도 필요하다. 실제 키·활성 프로필·예산을 등록하지 않았다.
+- ngrok 3.39.11 설치 완료, `ngrok config check`는 설정 파일 없음으로 종료 1이다. 설치/확인 원문은 `ngrok-install.log`, `ngrok-version.log`, `ngrok-config-check.log`다. 공개 web 구현·접근 허용 범위·authtoken 설정이 없어 실제 공개 주소·PC/모바일 흐름 검증은 수행하지 않았다. 과거 다른 담당자의 로그인 이메일을 한재홍의 공개 접속 계정으로 가정하지 않는다.
+- 실제 가시 세션 이벤트 1,124건을 `session/20260921T105009Z/visible-events.redacted.jsonl`과 manifest로 중간 내보냈다. 이메일 30곳을 가렸고 provider key/URL 비밀번호 패턴은 0곳이다. 제출 사본 SHA-256은 `2562aa76fd7e1649c0b8e986a42d4cf37b2e1493f958a13f3ef2b9674e5c7c7d`다. 실제 기록·요약·이전 중간 캡처를 구분하며 내부 추론/비공개 지시를 포함하지 않는다.
+- 남은 필수 인수는 김아름의 정책 사본 생성기·분석 전달/화면·runner 및 DISC-agent-003의 공백 입력 처리다. 진행 중인 소유 범위를 중복 구현하거나 타인의 답변·DONE을 대신 작성하지 않는다. 실제 모델 품질·공개 연동·세 DONE·리더 APPROVED를 확보하기 전 goal을 완료하지 않는다.
 
 ## 2026-09-21T19:49:00+09:00 — 외부 DB 검증 결과 재사용 방지
 

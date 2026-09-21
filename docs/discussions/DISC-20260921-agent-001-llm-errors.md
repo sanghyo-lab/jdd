@@ -10,7 +10,7 @@
 | 영향받는 역할 | agent, voc, commerce/lead |
 | 필수 합의자 | 한재홍(agent 제공자), 김아름(VOC 소비자) |
 | 확인·답변 대기 | 김아름(소비자 구현·검증) |
-| 생성 시각 / 최종 갱신 | 2026-09-21T17:38:00+09:00 / 2026-09-21T19:12:00+09:00 |
+| 생성 시각 / 최종 갱신 | 2026-09-21T17:38:00+09:00 / 2026-09-21T19:49:00+09:00 |
 | 다음 행동 / 담당 | 김아름 VOC 표시·재조사·모의 실패 검증, 한재홍 실제 연동 지원 |
 
 ## 결정할 질문
@@ -79,6 +79,15 @@
 - 의견: 제공 구현·검증 공유 완료. `71d74aa`의 실행기/HTTP 매핑, `07aeadd`의 OpenAI 단일 전송/모의 인증·429·시간 초과·usage 검증, `1e179f3`의 명시 데모 활성화·V5 누적 호출 한도를 전체 publish했다.
 - 기본 비활성 요청은 FAILED/LLM_CONFIGURATION_ERROR, gate의 한도 거절은 INVESTIGATION_BUDGET_EXCEEDED, 전송 실패는 LLM_UNAVAILABLE로 저장한다. 유료 허용을 상속한 테스트 환경에서도 실제 호출을 막았고 실제 PostgreSQL 장부 12개를 통과했다. 실제 OpenAI 호출은 0회다.
 - 남은 기준은 VOC 전달/조사/조회 오류의 구분·화면·재조사·재조회 소비자 검증이다. 실제 모델 실패나 화면 검증을 수행했다고 표시하지 않는다.
+
+### 한재홍 — agent 추가 검증
+
+2026-09-21T19:49:00+09:00 / 한재홍 / agent / P1
+
+- `4c20c9a`로 제공자의 429 비용 한도 오류를 구분했다. credit_balance_exhausted·organization_spend_limit_exceeded·project_spend_limit_exceeded·organization_usage_limit_exceeded 및 기존 insufficient_quota는 INVESTIGATION_BUDGET_EXCEEDED/retryable=false다. 실제 rate limit은 LLM_UNAVAILABLE을 유지한다. 일반 429를 모두 예산 부족으로 단정하지 않는다.
+- 응답 usage가 없으면 먼저 UNKNOWN으로 기록해 최대 비용 예약을 보존하고 다음 유료 호출을 차단한다. 화면에서 새 키/자동 재시도로 제공자 예산이나 기존 장부를 우회하지 않는다. 임의의 제공자 메시지를 공개 응답에 넣지 않는다.
+- 로컬 모의 HTTP 전송 21개와 runner 9개 통과, 전체 publish 성공. 실제 제공자 오류·잔액·모델 품질을 검증한 것은 아니다. `fbb43be`의 별도 PostgreSQL 응답 유실 검사도 통과했으며 최초 접수 응답을 받지 못해도 같은 키로 기존 ID/근거를 찾고 반복 조회의 추가 모델 호출 0회를 확인했다.
+- 남은 해소 조건은 김아름의 실제 VOC 전달/조사/조회 오류 표시·재조사와 화면 검증이다. 이 인계는 소비자 구현 또는 실제 모델 완료 기록을 대신하지 않는다.
 
 ### 김아름 — voc
 
