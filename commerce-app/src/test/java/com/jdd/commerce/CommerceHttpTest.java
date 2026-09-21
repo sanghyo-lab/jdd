@@ -264,6 +264,9 @@ class CommerceHttpTest {
             assertThat(result.path("payment").path("status").stringValue()).isEqualTo("APPROVED");
             assertThat(result.path("payment").path("amount").longValue()).isEqualTo(50000);
             assertThat(result.path("payment").path("providerReference").stringValue()).startsWith("mock-payment-");
+            assertThat(Instant.parse(result.path("payment").path("createdAt").asText())).isEqualTo(
+                    jdbc.queryForObject("SELECT created_at FROM commerce.payments WHERE id=?", java.sql.Timestamp.class,
+                            result.path("payment").path("id").asText()).toInstant());
         }
         assertThat(count("payments")).isEqualTo(2);
     }
@@ -295,6 +298,9 @@ class CommerceHttpTest {
         assertThat(cancelled.path("order").path("status").stringValue()).isEqualTo("CANCELLED");
         assertThat(cancelled.path("refund").path("status").stringValue()).isEqualTo("COMPLETED");
         assertThat(cancelled.path("refund").path("failureCode").isNull()).isTrue();
+        assertThat(Instant.parse(cancelled.path("refund").path("createdAt").asText())).isEqualTo(
+                jdbc.queryForObject("SELECT created_at FROM commerce.refunds WHERE id=?", java.sql.Timestamp.class,
+                        cancelled.path("refund").path("id").asText()).toInstant());
         assertThat(cancel(id,"new-key").path("refund").path("id")).isEqualTo(cancelled.path("refund").path("id"));
         assertThat(pay(id,"payment","CARD")).isEqualTo(originalPayment);
         assertThat(request("POST","/api/orders/"+id+"/payments",payBody("new-payment","CARD")).statusCode()).isEqualTo(409);

@@ -14,7 +14,7 @@
 | --- | --- | --- | --- | --- | --- | --- |
 | [DISC-20260921-agent-001 — 모델 설정·장애·예산 오류](DISC-20260921-agent-001-llm-errors.md) | AGREED | 한재홍 | Agent 단위 공유·VOC 소비자 검증 | Agent 계약·매핑/HTTP 검증 기록. VOC 화면·재조사·모의 통합 대기 | 미해소: 소비자 구현·검증 필요 | 2026-09-21T17:55:54+09:00 |
 | [DISC-20260921-commerce-001 / 재고 재현·근거](DISC-20260921-commerce-001-inventory-evidence.md) | AGREED | 이상효 | VOC runner 검증·정리 확인 | P1 전원 수락. 제공자·Agent 검증 기록 유지, VOC 실제 재현·관측 검증 대기 | 미해소: VOC 소비자 검증 필요 | 2026-09-21T18:32:59+09:00 |
-| [DISC-20260921-agent-002 / build별 정책 사본](DISC-20260921-agent-002-policy-snapshot.md) | OPEN | 한재홍 | commerce 답변·voc/agent 구현 | VOC P1 수락·공통 생성기 담당. 정책 사본·해시 및 Windows 경로 호환 검증 예정 | 미해소: 직접 답변·구현·소비 검증 필요 | 2026-09-21T18:32:59+09:00 |
+| [DISC-20260921-agent-002 / build별 정책 사본](DISC-20260921-agent-002-policy-snapshot.md) | AGREED | 한재홍 | voc·agent 구현, commerce 검증 | P1 전원 수락. VOC 생성기·계약, Agent 소비, commerce 새 빌드 확인 | 미해소: 구현·소비 검증 필요 | 2026-09-21T18:38:12+09:00 |
 | [DISC-20260921-voc-001 / runner 선택 메타데이터](DISC-20260921-voc-001-runner-metadata.md) | OPEN | 김아름 | 이상효 | Agent P1 수락. 기존 완료 계약 유지·선택 확장 보류 범위의 리더 확인 | 미해소: 리더 답변·결정 기록 필요 | 2026-09-21T18:38:39+09:00 |
 
 새 건은 이 표에 한 행으로 등록한다. 미해소 건을 먼저, RESOLVED 건을 뒤에 놓고 해소된 행도 삭제하지 않는다.

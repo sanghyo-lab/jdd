@@ -57,6 +57,8 @@ prepare는 합성 주문의 결제/취소에 각각 4개 동시 요청을 보내
 
 ## 로그와 조사 경계
 
+[합성 JSONL 예제](../fixtures/commerce/examples/README.md)는 필드 형식만 설명한다. 실제 실행 근거와 구분한다.
+
 - 호스트 `runtime/evidence/logs/commerce/<buildId>/business.jsonl`에 JSONL을 기록한다.
 - INVENTORY_READ는 읽은 즉시 기록하고, 성공한 업무 이벤트는 같은 트랜잭션의 `commerce.event_outbox`에 저장한 뒤 커밋 후 내보낸다.
 - 내보내기는 기본 100ms 주기, 한 번에 100건이다. 실패한 행은 DB에 남아 재시도하며 요청 성공을 허위 실패로 바꾸지 않는다.

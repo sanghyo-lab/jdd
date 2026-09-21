@@ -160,6 +160,14 @@
       "description": "Opt-in reproduction environment leaked into disabled-mode HTTP tests and failed publish.",
       "resolution": "Explicit jdd.reproduction-enabled=false in both commerce test contexts preserves the two 404 assertions independently of host environment.",
       "verification": "COMMERCE_REPRODUCTION_ENABLED=true :commerce-app:test passed 19 tests; commands/20260921T092412.221394Z-reproduction-mode-test-isolation.log. Failed publish and JUnit XML retained; full publish retry pending."
+    },
+    {
+      "id": "LEAD-006",
+      "owner": "commerce",
+      "status": "VERIFIED",
+      "description": "Payment and refund responses retained nanoseconds while the DB rounded to microseconds; deterministic fixed-clock HTTP tests exposed both differences.",
+      "resolution": "PaymentService truncates payment/cancel timestamps to ChronoUnit.MICROS before persistence; database-response equality assertions preserved.",
+      "verification": "Two failed tests retained in payment-refund-precision-before-fix.xml and 20260921T093532.197102Z command log. All 19 commerce tests passed with reproduction enabled in 20260921T093612.189803Z-commerce-precision-integrated-regression.log; container PostgreSQL follow-up pending."
     }
   ]
 }

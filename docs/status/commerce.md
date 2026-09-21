@@ -88,3 +88,15 @@
 - 첫 거절 구현의 psql `\\quit 3`은 실패 코드를 반환하지 않아 검증이 실패했다(`20260921T092454.093100Z-fixture-isolation.json`). ROLLBACK 뒤 명시적 SQL 예외로 수정하고 위 9개를 재검증했다. 실패 원문을 보존한다.
 - LEAD-005: `COMMERCE_REPRODUCTION_ENABLED=true scripts/dev publish`에서 기본 비노출 테스트가 호스트 환경변수를 상속하여 19개 중 1개 실패했다. 테스트에 비활성 설정을 명시하고 두 제어 API의 404 검사는 유지했다. 같은 환경변수로 `:commerce-app:test` 19개 통과(`commands/20260921T092412.221394Z-reproduction-mode-test-isolation.log`). 최초 publish 실패 로그와 JUnit XML도 보존했고 전체 publish는 다시 수행한다.
 - 모델 호출 0회이며 이 단위는 역할 DONE·리더 승인이 아니다.
+
+## 2026-09-21T18:36:02+09:00 — 새 원격 구현·정책 사본 제안 접수
+
+- `92dc81a..1d29d20` 전체 변경의 VOC 티켓·버전 충돌·실제 DB 검증과 주문 시각 정밀도 수정을 읽었다. 내 결제/환불 테스트의 고정 Clock·장애 제어를 모두 보존해 충돌을 해결했다. 전체 publish의 31개 협업 테스트·Gradle·3앱 smoke는 통과했지만 동시 원격 갱신 뒤 rebase 충돌로 push되지 않아 새 통합본을 재검증한다.
+- [DISC-20260921-agent-002](../discussions/DISC-20260921-agent-002-policy-snapshot.md) P1을 수락했다. 정책 의미 변경 시 버전 갱신·사본/해시 불변·과거 버전 조회를 확인한다. VOC 답변·담당 확정 전 생성기 중복 편집을 피하고 커머스 검증을 계속한다.
+- COMMERCE-002: 한재홍의 `595034a` 실제 8도구·25근거 저장/재조회 결과와 모의 모델 구분을 확인했다. 이 PC의 독립 인수 검증을 이어 진행한다. VOC의 직접 P1 답변·runner 검증은 남았다.
+
+## 2026-09-21 — 결제·환불 시각 정밀도 회귀 보완
+
+- LEAD-006: 김아름의 주문 정밀도 수정과 고정 나노초 Clock을 통합한 뒤 새 결제·환불에도 같은 문제가 있는지 검사했다. 실제 HTTP 응답 `09:05:11.123456789Z`와 저장 시각 `09:05:11.123457Z`가 달라 두 회귀 검사가 실패했다. `commands/20260921T093532.197102Z-payment-refund-precision-before-fix.log`와 `payment-refund-precision-before-fix.xml`을 보존했다.
+- PaymentService의 결제·취소 시각을 저장 전 마이크로초로 맞췄다. 두 응답/DB 동일성 단언을 유지하고 `COMMERCE_REPRODUCTION_ENABLED=true ./gradlew --no-daemon :commerce-app:test` 19개를 재통과했다(`commands/20260921T093612.189803Z-commerce-precision-integrated-regression.log`). 새 바이너리의 실제 PostgreSQL 반복은 전체 publish 후 이어 수행한다.
+- 해커톤 보고서에 실제 커머스 7종 재현·모의 Agent 인수·미검증 모델/화면과 실패 기록을 분리했다. `fixtures/commerce/examples/business.jsonl`은 형식만 보여주는 합성 예제이며 실제 실행 근거나 모델 입력으로 사용하지 않는다.

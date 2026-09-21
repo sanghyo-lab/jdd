@@ -14,6 +14,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.Map;
@@ -46,7 +47,7 @@ public class PaymentService {
             return previous.get().result();
         }
         if (order.status().equals("CANCELLED")) throw stateConflict("Cancelled orders cannot be paid");
-        Instant at = clock.instant();
+        Instant at = clock.instant().truncatedTo(ChronoUnit.MICROS);
         var approved = payments.approvedPayment(orderId);
         Payment payment;
         if (approved.isPresent()) {
@@ -77,7 +78,7 @@ public class PaymentService {
             sameInput(previous.get().fingerprint(), fingerprint);
             return previous.get().result();
         }
-        Instant at = clock.instant();
+        Instant at = clock.instant().truncatedTo(ChronoUnit.MICROS);
         Refund refund;
         if (order.status().equals("CANCELLED")) refund = payments.refund(orderId).orElse(null);
         else {
