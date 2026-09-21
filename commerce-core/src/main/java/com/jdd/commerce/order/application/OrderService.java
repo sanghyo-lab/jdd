@@ -12,6 +12,7 @@ import com.jdd.commerce.order.port.CommerceRepository;
 import com.jdd.commerce.product.domain.Product;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -88,7 +89,8 @@ public class OrderService {
                 throw CommerceException.invalid("Order amount exceeds supported integer range");
             }
         }
-        Instant at = clock.instant();
+        // PostgreSQL timestamps retain microseconds; return the same value we persist.
+        Instant at = clock.instant().truncatedTo(ChronoUnit.MICROS);
         CouponService.Quote quote = request.customerCouponId() == null ? null : coupons.quote(
                 request.customerId(), request.customerCouponId(), subtotal,
                 new Trace(requestId, request.checkoutKey(), null, null, null, request.customerCouponId()));

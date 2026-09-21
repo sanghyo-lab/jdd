@@ -9,6 +9,9 @@ import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -16,6 +19,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -28,11 +35,19 @@ import static org.assertj.core.api.Assertions.*;
     "spring.datasource.username=sa", "spring.datasource.password=", "spring.flyway.create-schemas=true",
     "jdd.build-id=http-test", "jdd.commerce-log-root=build/test-evidence", "jdd.log-publish-delay-ms=60000"
 })
+@Import(CommerceHttpTest.PreciseClock.class)
 class CommerceHttpTest {
+    @TestConfiguration(proxyBeanMethods = false)
+    static class PreciseClock {
+        @Bean @Primary Clock preciseClock() {
+            return Clock.fixed(Instant.parse("2026-09-21T09:05:11.123456789Z"), ZoneOffset.UTC);
+        }
+    }
     @Value("${local.server.port}") int port;
     @Autowired JdbcTemplate jdbc;
     @Autowired JsonBusinessEvents events;
     @Autowired PlatformTransactionManager transactions;
+    @Autowired Clock clock;
     final JsonMapper json = JsonMapper.builder().build();
     final HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(3)).build();
 
@@ -142,8 +157,8 @@ class CommerceHttpTest {
     void coupon(String id, String kind, long minimum, Long fixed, String rate, Long maximum) {
         jdbc.update("INSERT INTO commerce.coupons (id,discount_type,min_order_amount,fixed_discount_amount,discount_rate,max_discount_amount,valid_from,valid_until) VALUES (?,?,?,?,?,?,?,?)",
                 id, kind, minimum, fixed, rate == null ? null : new java.math.BigDecimal(rate), maximum,
-                java.sql.Timestamp.from(java.time.Instant.now().minusSeconds(3600)),
-                java.sql.Timestamp.from(java.time.Instant.now().plusSeconds(3600)));
+                java.sql.Timestamp.from(clock.instant().minusSeconds(3600)),
+                java.sql.Timestamp.from(clock.instant().plusSeconds(3600)));
         jdbc.update("INSERT INTO commerce.customer_coupons VALUES (?, 'customer-test', ?, 'AVAILABLE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)", "cc-" + id, id);
     }
     String withCoupon(String key, String id) {
@@ -176,10 +191,10 @@ class CommerceHttpTest {
         assertThat(request("POST", "/api/orders", withCoupon("missing", "missing")).statusCode()).isEqualTo(404);
         assertThat(request("POST", "/api/orders", withCoupon("owner", "valid").replace("customer-test", "other")).statusCode()).isEqualTo(422);
         jdbc.update("UPDATE commerce.coupons SET valid_from=?,valid_until=? WHERE id='valid'",
-                java.sql.Timestamp.from(java.time.Instant.now().minusSeconds(7200)), java.sql.Timestamp.from(java.time.Instant.now().minusSeconds(1)));
+                java.sql.Timestamp.from(clock.instant().minusSeconds(7200)), java.sql.Timestamp.from(clock.instant().minusSeconds(1)));
         assertThat(request("POST", "/api/orders", withCoupon("expired", "valid")).statusCode()).isEqualTo(422);
         jdbc.update("UPDATE commerce.coupons SET valid_from=?,valid_until=? WHERE id='valid'",
-                java.sql.Timestamp.from(java.time.Instant.now().plusSeconds(60)), java.sql.Timestamp.from(java.time.Instant.now().plusSeconds(3600)));
+                java.sql.Timestamp.from(clock.instant().plusSeconds(60)), java.sql.Timestamp.from(clock.instant().plusSeconds(3600)));
         assertThat(request("POST", "/api/orders", withCoupon("future", "valid")).statusCode()).isEqualTo(422);
         assertThat(count("orders")).isZero();
         assertThat(count("coupon_usages")).isZero();
