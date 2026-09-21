@@ -6,7 +6,7 @@
 
 - 하나의 저장소에 백엔드 Gradle 모듈 10개와 프론트 프로젝트 `web`을 둔다. 백엔드 빌드 스크립트는 Groovy DSL을 기본안으로 한다.
 - 상시 실행하는 Spring Boot 애플리케이션은 `commerce-app`, `agent-app`, `voc-app` 세 개다. 한재홍은 AI, 이상효는 커머스, 김아름은 VOC 티켓과 AI 연동을 담당한다. [담당별 구현 문서](roles/README.md)
-- `web`은 Next.js·React·TypeScript를 사용하는 별도 프로젝트로 제안한다. Vercel에서 화면과 짧은 API 중계 요청을 처리하고, 분석 작업은 Spring Boot 백엔드에서 실행한다.
+- `web`은 Next.js·React·TypeScript를 사용하는 별도 프로젝트로 제안한다. 로컬 web에서 화면과 짧은 API 중계 요청을 처리하고 ngrok로 외부에 연결한다. 분석 작업은 로컬 Spring Boot Agent가 수행하고 모델 추론은 OpenAI API를 호출한다.
 - 커머스의 상품·주문·결제·쿠폰·재고·취소는 같은 애플리케이션과 DB 트랜잭션 안에서 처리한다.
 - 조사 에이전트는 커머스의 데이터, 로그, 실행 버전의 소스코드를 독립적으로 조회한다.
 - VOC 앱은 티켓·담당자·업무 처리 상태와 분석 요청 이력을 관리하고, HTTP로 에이전트에 조사를 요청한다. [연동 계약](integration-contract.md)
@@ -22,7 +22,7 @@ jdd/
 ├── settings.gradle
 ├── build.gradle
 ├── gradle/                         # Wrapper, 공통 버전 설정
-├── web/                            # Next.js 프론트, Vercel 배포
+├── web/                            # Next.js 프론트, 로컬 실행 + ngrok
 ├── commerce-app/                   # Spring Boot 실행, 쇼핑몰 API
 ├── commerce-core/                  # 업무 모델·정책·유스케이스·저장소 인터페이스
 ├── commerce-infra/                 # JPA·SQL·DB 마이그레이션·모의 결제 연동
@@ -62,7 +62,7 @@ jdd/
 | `voc-infra` | 티켓·분석 요청 기록 저장, Agent HTTP 클라이언트, VOC 마이그레이션 | `voc-core` | Java 라이브러리 |
 | `scenario-runner` | 시나리오 데이터 준비, HTTP 요청 실행, 재고 동시 요청, 기대 결과와 분석 결과 비교 | 없음 | 필요할 때 실행하는 Java 도구·테스트 |
 
-프론트 `web`은 티켓·답변·근거 화면과 최소 쇼핑몰 화면을 담당한다. Java 프로젝트 의존성 없이 VOC·커머스의 HTTP API에 연결한다. Agent 호출은 VOC 서버가 수행한다. 배포 시 Vercel 프로젝트의 Root Directory를 `web`으로 지정한다. [Vercel 모노레포 문서](https://vercel.com/docs/monorepos)
+프론트 `web`은 티켓·답변·근거 화면과 최소 쇼핑몰 화면을 담당한다. Java 프로젝트 의존성 없이 로컬 VOC·커머스의 HTTP API에 연결한다. Agent 호출은 VOC 서버가 수행한다. web만 ngrok에 연결하며 [로컬 데모 절차](ngrok-local-demo.md)를 따른다.
 
 `core`는 업무와 유스케이스의 경계다. `commerce-core`의 유스케이스에는 Spring의 DI·트랜잭션 지원을 사용하고, `agent-core`에는 Spring AI를 사용한다. JPA Entity·SQL·파일 접근 구현은 각각의 `infra` 모듈에 둔다. 따라서 라이브러리 모듈도 필요한 Spring 의존성을 가질 수 있다.
 
@@ -93,18 +93,19 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    Shopper[쇼핑몰 사용자] --> Web[web / Next.js / Vercel]
+    Shopper[쇼핑몰 사용자] --> Tunnel[ngrok / HTTPS]
+    Tunnel --> Web[로컬 web / Next.js]
     Web -->|쇼핑몰 API 중계| Commerce[commerce-app]
     Commerce -->|업무 데이터 쓰기| CDB[(commerce 스키마)]
     Commerce -->|실행 기록| Logs[JSON 로그]
     Build[실행 빌드] --> Sources[소스 스냅샷과 buildId]
 
-    Developer[개발팀] --> Web
+    Developer[개발팀] --> Tunnel
     Web -->|티켓과 분석 요청| VOC[voc-app]
     VOC -->|티켓·조사 연결 저장| VDB[(voc 스키마)]
     VOC -->|HTTP 조사 접수·조회| Agent[agent-app]
     Agent --> Core[agent-core 조사 서비스]
-    Core <-->|모델 요청과 응답| LLM[LLM]
+    Core <-->|HTTPS / 서버 전용 키| LLM[OpenAI API]
     Core --> Adapters[agent-infra 조회 구현]
     Adapters -->|SELECT| CDB
     Adapters -->|검색| Logs
@@ -126,7 +127,7 @@ flowchart LR
 
 화면은 `web`에서 제공한다. 개발팀의 문의·답변 화면을 우선 완성하고, 같은 프론트의 `/shop`에는 주문을 재현하는 최소 화면을 둔다. 상세 화면 범위와 API 연결은 [프론트와 배포 설계](frontend-deployment.md)에 정의한다.
 
-해커톤 배포 기본안은 Vercel의 프론트와 별도 백엔드 호스트의 Spring Boot 세 앱·PostgreSQL이다. 백엔드 호스트는 공유 로그 볼륨과 실행 버전의 소스 스냅샷을 에이전트에 제공한다. 실제 호스팅 서비스는 팀이 사용할 수 있는 서버에 맞춰 정한다.
+해커톤 데모는 같은 PC의 web·Spring Boot 세 앱·PostgreSQL과 ngrok HTTPS 진입점 하나로 구성한다. 로컬 공유 로그·소스·정책은 Agent에 읽기 전용으로 제공한다. 모델 추론은 프로모션 적용 조직·프로젝트의 키로 OpenAI API를 직접 호출하며 [데모 비용 정책](planning/demo-llm-policy.md)을 따른다.
 
 ## 5. 커머스 내부 구조
 
@@ -233,7 +234,7 @@ include 'scenario-runner'
 - Spring Boot 4.1.1로 실행 골격을 빌드한다. Spring AI의 기준 버전은 gradle.properties의 2.0.1이며 모델 의존성과 호출은 agent 담당이 연결한다. Spring AI 2.0.x는 Spring Boot 4.0.x·4.1.x를 지원한다. [Spring AI 시작 문서](https://docs.spring.io/spring-ai/reference/getting-started.html)
 - `core`에는 유스케이스와 도구가 필요한 의존성을, `infra`에는 사용하는 저장·조회 기술 의존성을 선언한다.
 - 앱은 명시적인 설정 Import와 범위가 정해진 Component·Entity·Repository 스캔으로 필요한 구현체를 조립한다.
-- 프론트는 `web`에서 Node.js 패키지 도구로 독립 빌드하고, Vercel에 배포한다. UI가 소비하는 API 계약과 보고서 JSON 구조를 백엔드와 함께 관리한다.
+- 프론트는 `web`에서 Node.js 패키지 도구로 독립 빌드하고 로컬에서 실행해 ngrok로 연결한다. UI가 소비하는 API 계약과 보고서 JSON 구조를 백엔드와 함께 관리한다.
 
 ## 9. 3명 작업 경계와 구현 순서
 
@@ -247,7 +248,7 @@ include 'scenario-runner'
 
 1. 공통 시작: 모듈 의존성, 추적 식별자, 주요 테이블, 도구 입출력, 보고서 구조를 맞춘다.
 2. 첫날 오전: 세 앱과 PostgreSQL을 실행하고, 최소 주문 API와 모델의 실제 도구 호출을 각각 확인한다. VOC와 프론트는 합의한 응답 형식으로 티켓·연동을 구현한다.
-3. 첫날 오후: 실제 문의 한 건을 프론트에서 끝까지 분석하고 7개 시나리오 데이터를 준비한다. 재고 동시 요청의 재현과 증거 기록을 확인한다. 백엔드의 HTTPS 주소가 준비되면 Vercel Preview에서도 같은 문의를 실행한다.
+3. 첫날 오후: 실제 문의 한 건을 프론트에서 끝까지 분석하고 7개 시나리오 데이터를 준비한다. 재고 동시 요청의 재현과 증거 기록을 확인한다. 로컬 web·접근 제어·ngrok가 준비되면 공개 HTTPS URL에서도 같은 문의를 실행한다.
 4. 둘째 날 오전: 7개 시나리오를 반복 실행해 원인·근거·해결안을 검증한다.
 5. 둘째 날 오후: 정상·정보 부족 사례, 조사 및 검토 시간, 발표 흐름을 정리한다.
 

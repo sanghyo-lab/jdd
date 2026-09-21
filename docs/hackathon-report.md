@@ -41,23 +41,24 @@ JDD는 자연어 문의를 입력받아 관련 주문과 결제·쿠폰·재고 
 | AI 연결 | Spring AI 2.0.x | Java 도구 메서드와 모델 호출을 같은 애플리케이션에서 연결한다. |
 | 저장·조회 | PostgreSQL, Spring Data JPA, Spring JDBC `JdbcClient` | 업무 데이터 저장과 조사용 조회 SQL을 각 책임에 맞게 구현한다. |
 | 스키마 관리 | Flyway | 세 명이 같은 테이블 정의와 초기 상태를 사용한다. |
-| 프론트 | Next.js App Router, React, TypeScript, Tailwind CSS | 문의·진행·근거 화면을 만들고 Vercel에 배포한다. |
+| 프론트 | Next.js App Router, React, TypeScript, Tailwind CSS | 문의·진행·근거 화면을 로컬에서 실행하고 ngrok로 연결한다. |
 | 빌드·실행 | Gradle 멀티모듈, Docker Compose | 모듈 경계와 로컬·시연 실행 환경을 맞춘다. |
 | 검증 | JUnit, 실제 PostgreSQL을 사용하는 통합 검증 | 계산·상태 전이와 재고 동시 요청의 결과를 확인한다. |
 
 위 버전은 권장 계열이며, 실제 패치 버전은 최초 빌드와 모델 도구 호출을 검증한 뒤 고정한다. Spring Boot 4.1.x의 Java 지원 범위와 Spring AI 2.0.x의 Boot 4.1.x 지원은 공식 문서를 기준으로 선택했다. [Spring Boot 요구사항](https://docs.spring.io/spring-boot/system-requirements.html), [Spring AI 시작 문서](https://docs.spring.io/spring-ai/reference/getting-started.html)
 
-모델 제공자와 모델명은 실제 도구 호출을 확인한 후 기록한다. 검증 시에는 모델명과 설정도 고정해 결과에 남긴다. Next.js의 Vercel 배포 방식은 [공식 문서](https://vercel.com/docs/frameworks/full-stack/nextjs)를 따른다.
+데모 제공자는 OpenAI이며 프로모션 적용 조직·프로젝트의 API 키를 사용한다. 모델명·실제 접근·도구 호출은 검증한 뒤 결과에 기록한다. 공개 접속은 [ngrok 로컬 데모 절차](ngrok-local-demo.md)를 따르며 구성 선택을 실제 실행 완료로 표시하지 않는다.
 
 ## 4. 시스템 구조
 
 ```mermaid
 flowchart LR
-    User[개발팀] --> Web[Next.js / Vercel]
+    User[개발팀] --> Tunnel[ngrok / HTTPS]
+    Tunnel --> Web[로컬 Next.js]
     Web --> VOC[voc-app]
     VOC -->|조사 요청·조회| Agent[agent-app]
     VOC --> Tickets[(티켓·분석 요청 연결)]
-    Agent <--> LLM[LLM]
+    Agent <-->|HTTPS / 서버 전용 키| LLM[OpenAI API]
     Agent --> Tools[데이터·로그·소스·정책 조회 도구]
     Tools --> Evidence[커머스 데이터·로그·실행 소스·업무 정책]
     Agent --> History[(조사 이력·보고서)]
@@ -65,7 +66,7 @@ flowchart LR
     Commerce -->|업무 데이터·실행 로그 생성| Evidence
 ```
 
-백엔드는 Spring Boot 앱 세 개와 PostgreSQL을 별도 호스트에서 실행한다. Next.js는 티켓·분석 요청을 VOC로 중계하고, VOC가 Agent를 호출해 조사 ID를 연결한다. 조사 작업은 `agent-app`에서 계속 수행하며 VOC의 상태 조회를 통해 진행 내역과 보고서를 화면에 표시한다.
+시연 PC에서 Next.js·Spring Boot 앱 세 개·PostgreSQL을 실행하고 ngrok로 Next.js 진입점 하나를 연결한다. Next.js는 티켓·분석 요청을 로컬 VOC로 중계하고, VOC가 내부 Agent를 호출해 조사 ID를 연결한다. 조사 작업은 `agent-app`에서 계속 수행하며 OpenAI API를 이용한다. VOC의 상태 조회를 통해 진행 내역과 보고서를 화면에 표시한다.
 
 | 모듈 | 책임 |
 | --- | --- |

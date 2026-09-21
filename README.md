@@ -7,7 +7,7 @@
 - 3인 분담: AI Agent / 이커머스 / VOC 티켓 관리·AI 연동
 - GitHub 작업 방식: 각자 별도 clone의 `main`에서 개발하고, 검증한 변경을 커밋·push해 공유
 - 실행 골격: Gradle 백엔드 모듈 10개, 커머스·조사·VOC의 세 실행 단위
-- 프론트 제안: `web`의 Next.js·React·TypeScript, Vercel 배포
+- 프론트 제안: `web`의 Next.js·React·TypeScript, 로컬 실행 + ngrok 데모 연결
 - 조사 대상: 주문·결제·쿠폰·취소·재고에 관한 7개 문의 시나리오
 
 현재는 **각 PC에서 역할별 개발을 시작할 준비 단계**다. 공통 Spring Boot 실행 골격·DB·동기화 도구를 준비했고, 주문·티켓·AI 분석 기능은 각 담당 goal에서 구현한다. 실제 goal은 아직 시작하지 않았다.
@@ -50,7 +50,8 @@
 - [VOC·Agent API·리포트·근거 인터페이스 v1](docs/integration-contract.md)
 - [커머스 API·DB·로그·실행 소스 인터페이스 v1](docs/commerce-interface.md)
 - [멀티모듈 구조와 데이터 흐름](docs/architecture.md)
-- [문의 화면과 Vercel 배포](docs/frontend-deployment.md)
+- [문의 화면과 ngrok 로컬 데모](docs/frontend-deployment.md)
+- [ngrok 로컬 데모 실행 절차](docs/ngrok-local-demo.md)
 - [앱과 에이전트가 확인할 업무 정책](docs/business-policy.md)
 - [문의 시나리오·재현 조건·검증 기준](docs/voc-scenarios.md)
 - [해커톤 프로젝트 보고서 초안·검증 결과표](docs/hackathon-report.md)

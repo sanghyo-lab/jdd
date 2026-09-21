@@ -50,20 +50,24 @@ OpenAI의 지출 알림은 호출을 차단하지 않는다. 별도의 프로젝
 월별 제공자 한도와 데모 기간의 누적 예산을 구분한다. 현재 계정의 한도를 설정하거나 확인한 상태는 아니다.
 [OpenAI 지출 한도 공식 문서](https://developers.openai.com/api/docs/guides/spend-limits)
 
-## 로컬 방식의 두 선택지
+## 선택한 데모 방식 — 로컬 앱 + ngrok + OpenAI
 
-사용자의 “엥그로드”가 무엇을 뜻하는지 확인 중이다. 두 방식은 비용에 주는 영향이 다르다.
+사용자의 “엥그로드로 로컬에서 처리” 요청을 ngrok로 로컬 앱을 연결하는 방식으로 반영한다.
+web·Spring Boot 세 앱·PostgreSQL·근거 볼륨은 시연 PC에서 실행하고, ngrok는 로컬 web의 HTTPS 진입점만 제공한다.
+서비스 Agent는 로컬에서 조사·도구 실행·저장을 수행하고 모델 추론은 OpenAI API를 직접 호출한다.
+ngrok를 모델 API 주소나 LLM 중계 서버로 설정하지 않는다. 로컬 LLM 전환은 이번 선택에 포함되지 않는다.
 
-| 방식 | 목적 | OpenAI 호출과 비용 |
-| --- | --- | --- |
-| 로컬 앱 + ngrok | 로컬에서 실행하는 데모의 화면/API를 외부 URL로 연결 | OpenAI를 계속 호출하면 API 비용도 발생한다. 앱 호스팅 방식과 모델 비용은 별개다. |
-| 로컬 앱 + 로컬 LLM | 로컬 컴퓨터에서 모델 추론 | 해당 모델 경로는 OpenAI 키를 사용하지 않는다. 하드웨어·속도·한국어·도구 호출·보고서 품질을 따로 검증한다. |
+프로모션이 적용된 조직·프로젝트의 API 키를 로컬 Agent 실행 환경에 주입하면 같은 OpenAI 크레딧을 사용할 수 있다.
+ngrok 사용으로 OpenAI API 사용량이 사라지지는 않는다. $50 적용 기록·데모 전용·$30 기준을 그대로 유지한다.
+ngrok 계정·authtoken·이용 요금은 OpenAI 키·프로모션과 별개이며 OpenAI 크레딧으로 ngrok 비용을 충당한다고 가정하지 않는다.
 
-[ngrok 공식 시작 안내](https://ngrok.com/docs/start), [Ollama의 로컬 모델 안내](https://docs.ollama.com/)
+브라우저 → ngrok → 로컬 web → 로컬 VOC → 로컬 Agent 순서로 연결한다. 쇼핑몰 요청은 web 서버가 로컬 commerce로 중계한다.
+DB·Agent·commerce·VOC의 포트를 각각 공개하지 않으며 web에서 허용된 API만 중계한다.
+OpenAI 키는 Agent에만, ngrok authtoken은 ngrok 실행 환경에만 둔다. 웹 번들·브라우저·터널 요청으로 키를 전달하지 않는다.
+실행 순서·주소·검증·종료는 [ngrok 로컬 데모 절차](../ngrok-local-demo.md)를 따른다.
 
-ngrok를 선택하면 VOC 화면/API 진입점만 연결하고 DB·Agent 관리 경로·모델 키를 공개하지 않는다.
-로컬 LLM을 선택하면 제공자 구현을 분리하고 실패 시 OpenAI로 자동 전환하지 않는다.
-현재 어떤 터널도 열지 않았고 로컬 모델도 설치·실행하지 않았다. 승인된 데모 제공자를 바꾸면 실제 모델명과 결과를 기록한다.
+현재 web과 실제 모델 실행기는 구현 전이며, 이 문서 변경으로 공개 터널이나 실제 모델 연결이 검증된 것은 아니다.
+[ngrok 공식 CLI 안내](https://ngrok.com/docs/gateway/agent/cli)에 따라 실제 계정·접근 제어·앱이 준비되면 실행한다.
 
 ## 인계와 확인 기준
 
