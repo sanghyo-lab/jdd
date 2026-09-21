@@ -1,6 +1,8 @@
 package com.jdd.commerce.api;
 
 import com.jdd.commerce.common.CommerceException;
+import com.jdd.commerce.coupon.application.CouponService;
+import com.jdd.commerce.coupon.domain.CustomerCoupon;
 import com.jdd.commerce.order.application.OrderService;
 import com.jdd.commerce.order.domain.CreateOrder;
 import com.jdd.commerce.order.domain.Order;
@@ -17,7 +19,13 @@ import tools.jackson.databind.JsonNode;
 @RequestMapping("/api")
 public class CommerceController {
     private final OrderService orders;
-    public CommerceController(OrderService orders) { this.orders = orders; }
+    private final CouponService coupons;
+    public CommerceController(OrderService orders, CouponService coupons) { this.orders = orders; this.coupons = coupons; }
+    @GetMapping("/customers/{customerId}/coupons") public Map<String, List<CustomerCoupon>> coupons(
+            @PathVariable String customerId, @RequestParam(defaultValue = "20") int limit,
+            @RequestParam(defaultValue = "0") int offset) {
+        return Map.of("items", coupons.coupons(customerId, limit, offset));
+    }
     @GetMapping("/products") public Map<String, List<Product>> products(
             @RequestParam(defaultValue = "20") int limit, @RequestParam(defaultValue = "0") int offset) {
         return Map.of("items", orders.products(limit, offset));

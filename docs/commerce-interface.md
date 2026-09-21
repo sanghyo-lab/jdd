@@ -1,6 +1,6 @@
 # 커머스 API·DB·로그·소스 인터페이스 v1
 
-제공자는 **이상효**, 사용자는 커머스 API·재현 실행의 **김아름**과 근거 조회의 **한재홍**이다. 상품·주문·재고 API와 아래 DDL, JSONL 근거를 구현했다. 결제·쿠폰 적용·취소·환불은 다음 구현 단위이며 전체 업무 완료를 뜻하지 않는다. 실제 검증 상태는 [commerce 상태](status/commerce.md), 실행은 [Commerce 안내](../commerce-app/README.md)를 따른다. 결함의 기대 관측값은 [VOC 시나리오](voc-scenarios.md), 정상 동작은 [업무 정책](business-policy.md)을 따른다.
+제공자는 **이상효**, 사용자는 커머스 API·재현 실행의 **김아름**과 근거 조회의 **한재홍**이다. 상품·주문·재고·쿠폰 API와 아래 DDL, JSONL 근거를 구현했다. 결제·취소·환불은 다음 구현 단위이며 전체 업무 완료를 뜻하지 않는다. 실제 검증 상태는 [commerce 상태](status/commerce.md), 실행은 [Commerce 안내](../commerce-app/README.md)를 따른다. 결함의 기대 관측값은 [VOC 시나리오](voc-scenarios.md), 정상 동작은 [업무 정책](business-policy.md)을 따른다.
 
 ## 1. 공통 규칙
 

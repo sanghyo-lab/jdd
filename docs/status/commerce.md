@@ -57,3 +57,9 @@
 - 추가 컨테이너 검증에서 `jdd` DB의 commerce 계정이 TEMP 권한을 갖지 않아 기존 reset.sql이 실패했다. 전용 DB 소유 계정으로 통과한 결과만으로 기본 실행 환경을 보장할 수 없음을 확인했다. 실패 원문은 `runtime/submission/commerce-reproductions/20260921T085827.981243Z-inventory.json`과 container-smoke 명령 로그에 보존했다.
 - 수정 `878f602`: VOC-07 reset.sql은 임시 테이블 대신 psql 변수에 합성 주문 ID 배열을 보존한다. DB 권한은 확대하지 않았고 삭제 범위와 FK 순서를 유지했다.
 - 재검증: 기본 Compose의 실제 HTTP 8080·PostgreSQL `jdd`에서 VOC-07 20/20회 및 정상/복구 대조 통과, 결과 `runtime/submission/commerce-reproductions/20260921T085927.924315Z-inventory.json`. 실행 바이너리 buildId는 `e080390b7157-083e2c0c180d`, 초기화 스크립트 수정은 위 커밋이다. 기존 주문 2건이 있는 같은 접두어의 reset→seed도 주문 0·재고 1·INITIAL 1건을 확인했다(`inventory-reset-existing-20260921.json`).
+
+## 2026-09-21 — 쿠폰 API와 VOC-02·03
+
+- 구현: 고객 쿠폰 조회, 소유자·기간·사용 상태 검사, 주문과 같은 트랜잭션의 사용 기록·JSONL 근거. 발급 쿠폰 행 잠금으로 우발적인 동시 중복 사용을 방지한다. VOC-02 최소금액 경계 제외와 VOC-03 정수 나눗셈 결함은 재현 대상으로 유지한다.
+- 합성 입력: `fixtures/commerce/VOC-02`, `VOC-03`에 독립 SQL·HTTP 요청·관측 기준을 제공하고 `reproduce_commerce.py`로 실제 DB/HTTP/로그/소스를 함께 기록한다. 초기화는 TEMP 권한 없이 해당 합성 접두어만 대상으로 한다.
+- HTTP/H2: `./gradlew --no-daemon :commerce-app:test` 종료 0. 쿠폰 경계값·소유/기간/사용 거절·정액/상한·동시 동일 쿠폰 사용·DB 실패 시 쿠폰/주문/재고 롤백을 추가 검증했다. 실제 PostgreSQL 3회 반복은 이 커밋 빌드에서 이어 수행한다. 결제·취소·환불과 실제 모델은 미검증이다.

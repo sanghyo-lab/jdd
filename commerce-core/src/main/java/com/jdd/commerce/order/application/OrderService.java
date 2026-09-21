@@ -4,6 +4,7 @@ import com.jdd.commerce.common.BusinessEvents;
 import com.jdd.commerce.common.BusinessEvents.Trace;
 import com.jdd.commerce.common.CommerceException;
 import com.jdd.commerce.common.Inputs;
+import com.jdd.commerce.coupon.application.CouponService;
 import com.jdd.commerce.inventory.port.InventoryReadObserver;
 import com.jdd.commerce.order.domain.CreateOrder;
 import com.jdd.commerce.order.domain.Order;
@@ -26,13 +27,15 @@ public class OrderService {
     private final BusinessEvents events;
     private final InventoryReadObserver observer;
     private final Clock clock;
+    private final CouponService coupons;
 
     public OrderService(CommerceRepository repository, BusinessEvents events,
-            InventoryReadObserver observer, Clock clock) {
+            InventoryReadObserver observer, Clock clock, CouponService coupons) {
         this.repository = repository;
         this.events = events;
         this.observer = observer;
         this.clock = clock;
+        this.coupons = coupons;
     }
 
     @Transactional(readOnly = true)
@@ -65,9 +68,6 @@ public class OrderService {
     public Order create(CreateOrder request, String requestId) {
         validate(request);
         Inputs.identifier(requestId, "requestId");
-        if (request.customerCouponId() != null) {
-            throw CommerceException.invalid("Coupon order processing is not available yet");
-        }
         List<Order.Item> items = new ArrayList<>();
         long subtotal = 0;
         for (CreateOrder.Item item : request.items().stream()
@@ -89,17 +89,23 @@ public class OrderService {
             }
         }
         Instant at = clock.instant();
+        CouponService.Quote quote = request.customerCouponId() == null ? null : coupons.quote(
+                request.customerId(), request.customerCouponId(), subtotal,
+                new Trace(requestId, request.checkoutKey(), null, null, null, request.customerCouponId()));
+        long discount = quote == null ? 0 : quote.discountAmount();
         Order order = new Order(UUID.randomUUID().toString(), request.customerId(), request.checkoutKey(),
-                "PAYMENT_PENDING", items, subtotal, 0, subtotal, null, at, at);
+                "PAYMENT_PENDING", items, subtotal, discount, subtotal - discount, request.customerCouponId(), at, at);
         repository.insertOrder(order, requestId);
+        if (quote != null) coupons.use(quote, order.id(), subtotal,
+                new Trace(requestId, order.checkoutKey(), order.id(), null, null, order.customerCouponId()), at);
         for (Order.Item item : items) {
             int after = repository.subtractStock(item.productId(), item.quantity(), at);
             repository.movement(item.productId(), order.id(), requestId, order.checkoutKey(),
                     "RESERVE", -item.quantity(), after, at);
             events.afterCommit("INVENTORY_RESERVED", new Trace(requestId, order.checkoutKey(), order.id(), null,
-                    item.productId(), null), Map.of("quantityDelta", -item.quantity(), "quantityAfter", after));
+                    item.productId(), order.customerCouponId()), Map.of("quantityDelta", -item.quantity(), "quantityAfter", after));
         }
-        events.afterCommit("ORDER_CREATED", new Trace(requestId, order.checkoutKey(), order.id(), null, null, null),
+        events.afterCommit("ORDER_CREATED", new Trace(requestId, order.checkoutKey(), order.id(), null, null, order.customerCouponId()),
                 Map.of("status", order.status(), "totalAmount", order.totalAmount()));
         return order;
     }

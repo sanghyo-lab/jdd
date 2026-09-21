@@ -134,4 +134,84 @@ class CommerceHttpTest {
     @Test void reproductionControlsAreAbsentByDefault() throws Exception {
         assertThat(request("POST", "/internal/reproduction/inventory-barrier", "{}").statusCode()).isEqualTo(404);
     }
+    void coupon(String id, String kind, long minimum, Long fixed, String rate, Long maximum) {
+        jdbc.update("INSERT INTO commerce.coupons (id,discount_type,min_order_amount,fixed_discount_amount,discount_rate,max_discount_amount,valid_from,valid_until) VALUES (?,?,?,?,?,?,?,?)",
+                id, kind, minimum, fixed, rate == null ? null : new java.math.BigDecimal(rate), maximum,
+                java.sql.Timestamp.from(java.time.Instant.now().minusSeconds(3600)),
+                java.sql.Timestamp.from(java.time.Instant.now().plusSeconds(3600)));
+        jdbc.update("INSERT INTO commerce.customer_coupons VALUES (?, 'customer-test', ?, 'AVAILABLE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)", "cc-" + id, id);
+    }
+    String withCoupon(String key, String id) {
+        String body = order(key, "1");
+        return body.substring(0, body.length()-1) + ",\"customerCouponId\":\"cc-" + id + "\"}";
+    }
+    @Test void couponBoundaryDefectIsDistinctFromBelowMinimumAndNormalFixedDiscount() throws Exception {
+        coupon("fixed", "FIXED", 50000, 5000L, null, null);
+        assertThat(request("POST", "/api/orders", withCoupon("equal", "fixed")).statusCode()).isEqualTo(422);
+        jdbc.update("UPDATE commerce.products SET price=49999 WHERE id='p1'");
+        assertThat(request("POST", "/api/orders", withCoupon("below", "fixed")).statusCode()).isEqualTo(422);
+        assertThat(count("coupon_usages")).isZero();
+        assertThat(count("orders")).isZero();
+        assertThat(jdbc.queryForObject("SELECT quantity FROM commerce.product_stock WHERE product_id='p1'", Integer.class)).isEqualTo(3);
+        jdbc.update("UPDATE commerce.products SET price=50001 WHERE id='p1'");
+        var applied = request("POST", "/api/orders", withCoupon("above", "fixed"));
+        assertThat(applied.statusCode()).isEqualTo(201);
+        assertThat(json.readTree(applied.body()).path("discountAmount").longValue()).isEqualTo(5000);
+        assertThat(json.readTree(applied.body()).path("totalAmount").longValue()).isEqualTo(45001);
+        assertThat(jdbc.queryForObject("SELECT status FROM commerce.customer_coupons WHERE id='cc-fixed'", String.class)).isEqualTo("USED");
+        assertThat(request("POST", "/api/orders", withCoupon("used", "fixed")).statusCode()).isEqualTo(422);
+    }
+    @Test void listsCouponsAndRejectsWrongOwnershipExpiredFutureAndMissingCoupon() throws Exception {
+        coupon("valid", "FIXED", 0, 5000L, null, null);
+        var list = json.readTree(request("GET", "/api/customers/customer-test/coupons", null).body()).path("items");
+        assertThat(list.size()).isEqualTo(1);
+        assertThat(list.get(0).path("discountRate").isNull()).isTrue();
+        assertThat(list.get(0).path("maxDiscountAmount").isNull()).isTrue();
+        assertThat(request("GET", "/api/customers/customer-test/coupons?limit=101", null).statusCode()).isEqualTo(400);
+        assertThat(request("POST", "/api/orders", withCoupon("missing", "missing")).statusCode()).isEqualTo(404);
+        assertThat(request("POST", "/api/orders", withCoupon("owner", "valid").replace("customer-test", "other")).statusCode()).isEqualTo(422);
+        jdbc.update("UPDATE commerce.coupons SET valid_from=?,valid_until=? WHERE id='valid'",
+                java.sql.Timestamp.from(java.time.Instant.now().minusSeconds(7200)), java.sql.Timestamp.from(java.time.Instant.now().minusSeconds(1)));
+        assertThat(request("POST", "/api/orders", withCoupon("expired", "valid")).statusCode()).isEqualTo(422);
+        jdbc.update("UPDATE commerce.coupons SET valid_from=?,valid_until=? WHERE id='valid'",
+                java.sql.Timestamp.from(java.time.Instant.now().plusSeconds(60)), java.sql.Timestamp.from(java.time.Instant.now().plusSeconds(3600)));
+        assertThat(request("POST", "/api/orders", withCoupon("future", "valid")).statusCode()).isEqualTo(422);
+        assertThat(count("orders")).isZero();
+        assertThat(count("coupon_usages")).isZero();
+    }
+    @Test void percentageDefectAndFixedDiscountCapsHaveActualStoredUsage() throws Exception {
+        jdbc.update("UPDATE commerce.products SET price=60000 WHERE id='p1'");
+        coupon("percent", "PERCENT", 50000, null, "10", 10000L);
+        var applied = request("POST", "/api/orders", withCoupon("percent", "percent"));
+        assertThat(applied.statusCode()).isEqualTo(201);
+        assertThat(json.readTree(applied.body()).path("discountAmount").longValue()).isZero();
+        assertThat(jdbc.queryForObject("SELECT discount_amount FROM commerce.coupon_usages WHERE customer_coupon_id='cc-percent'", Long.class)).isZero();
+        coupon("capped", "FIXED", 0, 80000L, null, 10000L);
+        assertThat(json.readTree(request("POST", "/api/orders", withCoupon("capped", "capped")).body()).path("discountAmount").longValue()).isEqualTo(10000);
+        coupon("subtotal", "FIXED", 0, 80000L, null, null);
+        assertThat(json.readTree(request("POST", "/api/orders", withCoupon("subtotal", "subtotal")).body()).path("totalAmount").longValue()).isZero();
+    }
+    @Test void concurrentCouponUseIsSerializedAndCreatesOnlyOneUsage() throws Exception {
+        coupon("single", "FIXED", 0, 5000L, null, null);
+        var start = new java.util.concurrent.CyclicBarrier(2);
+        try (var pool = java.util.concurrent.Executors.newFixedThreadPool(2)) {
+            var first = pool.submit(() -> { start.await(); return request("POST", "/api/orders", withCoupon("first", "single")); });
+            var second = pool.submit(() -> { start.await(); return request("POST", "/api/orders", withCoupon("second", "single")); });
+            assertThat(List.of(first.get().statusCode(), second.get().statusCode())).containsExactlyInAnyOrder(201, 422);
+        }
+        assertThat(count("orders")).isEqualTo(1);
+        assertThat(count("coupon_usages")).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT quantity FROM commerce.product_stock WHERE product_id='p1'", Integer.class)).isEqualTo(2);
+    }
+    @Test void downstreamDatabaseFailureRollsBackCouponAndOrderTogether() throws Exception {
+        coupon("rollback", "FIXED", 0, 5000L, null, null);
+        jdbc.execute("ALTER TABLE commerce.inventory_movements ADD CONSTRAINT reject_coupon_reserve CHECK (quantity_delta >= 0)");
+        try {
+            assertThat(request("POST", "/api/orders", withCoupon("rollback", "rollback")).statusCode()).isEqualTo(500);
+            assertThat(count("orders")).isZero();
+            assertThat(count("coupon_usages")).isZero();
+            assertThat(count("event_outbox")).isZero();
+            assertThat(jdbc.queryForObject("SELECT status FROM commerce.customer_coupons WHERE id='cc-rollback'", String.class)).isEqualTo("AVAILABLE");
+        } finally { jdbc.execute("ALTER TABLE commerce.inventory_movements DROP CONSTRAINT reject_coupon_reserve"); }
+    }
 }
