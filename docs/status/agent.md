@@ -1,5 +1,12 @@
 # 한재홍 — AI Agent 작업 상태
 
+## 2026-09-22T09:10:03+09:00 — 영상 환경 v8 병렬 조사·선택 결과 직접 인수
+
+- 격리 Agent build `45c879c27035-8f9e02b0545c`(공유6e684ca의 v8 내용)에서 같은 문의/식별자와 새 조사키로 실행한 VOC05 `a9a98d4f-5b79-4f26-bf83-ba787de6bb03`·VOC06 `c573e4df-07c2-4c5b-8217-c7a69839d745`가 각각 실제 OAuth5/6회·15/55근거로 COMPLETED다. worker2에서 두 RUNNING의 동시 관측을 보존했다. Commerce/VOC/업무 데이터와 입력·시간·호출 제한은 유지했다.
+- 05는 취소/승인/환불0행·같은 사건 REFUND_FAILED·return null 실행경로, 06은 취소/환불 완료·쿠폰USED/사용ACTIVE·확인한 취소메서드에서 복원 호출이 보이지 않는 범위를 DATA/LOG/CODE/POLICY 원문과 대조했다. 파일 SHA/실행커밋 줄도 일치한다. 06 원인은 PARTIAL이며 사람이 유효기간 확인 후 복원을 검토하는 제안이다. 조치를 적용하거나 전체 경로 부재를 확정하지 않았다.
+- 영상 선택7건의 조사ID·3문장·243근거 파일 SHA를 case-map 및 독립 검수와 연결했다. 이전 첫 실패3건과 재시도 실패2건은 보존하며, VOC02는 별도 사건/빌드의 저장 조사임을 화면에 표시한다. 04의 수량 직접인용 공백 등 전체 보고서 한계는 QA에 남겼다. 7개 최초 통과나 반복 안정성·전체 MVP·담당자 DONE을 뜻하지 않는다.
+- 원본21개 장면 촬영을 완료했고 로컬 Yuna 음성1배/화면1.5배·자막 편집 중이다. 한 원본의 여백을 편집 검수에서 발견하여 보정하고 최종 합본은 아직 검사 중이다. 근거는 Git 밖 `output/jdd-demo/20260922-233019/qa/provenance-validation.json`, `qa/report-semantic-review.json`, `investigations-v8/`와 `output/playwright/jdd-demo/20260922-233019/`다. 배포 프로모션API/TTS API호출0이며 OAuth 사용량 미관측2건을 0으로 계산하지 않는다.
+
 ## 2026-09-22T08:59:09+09:00 — v8 실제 부분 검수 인수·원문/사용량 대조
 
 - `6e684ca` 전체 publish 종료0으로 공유했다. Java228개 중219통과/9조건부제외·실패0, Python70/부모6/web19·production build·세 앱 실제 PostgreSQL/HTTP/근거 연결이 통과했다. `followup-review-v8-publish.log/json`, `followup-review-v8-publish-tests.json`을 보존했고 일반 검사의 실제 모델 호출0이다.
