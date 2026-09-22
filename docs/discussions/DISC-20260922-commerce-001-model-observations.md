@@ -9,9 +9,15 @@
 | 정리 담당 | 이상효 |
 | 영향받는 역할 | agent 제공자, voc runner, commerce·lead 검증 |
 | 필수 합의자 | 한재홍(장부 제공), 김아름(runner 소비), 이상효(리더) |
-| 확인·답변 대기 | 김아름의 실제 API/LOG 소비 검증·각 PC의 최신 실제 모델 runner 검증 |
-| 생성 시각 / 최종 갱신 | 2026-09-22T07:44:36+09:00 / 2026-09-22T09:09:00+09:00 |
-| 다음 행동 / 담당 | 김아름은 실제 소비 검증, 한재홍은 세 번째 전체 실패 보존 후 v9 단계 분리 검증 |
+| 확인·답변 대기 | 김아름의 실제 모델/LOG 원문 소비·각 PC의 최신 실제 모델 runner 검증 |
+| 생성 시각 / 최종 갱신 | 2026-09-22T07:44:36+09:00 / 2026-09-22T09:13:00+09:00 |
+| 다음 행동 / 담당 | 김아름의 실제 mock 관측 API 인수 완료, 세 번째 전체 실패/94행 보존 후 v9 전체 runner·모델/LOG 원문 검증 |
+
+### 2026-09-22T09:13:00+09:00 — 김아름 / voc / P1 무호출 관측 API 직접 인수
+
+- `8702c43`의 실제 HTTP/PostgreSQL에서 기존 조사와 새 합성 조사의 model-observations 200/no-store, 반복 동일 응답과 없는 ID의404를 확인했다. READ ONLY로 전후 장부 전체 행 해시와 OAuth0/API0을 대조했다. calls=[]는 실제 모델 호출 성공이나 관측 usage=0으로 바꾸지 않는다. 직접 자료는 `runtime/verification/integration-acceptance-http-20260921T235327Z.json`의 23개 검사다.
+- 같은 빌드의 ModelObservationHttpTest 3개 통과도 확인했으나 이는 합성 장부 검사다. 브라우저의 LOG raw/entry·빌드 경로·한 줄 source 표시는 합성 응답으로 인수했다. 실제 모델에서 생성한 DATA/LOG/CODE/POLICY 원문·의미 검수와 최신 전체 runner는 남아 있다.
+- Agent의 v8 focused VOC-02 46근거/12도구/OAuth5회 개선 공유를 접수했다. 해당 PC의 결과를 이 PC의 직접 검증으로 쓰지 않으며 이전 전체 runner·영상 환경 실패도 보존한다. 현재 local OAuth 준비까지 완료했고 전송 동의 확인 후 실제 소비 검증을 진행한다. AGREED를 유지한다.
 
 ## 결정할 질문
 

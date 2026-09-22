@@ -9,9 +9,15 @@
 | 정리 담당 | 이상효 |
 | 영향받는 역할 | commerce·lead, agent, voc |
 | 필수 합의자 | 이상효(리더), 한재홍(모델 실행), 김아름(공통 실행·runner) |
-| 확인·답변 대기 | 김아름의 실제 준비 상태 소비·각 PC의 최신 실제 모델 runner 검증 |
-| 생성 시각 / 최종 갱신 | 2026-09-21T21:17:00+09:00 / 2026-09-22T08:29:13+09:00 |
-| 다음 행동 / 담당 | 김아름은 최신 공유 구현·mock 준비 상태를 로컬 인수하고 별도 준비된 실제 모델 검증으로 연결 |
+| 확인·답변 대기 | 각 PC의 최신 실제 모델 runner 검증 |
+| 생성 시각 / 최종 갱신 | 2026-09-21T21:17:00+09:00 / 2026-09-22T09:13:00+09:00 |
+| 다음 행동 / 담당 | 김아름의 mock·local OAuth 준비 상태 직접 인수 완료, 실제 전송 동의 확인 후 최신 전체 runner 검증 |
+
+### 2026-09-22T09:13:00+09:00 — 김아름 / voc / P2 실제 준비 상태 소비 인수
+
+- `8702c43`의 실제 3앱에서 test/mock·workerEnabled/workerReady=true·Agent businessReady=false와 VOC 준비를 직접 확인했다. 같은 검사에서 현재 build/HTTP/DB/SELECT 전용·볼륨 연결을 포함해 23/23 통과했으며 OAuth/API 장부0/0은 불변이다. 원문 `runtime/verification/integration-acceptance-http-20260921T235327Z.json`.
+- `f219cd0` 전체 publish 후 프로젝트 전용 공식 OAuth 로그인을 완료하고 같은 buildId `f219cd0e1cbc-6eb1c1be2a83`의 local/codex_oauth·gpt-5.6-luna를 명시 준비했다. 시작 전후 activeInvestigations=0/pendingVOC=0/OAuth=0/API=0이며 인증 mount의 읽기 가능·현재 adapter/worker/DB 준비를 실제 검사했다. 원문 `runtime/verification/integration-live-prepared-20260922T001014.694819Z.json`이다.
+- 준비 상태 소비를 인수한다. 실제 verify-mvp 실행은 자동 승인 검토의 외부 조사자료 전송 동의 확인 때문에 아직 시작하지 않았으며, 사용자 확인 후 고정한 빌드에서 수행한다. 인증 준비와 실제 모델 호출·품질 성공은 구분하고 전체 runner 검증이 남아 AGREED를 유지한다.
 
 ## 결정할 질문
 
@@ -132,7 +138,7 @@
 
 ## 결정·실행·검증
 
-세 작업자의 P1 직접 수락·Windows 네이티브 검사 이력은 유지한다. 최신 P2도 김아름의 명시 수락으로 AGREED다. 김아름의 실제 준비 상태 소비와 각 PC의 최신 실제 모델 runner 검증은 남아 미해소다. 소스/흐름 검사나 mock 기동을 실제 MVP 성공으로 계산하지 않는다. 건별 해소 기준을 모두 확인하기 전에는 RESOLVED로 바꾸지 않는다.
+세 작업자의 P1 직접 수락·Windows 네이티브 검사 이력은 유지한다. 최신 P2도 김아름의 명시 수락으로 AGREED다. 김아름의 실제 준비 상태 소비는 아래 09:13 기록으로 인수했으며 각 PC의 최신 실제 모델 runner 검증은 남아 미해소다. 소스/흐름 검사나 기동을 실제 MVP 성공으로 계산하지 않는다. 건별 해소 기준을 모두 확인하기 전에는 RESOLVED로 바꾸지 않는다.
 
 ## 해소 또는 재개 이력
 

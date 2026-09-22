@@ -16,6 +16,16 @@
 
 작업 단위가 끝날 때 제공 가능한 기능, 변경한 계약, 실제 검증 명령·결과, 다음 작업을 갱신한다. 실패와 막힌 이유도 함께 기록한다.
 
+## 2026-09-22T09:15:00+09:00 — 복구 수정 게시·직접 소비·로컬 OAuth 준비
+
+- 분석 접수 복구 보완을 최신 Agent v8 `6e684ca`와 통합해 `f219cd0`으로 main에 일반 push했다. 최종 전체 검사에서 Python 협업70·부모 준비6·web25, Java228개 중219통과/9조건부제외·실패0, production TypeScript/build와 세 앱의 DB·HTTP·SELECT 전용 접근·근거 볼륨 연결을 통과했다. 공통 buildId는 `f219cd0e1cbc-6eb1c1be2a83`이다. [GitHub Main checks](https://github.com/sanghyo-lab/jdd/actions/runs/35670724533)도 09:11:24에 성공했다. 원문 `runtime/verification/frontend-recovery-publish-01.log`와 `latest-linux-gradle-check.json`을 보존한다.
+- backend 직접 인수는 `8702c43`에서 23/23 통과했다. 실제 HTTP·PostgreSQL로 준비 상태, 내부 모델 관측의 no-store/재조회 불변/없는 조사404, 전달 상태와 조사 실패 분리, 티켓 수정 후 원래 키 재전송, 키/버전 충돌409, 타 티켓 분석/근거404, terminal 조회 불변을 확인했다. 기존 사용자 티켓 응답과 API/OAuth 장부0/0·행 해시는 보존됐다. 원문은 `runtime/verification/integration-acceptance-http-20260921T235327Z.json`이며 실제 모델 성공은 포함하지 않는다.
+- 깨끗한 별도 production build의 실제 브라우저에서 합성 응답19항목을 통과했다. 탭 완전 종료 후 같은 키 복구, 503 시 마지막 상태, PATCH409 입력 보존, NEEDS_INPUT 수정 후 새 요청, 4종 근거 원문·잘림 안내·CODE의 HTML 비실행, RUNNING 최종검수/report=null, REPORT_VALIDATION_FAILED와 보존 근거, 설정/일시/예산/알 수 없는 오류, 429 같은 입력 재전송을 확인했다. 1440px/390px에서 가로 넘침 없고 예상 밖 console 오류0이다. 원문 `runtime/verification/screen-acceptance-summary.json`의 합성 검증을 실제 모델 보고서 품질로 계산하지 않는다.
+- 동일 `f219cd0`의 실제 shop HTTP/PostgreSQL에서도 12개 관측을 확인했다. 별도 합성 접두어에만 seed를 추가해 50,001원-5,000원=45,001원 주문, 같은 키의 CARD 결제2회/취소2회에서 같은 결제·환불 ID, 재고10 복구, 새로고침 요청 메타데이터 유지, 사용 쿠폰422, 조회만으로 환불을 추정하지 않음, 미결제 주문 취소의 refund=null 안내를 확인했다. 최종 DB의 두 주문 CANCELLED·결제1·환불1·재고10 단언이 통과했고 PC/모바일 가로 넘침·console 오류0이다. 검증 복사본과 현재 프론트27파일의 바이트가 동일하다. 원문 `runtime/verification/screen-acceptance-shop.json`과 `screen-acceptance-shop-paid-replay.json`을 보존하며 분석 POST/모델 호출은0이다.
+- 사용자 위임으로 공식 프로젝트 전용 OAuth 로그인을 완료하고 같은 `f219cd0`의 Agent를 `local/codex_oauth`, `gpt-5.6-luna`로 준비했다. 준비 전후 진행 조사0·VOC 대기0·OAuth/API 호출0/0, 인증 파일 읽기 가능과 현재 빌드·실제 어댑터·worker/DB 준비를 확인했다. 원문은 `runtime/verification/integration-live-prepared-20260922T001014.694819Z.json`이다. 자격증명은 저장소 밖에 유지하며 내용을 공유하지 않는다.
+- 실제 verify-mvp 명령은 실행 전 자동 승인 검토가 조사 입력·근거의 외부 전송에 대한 구체적 동의 부족으로 거절했다. OpenAI Codex 목적지와 합성 VOC·업무 DB/로그/소스/정책 전송 범위를 사용자에게 명시해 확인 대기 중이다. 모델 호출은 아직0이며 인증 준비를 실제 모델 접근·보고서 품질 성공으로 표시하지 않는다. 화면 shop 검증과 협업 기록은 독립 진행한다.
+- Agent의 v8 focused VOC-02 개선 공유와 이전 전체 runner/영상 환경 실패를 구분해 접수했다. 이 PC의 최신 전체 VOC-01~07·NORMAL·NEEDS_INPUT·IDEMPOTENCY·RECOVERY와 원문 의미 검수, 팀 DONE/리더 승인은 남아 있다. 검증 중 게시 clone은 고정하고 원래 작업 폴더에서 협업 문서만 공유한다.
+
 ## 2026-09-22T08:54:00+09:00 — 최신 실행 인수와 분석 접수 복구 보완
 
 - 사용자 요청에 따라 프론트 복구·실제 화면·backend 연동을 하위 작업으로 분담하고 김아름 본 작업이 통합·검토·커밋·push를 맡는다. 09:30 마무리는 계획 목표이며 필수 검증과 팀 완료 기준을 줄이지 않는다.
