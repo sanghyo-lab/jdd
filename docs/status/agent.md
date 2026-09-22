@@ -1,5 +1,12 @@
 # 한재홍 — AI Agent 작업 상태
 
+## 2026-09-22T09:20:08+09:00 — 김아름 접수 복구 인수·v9 통합 공유
+
+- 김아름의 `f219cd0` 전체4경로를 확인하고 접수 키 보존/브라우저 복구를 인수했다. 이어 `0ddc07b`의 김아름 직접 HTTP23개·화면19항목·shop12관측과 P1 무호출/P2 준비 상태 인수 답변을 확인했다. 상대 PC의 실제 모델 전송 동의 대기·호출0을 본인 모델 성공으로 바꾸지 않는다. v9 보완은 동시 영상 상태 기록을 양쪽 보존한 뒤 `5cc91d3`으로 전체 publish 종료0·공유했다. Java229개 중220통과/9조건부제외·실패0, Python70/부모6/web25·production build·세 앱 PostgreSQL/HTTP/SELECT 근거 연결 통과다. 변경 없는 검사 재사용을 별도 새 실행으로 세지 않는다. 첫 publish의 원격 경합/상태 문서 충돌 종료1과 재검증 종료0은 `followup-report-mode-publish*.log/json`에 각각 남겼다.
+- build `5cc91d35c4a0-9152c642527f`의 실제 web1280에서 기존 완료 접수 메타데이터만 legacy sessionStorage에 준비했다. 실제 같은 키 POST의202 응답을 브라우저에서 유실시켜 오류/같은 키 보존·새 분석 차단을 확인했다. 기존 탭을 닫고 새 탭에서 돌아와 재전송하면 분석 `66687066-21c1-414b-9dd6-87fd19c0aad3`·조사 `e5fc9ec1-a319-4dab-9c49-add4eccb45a6`가 그대로 반환되고 보관 키만 정상 해제된다. 모바일390에서도 복구 완료/조사 이력 표시를 확인했다.
+- 첫 주입 helper는 CLI 함수 구문 오류로 적용되지 않아 최초 재전송은 일반 성공이었다. 이후 올바른 주입의 별도 관측/원문을 보존했다. 새 접수/모델을 만들지 않은 기존 요청 재생 검사이며 공개 URL 변경/ngrok/인증 만료 검증은 아니다. 당시 Agent는 publish의 test/mock이고 화면 보고서는 과거 실제 OAuth 결과다.
+- 전후18조사의 실제 호출 목록을 모두 비교해 OAuth94행/API0/기존usage미관측1/진행0·새 모델0을 확인했다. 원문 `followup-recovery-browser-*.txt`, `followup-browser-recovery-review.json`, `followup-observations-after-browser-recovery.log/json`, 실제 모바일 화면 `output/playwright/followup-browser-recovery-mobile.png`를 보존한다. 김아름의 자기 PC 검증/DONE을 대신하지 않는다. 최신 로컬 OAuth 전체 runner를 계속한다.
+
 ## 2026-09-22T09:14:38+09:00 — 7개 사례 시연 영상·PPT 생성과 기술 검수
 
 - 로컬 `output/jdd-demo/20260922-233019/`에 한국어 자막 포함 `jdd-demo-ko.mp4`, 자막 없는 `jdd-demo-clean.mp4`, 편집 가능한8장 PPTX/PNG, SRT/ASS, 정상속도 Yuna 음성 WAV, `timeline.json`/`case-map.json`/README/QA를 생성했다. 7사례 각각 사실·코드·사람조치제안 3문장이다. 실제 저장 조사 결과 재생이며 첫 접수부터 모델 대기까지를 실시간으로 촬영한 영상은 아니다.
