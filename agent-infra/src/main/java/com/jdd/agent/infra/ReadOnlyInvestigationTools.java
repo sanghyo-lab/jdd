@@ -12,7 +12,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 /** The model selects a named read, never SQL, commands, arbitrary paths or business writes. */
 public final class ReadOnlyInvestigationTools implements InvestigationTools {
-    public static final String SCHEMA_VERSION = "commerce-evidence-v2";
+    public static final String SCHEMA_VERSION = "commerce-evidence-v3";
     private final CommerceDataTools data;
     private final LogEvidenceTools logs;
     private final SourceEvidenceTools source;
@@ -27,9 +27,9 @@ public final class ReadOnlyInvestigationTools implements InvestigationTools {
                 define("getOrderContext", "한 주문의 상태·금액·상품·결제·환불·쿠폰 사용·재고 이력을 일관된 DB 스냅샷으로 조회합니다.", "orderId", "limit#?"),
                 define("getCouponContext", "고객 또는 발급 쿠폰 ID로 소유·유효기간·설정·사용 이력을 조회합니다.", "customerId?", "customerCouponId?", "limit#?"),
                 define("getInventoryContext", "상품 현재 재고, 제한된 원문 이력·주문과 전체 이력·상태별 정확한 수량 합계를 조회합니다.", "productId", "limit#?"),
-                define("searchLogs", "JSONL을 식별자 또는 하루 이하 기간으로 AND 검색합니다. 로그의 buildId로 소스를 읽으세요. 동일 eventId는 별도 업무 처리로 세지 마세요.",
+                define("searchLogs", "JSONL을 식별자 또는 하루 이하 기간으로 AND 검색합니다. 요청 전체 흐름은 확인한 requestId 또는 checkoutKey로 추적하세요. 주문 생성 전에는 orderId가 없을 수 있으므로 그때는 orderId=null로 둡니다. 여러 요청은 각각 조회합니다. 로그의 buildId로 소스를 읽고 동일 eventId를 별도 업무 처리로 세지 마세요.",
                         "buildId?", "requestId?", "orderId?", "productId?", "checkoutKey?", "from@?", "to@?", "limit#?"),
-                define("searchCode", "buildId의 해시가 일치하는 실행 소스에서 리터럴을 찾고 주변 줄과 manifest의 policyVersion을 반환합니다. 테스트·시드·재현 제어는 제외합니다.", "buildId", "query", "limit#?"),
+                define("searchCode", "buildId의 해시가 일치하는 실행 소스에서 리터럴을 찾고 주변 줄과 manifest의 policyVersion을 반환합니다. limit은 일치 줄 수이며 겹치거나 인접한 구간은 파일별로 합칩니다. 호출만 발견했다면 구현 메서드도 읽어 조건을 확인하세요. 테스트·시드·재현 제어는 제외합니다.", "buildId", "query", "limit#?"),
                 define("readCode", "동일 buildId manifest의 허용 경로를 1부터 시작하는 줄 번호로 최대 300줄 읽습니다.", "buildId", "path", "startLine#", "endLine#"),
                 define("readBusinessPolicy", "searchCode/readCode가 반환한 policyVersion과 buildId로 정상 정책을 읽습니다. 새 manifest는 보관 사본·해시를 검증하며 기존 형식은 한계를 명시합니다. section은 실제 확인한 정확한 2단계 제목이며 모르면 null로 전체를 읽으세요. 없는 제목은 정책 근거 없이 제한된 제목 목록을 반환합니다.", "buildId", "version", "section?")
         );

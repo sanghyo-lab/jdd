@@ -51,25 +51,37 @@ public final class SourceEvidenceTools {
     public Outcome searchCode(SearchCode input) {
         var manifest = manifest(input.buildId());
         var observations = new ArrayList<Observation>();
-        int scanned = 0, bytes = 0;
+        int scanned = 0, bytes = 0, matches = 0;
         boolean truncated = false;
-        outer: for (String path : manifest.hashes().keySet().stream().sorted().toList()) {
+        for (String path : manifest.hashes().keySet().stream().sorted().toList()) {
             if (!allowed(path)) continue;
             if (++scanned > SEARCH_FILES) { truncated = true; break; }
             String text = source(manifest, path);
             bytes += text.getBytes(StandardCharsets.UTF_8).length;
             if (bytes > SEARCH_BYTES) { truncated = true; break; }
             List<String> lines = text.lines().toList();
+            int windowStart = 0, windowEnd = 0;
             for (int index = 0; index < lines.size(); index++) {
                 if (!lines.get(index).contains(input.query())) continue;
-                if (observations.size() == input.limit()) { truncated = true; break outer; }
+                // The limit still counts matching lines, not merged windows. Coalescing must
+                // not broaden the bounded search or hide an unsearched remainder.
+                if (matches == input.limit()) { truncated = true; break; }
+                matches++;
                 int start = Math.max(1, index + 1 - 3), end = Math.min(lines.size(), index + 1 + 3);
-                observations.add(code(manifest, path, lines, start, end, false));
+                if (windowStart != 0 && start <= windowEnd + 1) {
+                    windowEnd = end;
+                } else {
+                    if (windowStart != 0) observations.add(code(manifest, path, lines, windowStart, windowEnd, false));
+                    windowStart = start; windowEnd = end;
+                }
             }
+            if (windowStart != 0) observations.add(code(manifest, path, lines, windowStart, windowEnd, false));
+            if (truncated) break;
         }
         if (truncated) observations.replaceAll(SourceEvidenceTools::partial);
         return new Outcome(observations, "buildId=" + input.buildId() + ", policyVersion=" + manifest.policyVersion() + " 허용된 실행 소스의 리터럴 검색: "
-                + observations.size() + "개 구간; " + (truncated ? "검색 한도에 도달해 전체 부재를 판단할 수 없습니다."
+                + matches + "개 일치 줄의 겹치거나 인접한 범위를 파일별로 합친 " + observations.size() + "개 구간; "
+                + (truncated ? "검색 한도에 도달해 전체 부재를 판단할 수 없습니다."
                 : "manifest의 허용 파일 검색 완료. 일치가 없다는 사실만으로 장애 유무를 판단하지 마세요."));
     }
 

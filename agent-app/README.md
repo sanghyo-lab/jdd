@@ -221,7 +221,7 @@ DB 설정은 지정한 clone의 `.env`에서 읽는다. 임시 JVM에는 DB·Jav
 
 ## 읽기 전용 조사 도구
 
-실행기는 `commerce-evidence-v2`의 여덟 도구를 제공한다: `findOrders`, `getOrderContext`,
+실행기는 `commerce-evidence-v3`의 여덟 도구를 제공한다: `findOrders`, `getOrderContext`,
 `getCouponContext`, `getInventoryContext`, `searchLogs`, `searchCode`, `readCode`, `readBusinessPolicy`.
 도구 인자는 엄격한 JSON 타입·알려진 필드·범위로 검증하며 모델이 SQL·명령·임의 파일을 실행하지 않는다.
 환경은 기존 Compose의 `EVIDENCE_DB_URL/USERNAME/PASSWORD`, `SOURCE_ROOT`, `LOG_ROOT`, `POLICY_PATH`를 사용한다.
@@ -230,8 +230,9 @@ DB 계정은 Agent 저장 계정과 별개이며 계약 10개 테이블의 SELEC
 
 - 행 수는 기본 20 또는 50, 최대 100이다. 한 행을 추가로 읽어 잘림을 구분한다. 재고의 전체 종류별 이력·상태별 주문 수량 집계는 제한된 원문 행과 별도로 반환한다.
 - 로그는 상관조건 AND·최대 하루 범위로 조회한다. 빈 빌드 폴더는 검색 빌드 수에 포함하지 않고, 로그 파일의 수정 시각이 최근인 빌드·파일부터 선택한다. 후보 탐색은 전체 디렉터리/파일 항목 4,096개, 내용 조회는 최대 32개 build/파일·4MiB·결과 100줄이다. 수정 시각은 검색 우선순위일 뿐 업무 발생 시각의 근거가 아니며, 보관 범위를 넘긴 과거 빌드는 알고 있는 buildId로 좁혀 조회한다. 후보·내용·결과 한도와 미완성 마지막 줄은 부분 결과로 기록한다. 비어 있고 완전한 검색만 150ms 간격으로 최대 2회 재조회하며 모델을 재호출하지 않는다.
+- 주문 생성 전 로그에는 orderId가 없을 수 있다. 요청 전체를 조사할 때는 실제 확인한 requestId 또는 checkoutKey를 사용하고 불필요한 orderId 조건은 null로 둔다. 도구가 조건을 자동 제거하거나 다른 요청을 섞지 않으며, orderId로 제한한 결과에는 이 조회 범위를 안내한다.
 - 동일 eventId의 동일 원문은 줄 번호를 보존하고 중복임을 표시한다. 같은 eventId의 상충 내용, 손상된 완성 줄, buildId 불일치는 도구 실패다. 빈 결과는 지연된 로그나 장애의 부재를 입증하지 않는다.
-- 소스는 지정 buildId의 manifest와 SHA-256이 일치하는 허용 Java·migration 파일만 읽는다. 검색은 최대 512파일·4MiB·30구간, 직접 읽기는 최대 300줄이다. 심볼릭 링크·경로 이탈·테스트·재현 제어·fixtures를 차단한다.
+- 소스는 지정 buildId의 manifest와 SHA-256이 일치하는 허용 Java·migration 파일만 읽는다. 검색은 최대 512파일·4MiB·30개 일치 줄, 직접 읽기는 최대 300줄이다. 각 일치 줄 주변 3줄의 겹치거나 인접한 범위를 같은 파일 안에서 합쳐 중복 원문·인용 ID를 줄인다. 일치 줄 한도와 부분 결과 표시는 유지하며 다른 파일·떨어진 범위는 합치지 않는다. 심볼릭 링크·경로 이탈·테스트·재현 제어·fixtures를 차단한다.
 - 정책은 새 manifest의 `policy: {version, path, sha256}`와 해당 build 안의 고정 `policy/business-policy.md`를 대조한다. 사본이 선언되어 있으면 누락·변조·다른 버전·경로 이탈 때 현재 파일로 대체하지 않는다. 기존 policy 필드 없는 manifest만 현재 정책을 읽는 한계를 명시한다. 이미 저장한 근거 원문은 파일 변경과 무관하게 DB에서 조회한다.
 - searchCode/readCode의 출처와 검색 요약에 manifest의 policyVersion을 제공한다. 모델은 이 값으로 readBusinessPolicy를 호출하며 정책 버전을 추측할 필요가 없다. 정책 사본을 코드 검색 허용 경로에 추가하지 않는다.
 - 정책의 정확한 2단계 제목을 모르면 `section=null`로 전체를 읽는다. build·버전·해시 검증을 통과한 정책에 요청한 제목만 없는 경우에는 근거 없이 최대 8개·각 128자의 제목 목록과 재조회 안내를 반환한다. 다른 제목이나 현재 정책으로 자동 대체하지 않으며 파일/버전/해시 오류는 여전히 실패다. 재조회도 기존 모델·도구 횟수 제한에 포함한다.

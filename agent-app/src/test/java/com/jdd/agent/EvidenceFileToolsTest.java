@@ -81,6 +81,34 @@ class EvidenceFileToolsTest {
         assertThat(result.observations()).hasSize(1).allMatch(value -> value.truncated());
         assertThat(result.summary()).contains("한도");
     }
+    @Test void codeSearchMergesOnlyOverlappingOrAdjacentWindowsWithinTheSameFile() throws Exception {
+        var lines = java.util.stream.IntStream.rangeClosed(1, 32)
+                .mapToObj(i -> List.of(4, 6, 13, 25).contains(i) ? "needle line " + i : "line " + i).toList();
+        String text = String.join("\n", lines), other = "needle in a separate file\n";
+        String otherPath = "commerce-core/src/main/java/Other.java";
+        writeSource(CODE, text); writeSource(otherPath, other);
+        manifest(Map.of(CODE, hash(text), otherPath, hash(other)));
+        var result = run("searchCode", Map.of("buildId", BUILD, "query", "needle", "limit", 5));
+        assertThat(result.observations()).hasSize(3).allMatch(value -> !value.truncated());
+        var merged = result.observations().getFirst();
+        assertThat(merged.source()).containsEntry("path", CODE).containsEntry("startLine", 1).containsEntry("endLine", 16);
+        assertThat(merged.content()).isEqualTo(String.join("\n", lines.subList(0, 16)));
+        var separate = result.observations().get(1);
+        assertThat(separate.source()).containsEntry("path", CODE).containsEntry("startLine", 22).containsEntry("endLine", 28);
+        assertThat(separate.content()).isEqualTo(String.join("\n", lines.subList(21, 28)));
+        assertThat(result.observations().get(2).source()).containsEntry("path", otherPath);
+        assertThat(result.observations().get(2).content()).isEqualTo(other.stripTrailing());
+    }
+    @Test void mergedCodeWindowsDoNotExpandTheMatchBudgetOrHideTruncation() throws Exception {
+        var lines = java.util.stream.IntStream.rangeClosed(1, 20)
+                .mapToObj(i -> List.of(1, 2, 16).contains(i) ? "needle line " + i : "line " + i).toList();
+        String text = String.join("\n", lines); writeSource(CODE, text); manifest(Map.of(CODE, hash(text)));
+        var result = run("searchCode", Map.of("buildId", BUILD, "query", "needle", "limit", 2));
+        assertThat(result.observations()).hasSize(1).allMatch(value -> value.truncated());
+        assertThat(result.observations().getFirst().source()).containsEntry("startLine", 1).containsEntry("endLine", 5);
+        assertThat(result.observations().getFirst().content()).isEqualTo(String.join("\n", lines.subList(0, 5)));
+        assertThat(result.summary()).contains("한도");
+    }
     @Test void tamperedMissingOrDifferentBuildSourceIsNotSilentlyReplaced() throws Exception {
         Files.writeString(sources.resolve(BUILD).resolve(CODE), "tampered");
         assertThatThrownBy(() -> read(CODE)).isInstanceOf(IllegalStateException.class);
@@ -202,6 +230,22 @@ class EvidenceFileToolsTest {
         Files.writeString(logs.resolve(BUILD).resolve("business.jsonl"), matching + "\n"
                 + matching.replace("\"observedQuantity\":1", "\"observedQuantity\":2") + "\n");
         assertThatThrownBy(() -> run("searchLogs", Map.of("buildId", BUILD, "requestId", "request-a"))).isInstanceOf(IllegalStateException.class);
+    }
+    @Test void requestTraceIncludesEventsBeforeOrderIdExistsWithoutLooseningAndFilters() throws Exception {
+        String before = log("before-order", "request-a", "p");
+        var after = (tools.jackson.databind.node.ObjectNode) json.readTree(log("after-order", "request-a", "p"));
+        after.put("event", "ORDER_CREATED"); after.put("orderId", "order-a");
+        Files.writeString(logs.resolve(BUILD).resolve("business.jsonl"), before + "\n" + json.writeValueAsString(after)
+                + "\n" + log("another-request", "request-b", "p") + "\n");
+        var byOrder = run("searchLogs", Map.of("buildId", BUILD, "orderId", "order-a"));
+        assertThat(byOrder.observations()).hasSize(1);
+        assertThat(byOrder.summary()).contains("orderId", "requestId", "주문 생성 전");
+        var byRequest = run("searchLogs", Map.of("buildId", BUILD, "requestId", "request-a"));
+        assertThat(byRequest.observations()).hasSize(2);
+        assertThat(byRequest.observations().getFirst().content()).isInstanceOf(Map.class);
+        assertThat(((Map<?, ?>) byRequest.observations().getFirst().content()).get("raw")).isEqualTo(before);
+        assertThat(run("searchLogs", Map.of("buildId", BUILD, "orderId", "order-a", "requestId", "request-b"))
+                .observations()).isEmpty();
     }
     @Test void partialAndMalformedLogFilesAreNotReportedAsCompleteAbsence() throws Exception {
         Path path = logs.resolve(BUILD).resolve("business.jsonl");

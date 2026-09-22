@@ -1,5 +1,12 @@
 # 한재홍 — AI Agent 작업 상태
 
+## 2026-09-22T09:39:06+09:00 — 요청 전체 로그 추적과 소스 검색 중복 제거
+
+- `commerce-evidence-v3`은 주문 생성 전 orderId가 없을 수 있음을 도구 정의와 orderId 제한 결과에 명시한다. 모델이 실제 확인한 requestId/checkoutKey로 초기 단계까지 추적하도록 안내하며 AND 조건을 자동 제거하거나 다른 요청을 합치지 않는다. 특정 VOC의 정답·시드·평가 이벤트 목록을 조사 입력에 넣지 않는다.
+- 같은 소스 검색의 겹치거나 인접한 ±3줄 범위를 파일별로 합친다. 원문·build/hash/줄 번호와 30개 일치 줄·512파일·4MiB 한도는 유지한다. 합쳐진 구간 수로 검색 한도를 늘리지 않으며 잘림은 모든 반환 근거에 표시한다. 떨어진 범위·다른 파일·기존 저장 근거는 변경하지 않는다.
+- 추가 회귀3건은 수정 전 모두 실패했고 수정 후 파일/도구18개·실행기18개와 별도 LogDiscovery 5개를 실패/제외0으로 통과했다. 최초 회귀 명령의 존재하지 않는 LogEvidenceToolsTest 필터는 실행 건수에 포함하지 않았고 실제 LogDiscoveryTest를 별도로 실행했다. `followup-trace-windows-before/after.log/json`, 각각 `-results/`, `followup-trace-discovery-regression.log/json`에 보존한다. 자동 모델 호출0이다.
+- 프롬프트 v9·모델Luna·공개DTO·모델/도구/시간 제한·기존 runner 기준은 유지한다. 전체 publish와 VOC-07 같은 실패의 실제 재조사를 이어간다. 이 변경만으로01/03/06 직접 인용 품질까지 해결됐다고 표시하지 않는다.
+
 ## 2026-09-22T09:36:37+09:00 — v9 전체 runner의 VOC-07 미수집 로그와 직접 인용 잔여
 
 - 고정 build `4b126319e942-9152c642527f`의 네 번째 전체 runner는 VOC-01~06 자동 PASSED 뒤 VOC-07에서 `Report did not cite the case’s actual business events`로 종료1이다. 조사 `d6a0dec2-42ea-449f-bf05-2b9c4b8a5329` 자체는 COMPLETED지만 초기 `INVENTORY_READ`를 수집하지 않았다. 주문별 로그 조회에는 주문 생성 이후의 RESERVED/ORDER_CREATED만 들어왔고 요청 전체 추적을 이어가지 않았다. NORMAL·NEEDS_INPUT·IDEMPOTENCY·RECOVERY는 PENDING으로 남겼다. 검사 기준·실패 산출물을 바꾸지 않는다.

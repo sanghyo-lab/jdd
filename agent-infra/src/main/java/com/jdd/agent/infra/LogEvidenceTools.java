@@ -60,10 +60,12 @@ public final class LogEvidenceTools {
         var observations = new ArrayList<>(scan.observations());
         if (scan.partial()) observations.replaceAll(SourceEvidenceTools::partial);
         String scope = input.buildId() == null ? "로컬 보관 build 디렉터리" : "buildId=" + input.buildId();
+        String traceScope = input.orderId() == null ? ""
+                : " orderId 조건은 주문 생성 전 로그를 제외할 수 있습니다. 요청 전체 흐름이 필요하면 확인한 requestId 또는 checkoutKey로 조회하고 orderId는 null로 두세요. 다른 조건도 AND로 적용됩니다.";
         return new Outcome(observations, scope + "의 JSONL 상관조건 AND 조회 (로그 파일 수정 시각 내림차순으로 빌드·파일 선택): " + observations.size() + "줄, 파일 " + scan.files()
                 + "개, 로컬 조회 " + attempts + "회. 동일 eventId 재출력 " + scan.duplicates() + "줄은 원문을 보존했으며 별도 업무 처리로 세지 마세요. "
                 + (scan.partial() ? "검색/결과 한도 또는 미완성 마지막 줄로 일부 결과입니다. 로그가 없다고 단정하지 마세요."
-                : "읽은 시점의 완성된 줄을 검색했습니다. outbox 지연 가능성이 있어 빈 결과는 장애 부재를 입증하지 않습니다."));
+                : "읽은 시점의 완성된 줄을 검색했습니다. outbox 지연 가능성이 있어 빈 결과는 장애 부재를 입증하지 않습니다.") + traceScope);
     }
 
     private Scan scan(SearchLogs input) {
