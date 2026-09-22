@@ -49,7 +49,9 @@ public final class ResponsesProtocol {
                     + "회가 남았습니다. " + guidance + " 한도 부족을 사용자 입력 부족으로 바꾸지 마세요."));
         }
         var body = new LinkedHashMap<String, Object>();
-        body.put("model", model); body.put("instructions", request.prompt().text()); body.put("input", input);
+        body.put("model", model);
+        body.put("instructions", request.reviewDraft() == null ? request.prompt().text() : request.prompt().reviewText());
+        body.put("input", input);
         body.put("tools", request.tools().stream().map(tool -> Map.of("type", "function", "name", tool.name(),
                 "description", tool.description(), "parameters", json.readTree(tool.inputSchemaJson()), "strict", true)).toList());
         body.put("tool_choice", request.tools().isEmpty() ? "none" : "auto");

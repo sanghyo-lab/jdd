@@ -53,7 +53,7 @@ class InvestigationRunnerTest {
     @Test void runsToolStoresEvidenceThenReturnsReportAndRepeatedHttpReadsDoNotCallModel() throws Exception {
         var claim = start();
         var runner = runner(request -> {
-            assertThat(request.prompt().version()).isEqualTo("investigation-system-v8");
+            assertThat(request.prompt().version()).isEqualTo("investigation-system-v9");
             assertThat(request.prompt().sha256()).hasSize(64);
             assertThat(request.prompt().text()).contains("같은 조사에 실제 저장한 관측", "requiresHumanAction");
             if (request.iteration() == 1) return toolReply("read-1", "getInventoryContext", "{}");
@@ -172,7 +172,9 @@ class InvestigationRunnerTest {
                 assertThat(view(claim).report()).isNull();
             }
             if (request.iteration() == 3) return new Reply("{invalid review", List.of());
-            if (request.iteration() == 4) assertThat(request.history().getLast().text()).contains("보고서 검증 오류");
+            if (request.iteration() == 4) assertThat(request.history().getLast().text())
+                    .contains("보고서 검증 오류", "수정할 기존 항목만 반환", "이전 검수 변경은 아직 적용되지 않았으므로")
+                    .doesNotContain("수정하지 않은 사실·인용도 모두 포함한 전체 보고서");
             var saved = request.history().stream().filter(m -> m.kind() == MessageKind.TOOL)
                     .flatMap(m -> m.observations().stream()).toList();
             return request.reviewDraft() == null ? reportReply(complexReport(saved, "Draft")) : reviewReply("Repaired review");
@@ -232,6 +234,8 @@ class InvestigationRunnerTest {
                     assertThat(request.history().getLast().kind()).isEqualTo(MessageKind.FEEDBACK);
                     assertThat(request.history().getLast().text()).contains(
                             "hypotheses with CODE evidence must directly cite available DATA observations");
+                    assertThat(request.history().getLast().text()).contains("수정하지 않은 사실·인용도 모두 포함한 전체 보고서")
+                            .doesNotContain("수정할 기존 항목만 반환");
                     assertThat(view(claim).status()).isEqualTo(Status.RUNNING);
                     assertThat(view(claim).report()).isNull();
                     assertThat(request.tools()).isEmpty();
@@ -315,7 +319,8 @@ class InvestigationRunnerTest {
                 java.util.Collections.nCopies(100, "sensitive-unknown-observation"))), List.of(), List.of(), List.of(), List.of());
         runner(request -> {
             if (request.iteration() == 2) assertThat(request.history().getLast().text())
-                    .isEqualTo("보고서 검증 오류만 수정하세요. 새 근거 ID를 만들지 마세요: facts.evidenceIds contains an unknown observation");
+                    .contains("수정하지 않은 사실·인용도 모두 포함한 전체 보고서", "facts.evidenceIds contains an unknown observation")
+                    .doesNotContain("sensitive-summary", "private-id", "sensitive-description", "sensitive-unknown-observation");
             return reportReply(candidate);
         }, tools(false), 8, 24).run(claim);
         assertThat(view(claim).error().code()).isEqualTo("REPORT_VALIDATION_FAILED");

@@ -146,7 +146,11 @@ public final class InvestigationRunner {
             LOG.log(System.Logger.Level.WARNING, "Report validation rejected: investigationId={0}, iteration={1}, reasons={2}",
                     claim.investigationId(), iteration, errors);
             if (++repairedReports > limits.reportRepairs()) throw reportFailure();
-            history.add(Message.feedback("보고서 검증 오류만 수정하세요. 새 근거 ID를 만들지 마세요: " + String.join(", ", errors)));
+            String format = reviewDraft == null
+                    ? "수정하지 않은 사실·인용도 모두 포함한 전체 보고서를 반환하세요. facts=[]는 기존 사실 보존이 아니라 사실이 없다는 뜻입니다. "
+                    : "원래 reviewDraft를 기준으로 수정할 기존 항목만 반환하세요. 이전 검수 변경은 아직 적용되지 않았으므로 필요한 교정을 모두 포함하세요. ";
+            history.add(Message.feedback("보고서 검증 오류를 수정하세요. " + format
+                    + "새 근거 ID를 만들지 마세요: " + String.join(", ", errors)));
         }
         throw limitFailure();
     }
