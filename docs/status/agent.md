@@ -1,5 +1,13 @@
 # 한재홍 — AI Agent 작업 상태
 
+## 2026-09-22T09:36:37+09:00 — v9 전체 runner의 VOC-07 미수집 로그와 직접 인용 잔여
+
+- 고정 build `4b126319e942-9152c642527f`의 네 번째 전체 runner는 VOC-01~06 자동 PASSED 뒤 VOC-07에서 `Report did not cite the case’s actual business events`로 종료1이다. 조사 `d6a0dec2-42ea-449f-bf05-2b9c4b8a5329` 자체는 COMPLETED지만 초기 `INVENTORY_READ`를 수집하지 않았다. 주문별 로그 조회에는 주문 생성 이후의 RESERVED/ORDER_CREATED만 들어왔고 요청 전체 추적을 이어가지 않았다. NORMAL·NEEDS_INPUT·IDEMPOTENCY·RECOVERY는 PENDING으로 남겼다. 검사 기준·실패 산출물을 바꾸지 않는다.
+- 별도 항목별 원문 검수에서 01 원인의 주문 상태, 03 쿠폰 설정 연결, 06 사실의 주문 상태 변경 코드에 자체 직접 인용 공백도 확인했다. 실제 다른 관측으로 참인 문장을 해당 항목의 인용 품질 통과로 계산하지 않는다. 02·04는 명시 범위 내 직접 대조를 통과했고05는 합성 제공자 오류/발췌 범위 한계를 보존했다. 전체 품질·역할 DONE은 보류한다.
+- 이번7조사42 OAuth 응답의 입력628,903·출력30,694·캐시읽기3,584·쓰기0·reasoning12,953(출력 일부), 모델 호출시간 합695,599ms다. 실제 모델은 모두 `gpt-5.6-luna`이며 OAuth 사용량을 API 청구액으로 환산하지 않는다. 설치 전체25조사136행·기존usage미관측1·API0·진행0을 DB/내부GET와 반복 조회 불변으로 확인했다.
+- 자료는 `followup-live-runner-04.log/json`, `followup-live-runner-04-review.json`, `followup-live-runner-04-semantic-review.json`, `followup-observations-after-runner-04.log/json`과 실행 clone의 `runtime/mvp/20260922T002218.273964Z-92c68bba/`다. 이전 실패/원문·기존 데이터를 보존했다. 낮은 모델을 유지하며 요청 식별자별 초기 로그 추적과 중복 소스 발췌의 입력 낭비를 보완한다.
+- 김아름의 `d635139` 공백 티켓 오류→수정v2→새키/원래 이력 불변 화면 인수와 AGENT-003 해소를 접수했다. 이는 합성 화면과 기존 실제 전달 경계 검증의 결합이며 상대 PC의 실제 모델 전송 동의 대기를 해소하지 않는다. 미해소 논의6건·해소3건을 유지한다.
+
 ## 2026-09-22T09:32:56+09:00 — 시연 v2 코드 강조 완료·음성 사용 범위 확인 중
 
 - 사용자가 기존 영상의 딱딱한 음성 교체와 Java 오류 구간 붉은 박스를 요청해 음성·7코드 강조·v2 편집/독립검수로 분담했다. Git 밖 `output/jdd-demo/20260922-233019/revision-v2/`에만 작업하고 v1 최종138개 파일을 불변 기준으로 보존한다.
