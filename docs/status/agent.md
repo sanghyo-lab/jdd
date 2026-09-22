@@ -1,5 +1,14 @@
 # 한재홍 — AI Agent 작업 상태
 
+## 2026-09-22T09:46:02+09:00 — 후속 수정 공유·VOC-07 한 건 재검증 종료
+
+- 요청 전체 로그 추적/소스 검색 중복 제거를 `855b9a1`로 전체 publish 종료0·main 공유했다. Java232개 중223통과/9조건부제외·실패0, Python70/부모6/web25·production build와 실제 세 앱 PostgreSQL/HTTP/SELECT/근거 연결 통과다. 변경 없는 검사 재사용을 새 실행으로 세지 않는다. 원문 `followup-trace-windows-publish.log/json`, `followup-trace-windows-publish-tests.json`이다.
+- 같은 실패 티켓의 새 키 조사 `d7b5cf65-cd75-4102-8c05-2411bf641413`는 Agent build `855b9a1b58ef-513914599664`에서 COMPLETED/13도구/31근거다. 문의·재현 데이터·기존 결과를 변경하지 않았다. 두 초기 INVENTORY_READ의 observed/requested=1, 예약 결과0/-1, 주문2건과 각상품1·결제0행·무조건 차감 SQL/호출·정책을 직접 인용했고 변경하지 않은 runner ReportChecks가 통과했다. 보존 실패에는 같은 검사기가 계속 실패한다.
+- 31근거의 DATA 행/컬럼을 이전 보존 관측과, LOG 원문·CODE/POLICY 줄/전체SHA를 실제 archive와 대조했다. 첫 후처리는 날짜 상한 문자열 .999/.999999를 동일하다고 가정해 실패했으며 새 검사에서는 서로 다른 조회 범위를 기록하고 실제 반환 행 동일성을 비교했다. H1의 가용성 검사 없음 표현은 확인한 DB 차감 범위로 읽어야 하며, 그 앞 주문 사전 검사가 전혀 없다는 의미로 확대하지 않는다. 트랜잭션 격리/순서 한계도 유지한다.
+- 실제 Luna OAuth6응답·입력75,957/출력3,582/캐시읽기·쓰기0/reasoning1,157(출력 일부), 모델 시간 합95,390ms다. 전체26조사142행/기존usage미관측1/API0/진행0을 영속 장부와 반복 GET 불변으로 확인했다. 산출물 `followup-oauth-voc07-04/`, `followup-voc07-04-review.json`, `followup-report-coverage/before.log`·`after.log`, `followup-observations-after-voc07-04.log/json`에 보존했다. 한 건의 수정 인수이며 새 전체 MVP 성공·비용 절감률은 아니다.
+- 사용자의 종료 시점 문의에 따라 이번 후속 단위를 여기서 정리한다. 추가 전체 반복 검증을 시작하지 않았다. 직전 전체 실행의01/03/06 항목별 직접 인용 공백, 최신 전체 runner, 상대 PC 실제 모델/공개 ngrok와 리더 완료 검증은 미완료로 남긴다. 다른 담당자의 답변·완료를 대신 작성하지 않는다.
+- 깨끗한 최신 main `855b9a1`의 `./scripts/dev team-check`는 종료1/TEAM_INCOMPLETE이며 세 담당자·리더 모두 IN_PROGRESS다(`followup-current-team-check.log/json`). 역할 DONE·전체 goal 완료를 기록하지 않는다. 실제 가시 세션 로그는 `session/20260922T004203Z/`의4,982이벤트/SHA `1224c142c7aa953c29ff33c22aad4b63697c3eb17e4241b906a63dc16d9bace5`까지 비밀 가림 후 보존했고 마무리 시 추가 export한다.
+
 ## 2026-09-22T09:39:06+09:00 — 요청 전체 로그 추적과 소스 검색 중복 제거
 
 - `commerce-evidence-v3`은 주문 생성 전 orderId가 없을 수 있음을 도구 정의와 orderId 제한 결과에 명시한다. 모델이 실제 확인한 requestId/checkoutKey로 초기 단계까지 추적하도록 안내하며 AND 조건을 자동 제거하거나 다른 요청을 합치지 않는다. 특정 VOC의 정답·시드·평가 이벤트 목록을 조사 입력에 넣지 않는다.

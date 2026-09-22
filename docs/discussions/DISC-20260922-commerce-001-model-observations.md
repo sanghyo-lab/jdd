@@ -10,8 +10,8 @@
 | 영향받는 역할 | agent 제공자, voc runner, commerce·lead 검증 |
 | 필수 합의자 | 한재홍(장부 제공), 김아름(runner 소비), 이상효(리더) |
 | 확인·답변 대기 | 김아름의 실제 모델/LOG 원문 소비·각 PC의 최신 실제 모델 runner 검증 |
-| 생성 시각 / 최종 갱신 | 2026-09-22T07:44:36+09:00 / 2026-09-22T09:36:37+09:00 |
-| 다음 행동 / 담당 | VOC 무호출 인수·Agent v9 전체 runner의 VOC-07 초기 로그 누락 보완, 각 PC 실제 모델/원문 검증 |
+| 생성 시각 / 최종 갱신 | 2026-09-22T07:44:36+09:00 / 2026-09-22T09:46:02+09:00 |
+| 다음 행동 / 담당 | VOC 무호출 인수·Agent VOC-07 재조사31근거/장부142행 대조 완료, 남은 직접 인용·전체/각 PC 검증 |
 
 ### 2026-09-22T09:13:00+09:00 — 김아름 / voc / P1 무호출 관측 API 직접 인수
 
@@ -134,3 +134,9 @@ Agent 제공 구현의 전체 공유·자기 PC의 실제 저장44행 대조와 
 - v9 고정 build `4b126319e942-9152c642527f`의7조사42 OAuth 응답을 runner 산출물과 DB/GET로 직접 대조했다. 실제 모델은 모두gpt-5.6-luna다. 입력628,903/출력30,694/캐시읽기3,584/쓰기0/reasoning12,953(출력 일부)이며 설치 전체136행·기존미관측1/API0/진행0과 반복조회 불변을 확인했다. 관측 조회 때문에 추가 모델을 호출하지 않는다.
 - VOC-01~06은 자동 PASSED이나01/03/06 자체 직접 인용 공백을 별도 기록했다.07은 초기 INVENTORY_READ 미수집으로 runner FAILED이며 후속4case는 PENDING이다. 저장된 PARTIAL 보고서를 전체 품질 완료로 바꾸지 않는다. 자료 `runtime/submission/agent-20260921/followup-live-runner-04-review.json`, `followup-live-runner-04-semantic-review.json`, `followup-observations-after-runner-04.log/json`과 실행 clone의 해당 runtime/mvp 폴더를 보존했다.
 - 김아름의 무호출 관측 소비와AGENT-003 화면 해소를 접수했다. 상대 PC의 실제 모델/LOG 소비와 최신 전체 runner, 리더 검증은 남아 AGREED를 유지한다. Agent는 낮은 모델에서 초기 요청 로그 추적·소스 검색 중복을 보완하고 같은 실패를 검증한다.
+
+### 2026-09-22T09:46:02+09:00 — 한재홍 / agent / P1 VOC-07 초기 로그 후속 인수
+
+- `855b9a1` 공유 후 같은 실패 티켓을 새 키로1회 재조사했다. 조사 `d7b5cf65-cd75-4102-8c05-2411bf641413`는31근거/13도구로 COMPLETED이며 기존 ReportChecks의 초기 INVENTORY_READ/예약 근거 기준도 통과했다. 원문 DATA 행·LOG 줄·해당 build CODE/POLICY SHA를 직접 대조했다. 보존 실패를 지우거나 전체 runner 성공으로 대신하지 않는다.
+- OAuth6회 입력75,957/출력3,582/reasoning1,157(출력 일부), 캐시읽기/쓰기0이며 실제Luna다. 전체142행/미관측1/API0/진행0과 반복 GET 불변을 대조했다. `followup-voc07-04-review.json`, `followup-observations-after-voc07-04.log/json`에 원문 위치와 한계를 남겼다.
+- 초기 로그 누락 보완은 확인했으나 직전 전체 실행의01/03/06 직접 인용 공백·최신 전체 runner와 김아름의 실제 모델/LOG 소비·리더 검증은 남는다. 이번 후속 단위를 종료해 결과를 전달하며 새 전체 반복 호출은 시작하지 않는다. AGREED와 미해소 상태를 유지한다.
