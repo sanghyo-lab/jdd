@@ -25,7 +25,9 @@
 - 미완료 3 — 필수 소비 검증: 대기열 전체 관측 구간·최신 runner, 전체 모델 오류/예산 오류·새 조사·복구, 실제 모델 장부/LOG 및 재고 근거 소비가 남았다. 기존 실제 HTTP와 합성 화면 성공은 보존하되 전체 실제 모델 성공으로 바꾸지 않는다.
 - 미완료 4 — 공개·배포: ngrok 설정/공개 URL, 배포 API의 전체 범위·예산 배분·실제 업무 검증, 외부 공개 시 서버 간 토큰 수신 검증이 남았다. 로컬 화면 로그인은 구현됐으나 공개 배포 완료를 뜻하지 않는다.
 - 미완료 5 — 팀 종료·제출: 미해소 논의 6건, 세 담당자의 유효한 DONE, 리더 독립 APPROVED와 team-check 성공이 없다. 최종 실제 모델 평가·수동 조사 대비 시간 측정·최신 시연물/제출 URL 검수도 남았다. 자세한 근거는 [논의 목록](../discussions/README.md)과 [보고서](../hackathon-report.md)에 보존한다.
-- 검증/공유 기록: 이번 단위는 `runtime/verification/hackathon-report-closeout-publish-01.log`에 전체 publish 결과를 보존하고 실행 후 실제 종료 코드·기동 상태·원격 포함을 확인한다. 실행 전부터 성공으로 표시하지 않는다.
+- 검증/공유 기록: 10:06 전체 publish 종료 0으로 `96fa1f8`을 main에 일반 push했다. Python 70·준비 6·web 25 통과, Java 232개 중 223통과/9조건부제외/실패·오류0, production build/TypeScript와 3개 앱 DB·HTTP·SELECT 전용·근거 볼륨 검사가 통과했다. 기동 buildId는 `96fa1f869487-95d1e26fe59a`이며 test/mock이다. 원문은 `runtime/verification/hackathon-report-closeout-publish-01.log`, 새 XML은 `runtime/verification/linux-gradle-check-96fa1f869487-1790038589679382400/`에 있다. 개발 checkout에서도 원격 포함을 확인했고 사용자 미추적 파일의 기존 SHA-256을 보존했다.
+- 최신 제공자 기록: 통합한 `afd717b`에서 한재홍은 `855b9a1`의 VOC-07 한 건 재조사가 ReportChecks·근거 대조를 통과했다고 기록했다. 위 v9 전체 실행 실패는 과거 결과로 보존한다. VOC-01/03/06 인용 공백·최신 전체 runner·김아름 PC 실제 모델·팀 최종 검증은 여전히 미완료다. 이 추가 결과를 김아름 PC의 실제 모델 성공으로 계산하지 않는다.
+- 실행 인계 확인: 기존 web 로그인 후 실제 티켓 목록을 브라우저에서 확인했다. Git 제외 `runtime/local-run.ps1`을 실행해 기존 컨테이너와 web·3개 앱 건강 응답을 확인했으며 종료 0이다. 접속 암호·재시작 방법은 로컬 `runtime/local-access.md`에만 둔다. 5분 예약 PAUSED를 실제 확인했고 최종 상태 공유 후 개발 Goal도 사용자 요청으로 일시정지한다.
 
 ## 2026-09-22T09:42:00+09:00 — 해커톤 보고서에 직접 검증·측정 반영
 
