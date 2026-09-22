@@ -16,6 +16,14 @@
 
 작업 단위가 끝날 때 제공 가능한 기능, 변경한 계약, 실제 검증 명령·결과, 다음 작업을 갱신한다. 실패와 막힌 이유도 함께 기록한다.
 
+## 2026-09-22T09:30:00+09:00 — 기존 공백 입력 안내 직접 인수와 필수 검증 잔여
+
+- [선택 ID 공백 입력 P1](../discussions/DISC-20260921-agent-003-empty-context.md)의 남은 화면 흐름을 직접 인수했다. 별도 합성 HTTP에서 v1 잘못된 입력의 전달 실패/미접수와 수정 안내→명시 수정·저장v2→새 키 접수→원래 입력/오류/이력 불변을 확인했다. 기존 실제 VOC→Agent 경계·영속 전달 검증과 합쳐 건별 기준을 충족해 RESOLVED로 갱신한다. 전체 모델/MVP 성공과는 별개다.
+- 근거는 `runtime/verification/screen-acceptance-discussion-evidence.json` 및 UTF-8 before/after 원문이다. 기존 합성 화면 JSON의 일부 한글은 PowerShell 저장에서 대체문자로 남았으나 당시 브라우저 표시는 직접 확인했고 키/버전/상태는 보존됐다. 추가 원문은 Python UTF-8으로 저장하고 구 분석 전체 객체 불변·POST1·새키/v2/previous=null을 단언했다.
+- 대기열 P1의 기존 실제 전달 간격5.960/11.003/21.009초·총4회·동일 입력 수동 복구와 합성 화면의 기존키/v1 재전송·관측종료 QUEUED 유지를 다시 대조했다. 브라우저에서 14분 전체를 새로 기다린 검사는 아니며 최신 전체 runner는 남아 AGREED를 유지한다.
+- `0ddc07b`의 인수 기록과 Agent v9을 포함한 GitHub CI가 09:21:43에 성공했다. 최신 `4b12631`의 로컬 전체 Java 검사는229개 중220통과/9조건부제외·실패0이며 web25도 통과했다. 원문 `runtime/verification/agent-v9-local-integration-01.log`의 production build·세 앱 재기동/연동 후속 단계는 진행 중이다. 실제 OAuth 전송 동의 답변 대기·호출0을 유지하며 09:30 목표 시각으로 DONE을 만들지 않는다.
+- 09:32 후속 확인: 같은 `4b12631`의 production build·세 앱 실제 DB/HTTP/SELECT 전용·근거 볼륨 검사와 일반 publish가 종료0으로 완료됐다. 이 최신 기동은 일반 test/mock이며 OAuth 로그인 파일은 별도 보존한다. 실제 전송 동의 후 최신 공유 커밋으로 local/codex_oauth를 다시 명시 준비하고 전체 실제 runner를 실행해야 한다. 검증 없는 역할 DONE·리더 승인은 작성하지 않았다.
+
 ## 2026-09-22T09:15:00+09:00 — 복구 수정 게시·직접 소비·로컬 OAuth 준비
 
 - 분석 접수 복구 보완을 최신 Agent v8 `6e684ca`와 통합해 `f219cd0`으로 main에 일반 push했다. 최종 전체 검사에서 Python 협업70·부모 준비6·web25, Java228개 중219통과/9조건부제외·실패0, production TypeScript/build와 세 앱의 DB·HTTP·SELECT 전용 접근·근거 볼륨 연결을 통과했다. 공통 buildId는 `f219cd0e1cbc-6eb1c1be2a83`이다. [GitHub Main checks](https://github.com/sanghyo-lab/jdd/actions/runs/35670724533)도 09:11:24에 성공했다. 원문 `runtime/verification/frontend-recovery-publish-01.log`와 `latest-linux-gradle-check.json`을 보존한다.
