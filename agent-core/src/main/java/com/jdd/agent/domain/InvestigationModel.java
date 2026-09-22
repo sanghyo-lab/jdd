@@ -7,7 +7,9 @@ import java.util.List;
 public interface InvestigationModel {
     enum Mode { DISABLED, MOCK, OPENAI, CODEX_OAUTH, UNKNOWN }
     default Mode mode() { return Mode.UNKNOWN; }
-    record Prompt(String version, String sha256, String text) {}
+    record Prompt(String version, String sha256, String text, String reviewText) {
+        public Prompt(String version, String sha256, String text) { this(version, sha256, text, text); }
+    }
     record ToolDefinition(String name, String description, String inputSchemaJson) {}
     record ToolCall(String id, String name, String argumentsJson) {}
     // Opaque Responses output items preserve encrypted reasoning across tool turns.

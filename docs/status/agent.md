@@ -7,6 +7,14 @@
 - 영상 선택7건의 조사ID·3문장·243근거 파일 SHA를 case-map 및 독립 검수와 연결했다. 이전 첫 실패3건과 재시도 실패2건은 보존하며, VOC02는 별도 사건/빌드의 저장 조사임을 화면에 표시한다. 04의 수량 직접인용 공백 등 전체 보고서 한계는 QA에 남겼다. 7개 최초 통과나 반복 안정성·전체 MVP·담당자 DONE을 뜻하지 않는다.
 - 원본21개 장면 촬영을 완료했고 로컬 Yuna 음성1배/화면1.5배·자막 편집 중이다. 한 원본의 여백을 편집 검수에서 발견하여 보정하고 최종 합본은 아직 검사 중이다. 근거는 Git 밖 `output/jdd-demo/20260922-233019/qa/provenance-validation.json`, `qa/report-semantic-review.json`, `investigations-v8/`와 `output/playwright/jdd-demo/20260922-233019/`다. 배포 프로모션API/TTS API호출0이며 OAuth 사용량 미관측2건을 0으로 계산하지 않는다.
 
+## 2026-09-22T09:09:00+09:00 — 전체 runner 실패 보존·보고서 응답 단계 분리
+
+- 고정 build `d835c35255c9-8f9e02b0545c`의 세 번째 전체 실제 runner는 종료1이다. VOC-01 `e5fc9ec1-a319-4dab-9c49-add4eccb45a6`는 PASSED/54근거이며 주문 PAYMENT_PENDING·결제 APPROVED/EASY_PAY·같은 주문의 PAYMENT_APPROVED·해당 실행 소스 CARD 조건·정책의 직접 인용을 대조했다. 사람의 정합화 검토와 개발 예방 제안만 있으며 실제 업무 수정은 없다.
+- VOC-02 `e04cce64-6591-4af0-ad6a-5c4754bee9e3`는 FAILED/REPORT_VALIDATION_FAILED/report=null/28근거다. iteration5의 원인 DATA 직접 인용 누락 뒤 iteration6은 필수 확인 사실이 없어 실패했다. 최종 부분 검수 이전의 일반 보정 실패이며 v8 focused 성공으로 대체하지 않는다. 모델 초안 원문은 보존되지 않아 단계 혼동이 원인이라고 확정하지 않는다. 후속9개 case는 PENDING이다.
+- 두 건 OAuth5/6회, 입력84,300/75,522·출력3,629/2,924·reasoning1,718/903(출력 일부), cached/cache write0·모델103,710/82,361ms다. 이 스택94행/기존usage미관측1/API0/진행0을 DB와 내부GET로 다시 대조했다. 원문 `followup-live-runner-03.log/json`, `followup-live-runner-03-review.json`, `followup-runner-03-diagnostics.log`, 실행 clone의 `runtime/mvp/20260922T000131.248925Z-16945e34/`와 `followup-observations-after-runner-03.log/json`을 보존한다.
+- v9은 일반 보고서와 최종 부분 검수의 지침을 서버 단계에 따라 분리한다. 일반 보정에는 수정하지 않은 사실·인용도 포함한 전체 응답을 명시하고, 부분 검수 보정에는 원래 초안에 필요한 교정 전체를 요청한다. 기존 v1~v8 리소스·전체 검증·보정 횟수·8모델/24도구/3분과 공개 DTO는 유지한다. 새 회귀는 수정 전4개 중3실패를 보존하고 수정 후 core20/앱62 총82개 실패/제외0이다. 자동 모델 호출0, 자료 `followup-report-mode-before/after.log/json` 및 각각 `-results/`다.
+- 전체 publish와 실제 효과 검증을 이어간다. 김아름의 실제 API/LOG·준비 상태 소비 완료는 여전히 기다리며 타인의 DONE·전체 완료를 대신 작성하지 않는다.
+
 ## 2026-09-22T08:59:09+09:00 — v8 실제 부분 검수 인수·원문/사용량 대조
 
 - `6e684ca` 전체 publish 종료0으로 공유했다. Java228개 중219통과/9조건부제외·실패0, Python70/부모6/web19·production build·세 앱 실제 PostgreSQL/HTTP/근거 연결이 통과했다. `followup-review-v8-publish.log/json`, `followup-review-v8-publish-tests.json`을 보존했고 일반 검사의 실제 모델 호출0이다.

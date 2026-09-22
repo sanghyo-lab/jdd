@@ -18,9 +18,21 @@ class ResponsesReportSchemaTest {
     private final JsonMapper json = JsonMapper.builder().build();
     private final ResponsesProtocol protocol = new ResponsesProtocol(json);
 
+    @Test void versionHashIdentifiesBothActualInstructionVariants() throws Exception {
+        var prompt = InvestigationPromptLoader.load();
+        assertThat(prompt.version()).isEqualTo("investigation-system-v9");
+        byte[] bundle = (prompt.text() + "\0" + prompt.reviewText()).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        assertThat(prompt.sha256()).isEqualTo(java.util.HexFormat.of().formatHex(
+                java.security.MessageDigest.getInstance("SHA-256").digest(bundle)));
+        assertThat(prompt.text()).doesNotContain("removeItemIds");
+        assertThat(prompt.reviewText()).doesNotContain("schemaVersion은 \"1.0\"", "추가 조회 도구", "먼저 문의의 고객");
+    }
+
     @Test void onlyCurrentSavedEvidenceIdsBecomeChoicesSharedByAllReportSections() {
         String a = UUID.randomUUID().toString(), b = UUID.randomUUID().toString();
         var body = payload(List.of(a, b, a));
+        assertThat(body.path("instructions").asText()).contains("일반 조사·보고서 전체 응답")
+                .doesNotContain("removeItemIds", "변경하지 않은 목록은 []");
         var schema = body.path("text").path("format").path("schema");
         assertThat(schema.path("$defs").path("storedEvidenceId").path("enum")).isEqualTo(json.valueToTree(List.of(a, b)));
         for (String section : List.of("facts", "hypotheses", "actions", "prevention"))
@@ -63,6 +75,8 @@ class ResponsesReportSchemaTest {
                                 List.of("{\"type\":\"reasoning\",\"encrypted_content\":\"opaque-prior-reasoning\"}"))),
                         InvestigationModel.Message.feedback("최종 인용 검수")), new InvestigationModel.Remaining(2, 0), draft);
         var body = json.valueToTree(protocol.payload(request, "explicit-model"));
+        assertThat(body.path("instructions").asText()).contains("최종 부분 검수", "removeItemIds")
+                .doesNotContain("일반 조사·보고서 전체 응답", "schemaVersion은 \"1.0\"");
         assertThat(body.path("input").toString()).doesNotContain("prior model speculation", "opaque-prior-reasoning", "unused-code");
         var bundle = json.readTree(body.path("input").get(1).path("content").asText());
         assertThat(bundle.path("reviewDraft")).isEqualTo(json.valueToTree(draft));
