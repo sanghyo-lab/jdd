@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { AnalysisRequest, AnalysisSummary, AnalysisView, ApiError, Ticket } from "@/lib/api-types";
 import { api, ApiFailure, dateLabel } from "@/lib/client-api";
-import { errorGuidance, investigationLabel, newRequest, pendingKey, readPending, retryBody, shouldPoll, submissionLabel } from "@/lib/analysis-state.mjs";
+import { errorGuidance, investigationLabel, newRequest, pendingKey, restorePending, retryBody, shouldPoll, submissionLabel, submitPreservingKey } from "@/lib/analysis-state.mjs";
 import { EvidenceLinks, InvestigationReport } from "./investigation-report";
 import { EvidencePanel } from "./evidence-panel";
 
@@ -17,6 +17,7 @@ export function AnalysisWorkspace({ ticket, initialAnalyses }: { ticket: Ticket;
   const [analyses, setAnalyses] = useState(initialAnalyses); const [selected, setSelected] = useState("");
   const [view, setView] = useState<AnalysisView | null>(null); const [evidenceId, setEvidenceId] = useState<string | null>(null);
   const [pending, setPending] = useState<AnalysisRequest | null>(null); const [busy, setBusy] = useState(false);
+  const [pendingReady, setPendingReady] = useState(false); const [pendingError, setPendingError] = useState("");
   const [error, setError] = useState(""); const [lookupError, setLookupError] = useState(""); const [revision, setRevision] = useState(0);
   const [notice, setNotice] = useState(""); const sending = useRef(false); const selectedRef = useRef(""); const base = "/api/tickets/" + encodeURIComponent(ticket.ticketId);
   const analysisPath = selected ? base + "/analyses/" + encodeURIComponent(selected) : "";
@@ -24,7 +25,15 @@ export function AnalysisWorkspace({ ticket, initialAnalyses }: { ticket: Ticket;
     const requested = new URL(window.location.href).searchParams.get("analysis");
     const initial = initialAnalyses.some(a => a.analysisRequestId === requested) ? requested! : initialAnalyses[0]?.analysisRequestId ?? "";
     setSelected(initial); selectedRef.current = initial;
-    setPending(readPending(window.sessionStorage, ticket.ticketId));
+    function restore() {
+      try { setPending(restorePending(window.localStorage, window.sessionStorage, ticket.ticketId)); setPendingError(""); }
+      catch (e) { setPendingError("접수 정보를 확인할 수 없어 새 전송을 멈췄습니다. " + (e as Error).message); }
+      finally { setPendingReady(true); }
+    }
+    restore();
+    function changed(event: StorageEvent) { if (event.key === null || event.key === pendingKey(ticket.ticketId)) restore(); }
+    window.addEventListener("storage", changed);
+    return () => window.removeEventListener("storage", changed);
   }, [ticket.ticketId]); // Initial selection is restored once; editing a ticket does not replace the selected history.
   function select(id: string) {
     setSelected(id); selectedRef.current = id; setEvidenceId(null); setNotice("");
@@ -56,27 +65,25 @@ export function AnalysisWorkspace({ ticket, initialAnalyses }: { ticket: Ticket;
     }
     void poll(); return () => { controller.abort(); clearTimeout(timer); };
   }, [analysisPath, revision]);
-  async function send(body: AnalysisRequest, remembered: boolean) {
+  async function send(body: AnalysisRequest) {
     if (sending.current) return; sending.current = true; setBusy(true); setError(""); setNotice("");
-    if (remembered) {
-      // Save intent before POST. An ambiguous response must not silently turn into a new model request.
-      try { window.sessionStorage.setItem(pendingKey(ticket.ticketId), JSON.stringify(body)); }
-      catch { setError("요청 키를 이 브라우저에 보존할 수 없습니다. 브라우저 저장 설정을 확인해 주세요."); setBusy(false); sending.current = false; return; }
-      setPending(body);
-    }
     try {
-      const result = await api<AnalysisView>(base + "/analyses", { method: "POST", body: JSON.stringify(body) });
-      if (remembered) { window.sessionStorage.removeItem(pendingKey(ticket.ticketId)); setPending(null); }
+      restorePending(window.localStorage, window.sessionStorage, ticket.ticketId);
+      const result = await submitPreservingKey(window.localStorage, ticket.ticketId, body, async (intent: AnalysisRequest) => {
+        setPending(intent);
+        return api<AnalysisView>(base + "/analyses", { method: "POST", body: JSON.stringify(intent) });
+      });
       accept(result); select(result.analysisRequestId); setRevision(n => n + 1);
       setNotice("분석 요청을 저장했습니다. 전달과 조사는 브라우저를 닫아도 서버에서 계속됩니다.");
     } catch (e) {
       setError((e as Error).message);
-      // A definitive input/version rejection created no request. Network/5xx uncertainty retains the exact intent.
-      if (remembered && e instanceof ApiFailure && [400, 404, 409].includes(e.status)) {
-        window.sessionStorage.removeItem(pendingKey(ticket.ticketId)); setPending(null);
-        if (e.detail.code === "TICKET_VERSION_CONFLICT") setError("문의가 다른 곳에서 수정되었습니다. 작성 중인 내용을 보존한 뒤 최신 티켓을 다시 확인하세요.");
-      }
-    } finally { setBusy(false); sending.current = false; }
+      if (e instanceof ApiFailure && e.status === 409 && e.detail.code === "TICKET_VERSION_CONFLICT")
+        setError("문의가 다른 곳에서 수정되었습니다. 작성 중인 내용을 보존한 뒤 최신 티켓을 다시 확인하세요.");
+    } finally {
+      try { setPending(restorePending(window.localStorage, window.sessionStorage, ticket.ticketId)); setPendingError(""); }
+      catch (e) { setPendingError("접수 정보를 확인할 수 없어 새 전송을 멈췄습니다. " + (e as Error).message); }
+      setBusy(false); sending.current = false;
+    }
   }
   async function refresh() {
     if (!analysisPath || busy) return; setBusy(true); setLookupError("");
@@ -92,12 +99,13 @@ export function AnalysisWorkspace({ ticket, initialAnalyses }: { ticket: Ticket;
   const previous = view?.investigationId ?? null;
   return <section className="analysis-workspace" aria-label="AI 조사"><div className="panel analysis-toolbar">
     <div><p className="eyebrow">AI 조사 · 업무 상태와 별도로 관리</p><h2>문의의 근거를 확인하세요</h2><p className="small muted">현재 저장된 버전 {ticket.version}의 문의로 분석합니다. 수정 중인 내용은 먼저 저장하세요.</p></div>
-    <div><button className="primary" disabled={busy || !!pending} onClick={() => void send(newRequest(ticket, previous), true)}>{busy ? "요청 중…" : analyses.length ? "현재 버전으로 새 분석 요청" : "분석 요청"}</button>
+    <div><button className="primary" disabled={busy || !!pending || !pendingReady || !!pendingError} onClick={() => void send(newRequest(ticket, previous))}>{busy ? "요청 중…" : analyses.length ? "현재 버전으로 새 분석 요청" : "분석 요청"}</button>
       {previous && <p className="small muted">선택한 이전 조사와 연결 · 새 요청으로 실행</p>}</div>
   </div>
     {error && <div className="notice error" role="alert">{error}</div>}{notice && <div className="notice success" role="status">{notice}</div>}
+    {pendingError && <div className="notice error" role="alert">{pendingError}<p>브라우저 저장 설정과 기존 분석 이력을 확인하세요. 저장된 요청을 자동으로 지우거나 다른 키로 보내지 않습니다.</p></div>}
     {pending && <div className="notice warning" role="alert"><strong>접수 응답을 확인하지 못한 요청이 있습니다.</strong><p>버전 {pending.ticketVersion}의 같은 요청으로 접수 여부를 확인하세요. 현재 문의 내용으로 바뀌지 않습니다.</p>
-      <button disabled={busy} onClick={() => void send(pending, true)}>같은 요청으로 접수 확인</button></div>}
+      <button disabled={busy || !!pendingError} onClick={() => void send(pending)}>같은 요청으로 접수 확인</button></div>}
     <div className="analysis-columns"><aside className="panel analysis-history"><div className="panel-heading"><h2>분석 이력</h2><span className="count">{analyses.length}</span></div>
       {!analyses.length ? <p className="empty">아직 분석 요청이 없습니다.</p> : <ul className="history">{analyses.map(item => <li key={item.analysisRequestId}><button disabled={busy} aria-pressed={selected === item.analysisRequestId} className="history-choice" onClick={() => select(item.analysisRequestId)}>
         <strong>문의 버전 {item.ticketVersion}</strong><span className="small">{submissionLabel[item.submissionStatus]} · {item.investigationStatus ? investigationLabel[item.investigationStatus] : "미접수"}</span><time className="small muted">{dateLabel(item.createdAt)}</time>
@@ -111,7 +119,7 @@ export function AnalysisWorkspace({ ticket, initialAnalyses }: { ticket: Ticket;
           <p className="small muted">분석 당시 버전 {view.ticketVersion} · 현재 문의 버전 {ticket.version}<br />마지막 Agent 확인: {view.lastSyncedAt ? dateLabel(view.lastSyncedAt) : "아직 없음"}</p>
           {view.submissionStatus === "PENDING" && <p role="status" className="notice warning">서버가 Agent에 요청을 전달하고 있습니다.</p>}
           {view.submissionError && <ErrorNotice error={view.submissionError} scope="submission" />}
-          {view.submissionStatus === "FAILED" && view.submissionError?.retryable && <button className="secondary" disabled={busy} onClick={() => void send(retryBody(view), false)}>같은 요청으로 전달 재시도</button>}
+          {view.submissionStatus === "FAILED" && view.submissionError?.retryable && <button className="secondary" disabled={busy || !!pending || !pendingReady || !!pendingError} onClick={() => void send(retryBody(view))}>같은 요청으로 전달 재시도</button>}
           {view.syncError && <ErrorNotice error={view.syncError} scope="sync" />}
           {investigation?.error && <ErrorNotice error={investigation.error} scope="investigation" />}
           {!shouldPoll(view) && (!investigation || ["RUNNING", "QUEUED"].includes(investigation.status)) && view.submissionStatus !== "FAILED" && <p className="small muted">자동 화면 갱신이 끝났습니다. 상태 다시 조회로 최신 결과를 확인하세요.</p>}

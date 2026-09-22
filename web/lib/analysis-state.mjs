@@ -16,13 +16,51 @@ export function newRequest(ticket, previousInvestigationId = null, key = crypto.
   return { requestKey: key, ticketVersion: ticket.version, previousInvestigationId };
 }
 export function pendingKey(ticketId) { return "jdd-analysis-request:" + ticketId; }
+/** Only idempotency metadata is persisted; never inquiry text or evidence. */
 export function readPending(storage, ticketId) {
+  const raw = storage.getItem(pendingKey(ticketId));
+  if (raw === null) return null;
+  let value;
+  try { value = JSON.parse(raw); } catch { throw Error("저장된 접수 정보를 읽을 수 없습니다. 기존 분석 이력을 먼저 확인해 주세요."); }
+  if (!value || typeof value.requestKey !== "string" || !value.requestKey.trim() || !Number.isSafeInteger(value.ticketVersion) || value.ticketVersion < 1
+    || !(value.previousInvestigationId === null || (typeof value.previousInvestigationId === "string" && !!value.previousInvestigationId.trim())))
+    throw Error("저장된 접수 정보가 올바르지 않습니다. 기존 분석 이력을 먼저 확인해 주세요.");
+  return { requestKey: value.requestKey, ticketVersion: value.ticketVersion, previousInvestigationId: value.previousInvestigationId };
+}
+function sameRequest(left, right) {
+  return !!left && !!right && left.requestKey === right.requestKey && left.ticketVersion === right.ticketVersion
+    && left.previousInvestigationId === right.previousInvestigationId;
+}
+/** Preserve in-flight requests created by the previous sessionStorage implementation. */
+export function restorePending(storage, sessionStorage, ticketId) {
+  const current = readPending(storage, ticketId); const legacy = readPending(sessionStorage, ticketId);
+  if (!legacy) return current;
+  if (current && !sameRequest(current, legacy)) throw Error("이 브라우저에 서로 다른 미확인 접수가 있습니다. 기존 분석 이력을 먼저 확인해 주세요.");
+  if (!current) storage.setItem(pendingKey(ticketId), JSON.stringify(legacy));
+  if (!sameRequest(readPending(storage, ticketId), legacy)) throw Error("접수 정보를 보존하지 못했습니다. 기존 분석 이력을 먼저 확인해 주세요.");
+  sessionStorage.removeItem(pendingKey(ticketId));
+  return legacy;
+}
+/** Persist before POST and preserve the same intent for every ambiguous outcome. */
+export async function submitPreservingKey(storage, ticketId, request, send) {
+  const existing = readPending(storage, ticketId);
+  if (existing && !sameRequest(existing, request)) throw Error("확인하지 못한 접수가 있습니다. 먼저 같은 요청을 확인해 주세요.");
+  const intent = { requestKey: request.requestKey, ticketVersion: request.ticketVersion, previousInvestigationId: request.previousInvestigationId ?? null };
+  storage.setItem(pendingKey(ticketId), JSON.stringify(intent));
+  const clearMatching = () => { if (sameRequest(readPending(storage, ticketId), intent)) storage.removeItem(pendingKey(ticketId)); };
   try {
-    const value = JSON.parse(storage.getItem(pendingKey(ticketId)) ?? "null");
-    if (!value || typeof value.requestKey !== "string" || !value.requestKey || !Number.isSafeInteger(value.ticketVersion) || value.ticketVersion < 1
-      || !(value.previousInvestigationId === null || typeof value.previousInvestigationId === "string")) return null;
-    return value;
-  } catch { return null; }
+    const result = await send(intent);
+    if (!result || typeof result.analysisRequestId !== "string" || !result.analysisRequestId
+      || result.ticketId !== ticketId || result.input?.ticketId !== ticketId
+      || result.ticketVersion !== intent.ticketVersion || !sameRequest(result.input, intent))
+      throw Error("접수 응답이 요청과 일치하지 않습니다. 같은 요청으로 다시 확인해 주세요.");
+    clearMatching();
+    return result;
+  } catch (error) {
+    const rejected = { 400: ["INVALID_REQUEST"], 404: ["NOT_FOUND"], 409: ["TICKET_VERSION_CONFLICT", "REQUEST_KEY_CONFLICT"] };
+    if (rejected[error?.status]?.includes(error?.detail?.code)) clearMatching();
+    throw error;
+  }
 }
 function ordered(value) {
   if (Array.isArray(value)) return value.map(ordered);

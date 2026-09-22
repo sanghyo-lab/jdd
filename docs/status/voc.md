@@ -16,6 +16,15 @@
 
 작업 단위가 끝날 때 제공 가능한 기능, 변경한 계약, 실제 검증 명령·결과, 다음 작업을 갱신한다. 실패와 막힌 이유도 함께 기록한다.
 
+## 2026-09-22T08:54:00+09:00 — 최신 실행 인수와 분석 접수 복구 보완
+
+- 사용자 요청에 따라 프론트 복구·실제 화면·backend 연동을 하위 작업으로 분담하고 김아름 본 작업이 통합·검토·커밋·push를 맡는다. 09:30 마무리는 계획 목표이며 필수 검증과 팀 완료 기준을 줄이지 않는다.
+- `8702c43`에서 전체 publish를 이 PC에서 완료했다. Python 협업70·부모 준비6·web19, Java222개 중213통과/9조건부제외·실패0, production TypeScript/build와 세 앱의 실제 PostgreSQL/HTTP/SELECT 전용 접근·근거 볼륨 검증을 통과했다. buildId는 `8702c4319f03-f990f5beb5f4`, 원문은 `runtime/verification/leader-handoff-full-publish-03.log`와 `latest-linux-gradle-check.json`이다. 일반 test/mock 검증이며 실제 모델/MVP 성공이 아니다.
+- 기존 Windows 보조 검증 이미지에서 새 prepareTests의 Python 부재, 이후 fixtures/scripts import 부재가 각각 실패했다. 두 실패 로그를 보존하고 로컬 검증 단계에 Python과 해당 모듈을 포함해 전체 검사를 다시 통과했다. 공유 앱 이미지·검사 단언은 바꾸지 않았다. Windows 네이티브 실행 경계11개와 부모 준비/복구 제어6개도 각각 통과했다.
+- 분석 POST 전 요청 키·티켓 버전·이전 조사 ID만 localStorage에 보존하고 기존 sessionStorage 요청을 이관한다. 응답 유실 후 탭 종료·재방문에서도 같은 입력으로 재전송하며 문의 원문/근거는 브라우저 저장소에 넣지 않는다. 손상·저장 실패는 POST 전 차단하고, 응답의 티켓/키/양쪽 버전/이전 조사 불일치나 통신·인증 오류는 원래 키를 유지한다. 명시 계약 거절만 해제하며 다른 탭의 미확인 요청을 소거하지 않는다.
+- 관련 Node 회귀는 전체25/25, diff 검사도 통과했다(`runtime/verification/frontend-recovery-node-tests.log`). root의 단독 타입 검사는 이전 미공유 favicon 경로를 참조하는 오래된 .next 때문에 실패해 보존했다. 깨끗한 별도 복사본의 production build·실제 화면 인수와 최종 publish 검사를 이어 수행하며 미검증을 통과로 쓰지 않는다.
+- 최신 Agent `27a7040`과 `8702c43`의 최종 검수 후 인용 재발 실패 DEMO-AGENT-001을 확인했다. UI는 RUNNING/report=null과 REPORT_VALIDATION_FAILED·저장 근거를 기존 상태 계약으로 소비하고 Agent 구현은 중복하지 않는다. 실제 모델은 사용자에게 로컬 OAuth 준비·사용을 위임받아 공식 프로젝트 전용 로그인을 시작했으며 아직 본인 로그인 완료 대기다. 기존 개발 세션 인증을 복사하거나 API 키로 대체하지 않는다.
+
 ## 2026-09-22T08:29:13+09:00 — VOC-LEAD-HANDOFF-001 접수와 공유 절차 재개
 
 - 김아름/voc가 [리더 인계](lead.md)의 `8b23657`을 직접 확인하고 접수한다. 분석 요청·이력·리포트/4종 근거, shop, 실제 HTTP runner와 부모 준비/복구 helper는 `d642878`·`86a0466`·`18288a3`에 이미 공유됐다. 해당 구현을 기준으로 소비 검증과 필요한 보완을 이어가며 같은 기능을 다시 구현하지 않는다.
